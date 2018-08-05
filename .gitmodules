@@ -1,0 +1,4 @@
+[submodule "di"]
+	path = di
+	url = https://github.com/boost-experimental/di
+	branch = cpp14
