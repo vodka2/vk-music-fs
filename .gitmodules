@@ -2,3 +2,7 @@
 	path = di
 	url = https://github.com/boost-experimental/di
 	branch = cpp14
+[submodule "boost-nowide"]
+	path = boost-nowide
+	url = https://github.com/halex2005/boost-nowide
+	branch = master
