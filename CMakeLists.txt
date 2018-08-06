@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.11)
 project(vk_music_fs)
 
+add_subdirectory(taglib_mod)
+
 set(CMAKE_CXX_STANDARD 17)
 
 add_subdirectory(boost-nowide)

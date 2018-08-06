@@ -1,8 +1,8 @@
 project(vk_music_fs_tests)
 
-add_library(testlib INTERFACE)
-target_link_libraries(testlib INTERFACE gtest_main gmock)
-target_include_directories(testlib INTERFACE ${CURRENT_SRC_DIR})
+add_library(testlib data/Mp3Files.h)
+target_link_libraries(testlib PUBLIC gtest_main gmock)
+target_include_directories(testlib PUBLIC ${CURRENT_SRC_DIR})
 
 function(add_vmf_test name src)
     add_executable(${name} "${src}")
@@ -11,3 +11,4 @@ function(add_vmf_test name src)
 endfunction()
 
 add_vmf_test(FileProcessorTest FileProcessorT.cpp)
+add_vmf_test(Mp3ParserTest Mp3ParserT.cpp)
