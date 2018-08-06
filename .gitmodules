@@ -6,3 +6,7 @@
 	path = boost-nowide
 	url = https://github.com/halex2005/boost-nowide
 	branch = master
+[submodule "googletest"]
+	path = googletest
+	url = https://github.com/google/googletest
+	branch = master
