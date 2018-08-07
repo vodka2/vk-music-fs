@@ -20,6 +20,7 @@ namespace vk_music_fs {
         std::mutex _bufferAppendMutex;
         std::condition_variable _bufferAppendStoppedCond;
         std::atomic_bool _bufferAppendStopped;
+        std::atomic_bool _closed;
     };
 
     template <typename TStream, typename TFile, typename TMp3Parser, typename TPool>
@@ -42,6 +43,18 @@ namespace vk_music_fs {
                 _file->write(std::move(_buffer->clearStart()));
                 _file->write(std::move(_buffer->clearMain()));
                 promise->set_value();
+                while(true){
+                    auto buf = _stream->read();
+                    if(!buf){
+                        _file->finish();
+                        break;
+                    }
+                    if(_closed){
+                        _file->close();
+                        break;
+                    }
+                    _file->write(std::move(*buf));
+                }
             });
             _openFuture = std::move(promise->get_future());
         }

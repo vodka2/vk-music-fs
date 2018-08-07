@@ -5,6 +5,8 @@ add_subdirectory(taglib_mod)
 
 set(CMAKE_CXX_STANDARD 17)
 
+include_directories(di/extension/include)
+
 add_subdirectory(boost-nowide)
 add_subdirectory(googletest)
 

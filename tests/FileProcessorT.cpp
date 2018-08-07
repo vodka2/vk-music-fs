@@ -3,8 +3,10 @@
 #include <FileProcessor.h>
 #include <boost/asio.hpp>
 #include <boost/di.hpp>
+#include <boost/di/extension/scopes/scoped.hpp>
 
 namespace di = boost::di;
+
 using vk_music_fs::ByteVect;
 
 class ThreadPoolM{
@@ -23,6 +25,8 @@ class FileM{
 public:
     FileM(){} //NOLINT
     MOCK_CONST_METHOD1(write, void(ByteVect vect)); //NOLINT
+    MOCK_CONST_METHOD0(finish, void());
+    MOCK_CONST_METHOD0(close, void());
 };
 
 class ParserM{
@@ -64,16 +68,22 @@ public:
 class FileProcessorT: public ::testing::Test {
 public:
     di::injector<
-            std::shared_ptr<FileProcessor>,
-            std::shared_ptr<StreamM>,
-            std::shared_ptr<FileM>,
-            std::shared_ptr<ParserM>,
-            std::shared_ptr<ThreadPoolM>
-    > inj;
-    FileProcessorT(): inj(di::make_injector(di::bind<FileProcessor>.in(di::unique))){}
+        std::shared_ptr<FileProcessor>,
+        std::shared_ptr<StreamM>,
+        std::shared_ptr<FileM>,
+        std::shared_ptr<ParserM>,
+        std::shared_ptr<ThreadPoolM>
+    > inj = di::make_injector(
+        di::bind<FileProcessor>.in(di::extension::scoped),
+        di::bind<StreamM>.in(di::extension::scoped),
+        di::bind<FileM>.in(di::extension::scoped),
+        di::bind<ThreadPoolM>.in(di::extension::scoped)
+    );
 
     std::shared_ptr<FileProcessor> fp;
     std::shared_ptr<MusicData> data;
+    std::future<void> finish;
+    std::promise<void> finishPromise;
 
     void init(const ByteVect &dataVect){
         data = std::make_shared<MusicData>(dataVect);
@@ -85,8 +95,20 @@ public:
         fp = inj.create<std::shared_ptr<FileProcessor>>();
     }
 
+    void expectFinish(){
+        finish = finishPromise.get_future();
+        EXPECT_CALL(*inj.create<std::shared_ptr<FileM>>(), finish()).WillOnce(testing::Invoke([this] {
+            finishPromise.set_value();
+        }));
+    }
+
     void end(){
         fp->openFile().wait();
+    }
+
+    void waitForFinish(){
+        finish.wait();
+        inj.create<std::shared_ptr<ThreadPoolM>>()->tp.join();
     }
 };
 
@@ -104,8 +126,10 @@ TEST_F(FileProcessorT, Prepend){ //NOLINT
     EXPECT_CALL(*inj.create<std::shared_ptr<FileM>>(), write(ByteVect{1, 2}));
     EXPECT_CALL(*inj.create<std::shared_ptr<FileM>>(), write(dataVect));
 
+    expectFinish();
     init(dataVect);
     end();
+    waitForFinish();
 }
 
 TEST_F(FileProcessorT, NoPrepend){ //NOLINT
@@ -121,8 +145,10 @@ TEST_F(FileProcessorT, NoPrepend){ //NOLINT
     EXPECT_CALL(*inj.create<std::shared_ptr<FileM>>(), write(ByteVect{}));
     EXPECT_CALL(*inj.create<std::shared_ptr<FileM>>(), write(dataVect));
 
+    expectFinish();
     init(dataVect);
     end();
+    waitForFinish();
 }
 
 TEST_F(FileProcessorT, OnEOF){ //NOLINT
@@ -139,6 +165,8 @@ TEST_F(FileProcessorT, OnEOF){ //NOLINT
     EXPECT_CALL(*inj.create<std::shared_ptr<FileM>>(), write(ByteVect{}));
     EXPECT_CALL(*inj.create<std::shared_ptr<FileM>>(), write(dataVect));
 
+    expectFinish();
     init(dataVect);
     end();
+    waitForFinish();
 }
