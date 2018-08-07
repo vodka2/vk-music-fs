@@ -84,6 +84,10 @@ namespace vk_music_fs {
                 }
             }
         }
+
+        void close(){
+            _closed = true;
+        }
     private:
         std::future<void> _openFuture;
 

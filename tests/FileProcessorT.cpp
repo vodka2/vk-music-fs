@@ -175,15 +175,13 @@ TEST_F(FileProcessorT, OnEOF){ //NOLINT
 }
 
 TEST_F(FileProcessorT, ReadBytesFromFile){ //NOLINT
-    ByteVect dataVect{};
-
     EXPECT_CALL(*inj.create<std::shared_ptr<ParserM>>(), parse(testing::_));
     EXPECT_CALL(*inj.create<std::shared_ptr<FileM>>(), write(testing::_)).Times(testing::AtLeast(1));
     EXPECT_CALL(*inj.create<std::shared_ptr<FileM>>(), read(1, 3)).WillOnce(testing::Return(ByteVect{1, 2, 3}));
     EXPECT_CALL(*inj.create<std::shared_ptr<FileM>>(), getSize()).WillOnce(testing::Return(4));
 
     expectFinish();
-    init(dataVect);
+    init({});
 
     auto exp = ByteVect{1,2,3};
     EXPECT_EQ(fp->read(1, 3), exp);
@@ -193,8 +191,6 @@ TEST_F(FileProcessorT, ReadBytesFromFile){ //NOLINT
 }
 
 TEST_F(FileProcessorT, ReadBytesFromStreamAndFile){ //NOLINT
-    ByteVect dataVect{};
-
     EXPECT_CALL(*inj.create<std::shared_ptr<ParserM>>(), parse(testing::_));
     EXPECT_CALL(*inj.create<std::shared_ptr<FileM>>(), write(testing::_)).Times(testing::AtLeast(1));
     EXPECT_CALL(*inj.create<std::shared_ptr<FileM>>(), read(1, 3)).WillOnce(testing::Return(ByteVect{1, 2, 3}));
@@ -202,7 +198,7 @@ TEST_F(FileProcessorT, ReadBytesFromStreamAndFile){ //NOLINT
     EXPECT_CALL(*inj.create<std::shared_ptr<FileM>>(), getSize()).WillOnce(testing::Return(4));
 
     expectFinish();
-    init(dataVect);
+    init({});
 
     auto exp = ByteVect{1,2,3,4};
     EXPECT_EQ(fp->read(1, 4), exp);
@@ -212,18 +208,38 @@ TEST_F(FileProcessorT, ReadBytesFromStreamAndFile){ //NOLINT
 }
 
 TEST_F(FileProcessorT, ReadBytesFromStream){ //NOLINT
-    ByteVect dataVect{};
-
     EXPECT_CALL(*inj.create<std::shared_ptr<ParserM>>(), parse(testing::_));
     EXPECT_CALL(*inj.create<std::shared_ptr<FileM>>(), write(testing::_)).Times(testing::AtLeast(1));
     EXPECT_CALL(*inj.create<std::shared_ptr<StreamM>>(), read(1, 4)).WillOnce(testing::Return(ByteVect{1, 2, 3, 4}));
     EXPECT_CALL(*inj.create<std::shared_ptr<FileM>>(), getSize()).WillOnce(testing::Return(1));
 
     expectFinish();
-    init(dataVect);
+    init({});
 
     auto exp = ByteVect{1,2,3,4};
     EXPECT_EQ(fp->read(1, 4), exp);
+
+    end();
+    waitForFinish();
+}
+
+TEST_F(FileProcessorT, Close){ //NOLINT
+    std::promise<void> closedProm;
+    std::future<void> closed = closedProm.get_future();
+    EXPECT_CALL(*inj.create<std::shared_ptr<ParserM>>(), parse(testing::_)).WillOnce(testing::Invoke([&closed] (
+            const std::shared_ptr<vk_music_fs::BlockingBuffer> &buf
+    ){
+        closed.wait();
+    }));
+    EXPECT_CALL(*inj.create<std::shared_ptr<FileM>>(), write(testing::_)).Times(testing::AtLeast(1));
+    init({});
+    fp->close();
+
+    finish = finishPromise.get_future();
+    EXPECT_CALL(*inj.create<std::shared_ptr<FileM>>(), close()).WillOnce(testing::Invoke([this] {
+        finishPromise.set_value();
+    }));
+    closedProm.set_value();
 
     end();
     waitForFinish();
