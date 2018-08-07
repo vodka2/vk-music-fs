@@ -24,9 +24,11 @@ public:
 class FileM{
 public:
     FileM(){} //NOLINT
+    MOCK_CONST_METHOD2(read, ByteVect(uint_fast32_t offset, uint_fast32_t size));
     MOCK_CONST_METHOD1(write, void(ByteVect vect)); //NOLINT
     MOCK_CONST_METHOD0(finish, void());
     MOCK_CONST_METHOD0(close, void());
+    MOCK_CONST_METHOD0(getSize, uint_fast32_t());
 };
 
 class ParserM{
@@ -38,6 +40,7 @@ public:
 class StreamM{
 public:
     StreamM(){} //NOLINT
+    MOCK_CONST_METHOD2(read, ByteVect(uint_fast32_t offset, uint_fast32_t size));
     MOCK_CONST_METHOD0(read, std::optional<ByteVect>());
     MOCK_CONST_METHOD0(getSize, uint_fast32_t());
 };
@@ -167,6 +170,61 @@ TEST_F(FileProcessorT, OnEOF){ //NOLINT
 
     expectFinish();
     init(dataVect);
+    end();
+    waitForFinish();
+}
+
+TEST_F(FileProcessorT, ReadBytesFromFile){ //NOLINT
+    ByteVect dataVect{};
+
+    EXPECT_CALL(*inj.create<std::shared_ptr<ParserM>>(), parse(testing::_));
+    EXPECT_CALL(*inj.create<std::shared_ptr<FileM>>(), write(testing::_)).Times(testing::AtLeast(1));
+    EXPECT_CALL(*inj.create<std::shared_ptr<FileM>>(), read(1, 3)).WillOnce(testing::Return(ByteVect{1, 2, 3}));
+    EXPECT_CALL(*inj.create<std::shared_ptr<FileM>>(), getSize()).WillOnce(testing::Return(4));
+
+    expectFinish();
+    init(dataVect);
+
+    auto exp = ByteVect{1,2,3};
+    EXPECT_EQ(fp->read(1, 3), exp);
+
+    end();
+    waitForFinish();
+}
+
+TEST_F(FileProcessorT, ReadBytesFromStreamAndFile){ //NOLINT
+    ByteVect dataVect{};
+
+    EXPECT_CALL(*inj.create<std::shared_ptr<ParserM>>(), parse(testing::_));
+    EXPECT_CALL(*inj.create<std::shared_ptr<FileM>>(), write(testing::_)).Times(testing::AtLeast(1));
+    EXPECT_CALL(*inj.create<std::shared_ptr<FileM>>(), read(1, 3)).WillOnce(testing::Return(ByteVect{1, 2, 3}));
+    EXPECT_CALL(*inj.create<std::shared_ptr<StreamM>>(), read(4, 1)).WillOnce(testing::Return(ByteVect{4}));
+    EXPECT_CALL(*inj.create<std::shared_ptr<FileM>>(), getSize()).WillOnce(testing::Return(4));
+
+    expectFinish();
+    init(dataVect);
+
+    auto exp = ByteVect{1,2,3,4};
+    EXPECT_EQ(fp->read(1, 4), exp);
+
+    end();
+    waitForFinish();
+}
+
+TEST_F(FileProcessorT, ReadBytesFromStream){ //NOLINT
+    ByteVect dataVect{};
+
+    EXPECT_CALL(*inj.create<std::shared_ptr<ParserM>>(), parse(testing::_));
+    EXPECT_CALL(*inj.create<std::shared_ptr<FileM>>(), write(testing::_)).Times(testing::AtLeast(1));
+    EXPECT_CALL(*inj.create<std::shared_ptr<StreamM>>(), read(1, 4)).WillOnce(testing::Return(ByteVect{1, 2, 3, 4}));
+    EXPECT_CALL(*inj.create<std::shared_ptr<FileM>>(), getSize()).WillOnce(testing::Return(1));
+
+    expectFinish();
+    init(dataVect);
+
+    auto exp = ByteVect{1,2,3,4};
+    EXPECT_EQ(fp->read(1, 4), exp);
+
     end();
     waitForFinish();
 }

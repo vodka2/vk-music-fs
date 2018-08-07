@@ -21,6 +21,7 @@ namespace vk_music_fs {
         std::condition_variable _bufferAppendStoppedCond;
         std::atomic_bool _bufferAppendStopped;
         std::atomic_bool _closed;
+        uint_fast32_t _prependSize;
     };
 
     template <typename TStream, typename TFile, typename TMp3Parser, typename TPool>
@@ -40,17 +41,20 @@ namespace vk_music_fs {
                 });
                 _parser->parse(_buffer);
                 waitForStopAppend();
-                _file->write(std::move(_buffer->clearStart()));
-                _file->write(std::move(_buffer->clearMain()));
+                auto prepVect = std::move(_buffer->clearStart());
+                _prependSize = prepVect.size();
                 promise->set_value();
+                _file->write(std::move(prepVect));
+                _file->write(std::move(_buffer->clearMain()));
+                _buffer.reset();
                 while(true){
+                    if(_closed){
+                        _file->close();
+                        break;
+                    }
                     auto buf = _stream->read();
                     if(!buf){
                         _file->finish();
-                        break;
-                    }
-                    if(_closed){
-                        _file->close();
                         break;
                     }
                     _file->write(std::move(*buf));
@@ -61,6 +65,24 @@ namespace vk_music_fs {
 
         std::future<void>& openFile(){
             return _openFuture;
+        }
+
+        ByteVect read(uint_fast32_t start, uint_fast32_t size){
+            _openFuture.wait();
+            auto fileSize = _file->getSize();
+            if(start + size <= fileSize){
+                return _file->read(start, size);
+            } else {
+                if(start < fileSize){
+                    ByteVect res = std::move(_file->read(start, (fileSize - start)));
+                    res.reserve(size);
+                    ByteVect t = std::move(_stream->read(fileSize - _prependSize, size - (fileSize - start)));
+                    std::copy(t.cbegin(), t.cend(), std::back_inserter(res));
+                    return std::move(res);
+                } else {
+                    return _stream->read(start - _prependSize, size);
+                }
+            }
         }
     private:
         std::future<void> _openFuture;
