@@ -1,7 +1,10 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include <FileProcessor.h>
-#include <boost/asio.hpp>
+#include "data/MusicData.h"
+#include "data/FileM.h"
+#include "data/StreamM.h"
+#include "data/ThreadPoolM.h"
 #include <boost/di.hpp>
 #include <boost/di/extension/scopes/scoped.hpp>
 
@@ -9,64 +12,13 @@ namespace di = boost::di;
 
 using vk_music_fs::ByteVect;
 
-class ThreadPoolM{
-public:
-    boost::asio::thread_pool tp;
-    std::mutex mutex;
-    ThreadPoolM(){}; //NOLINT
-    template <typename T>
-    void post(T func){ //NOLINT
-        std::scoped_lock<std::mutex> lock(mutex);
-        boost::asio::post(tp, func);
-    }
-};
-
-class FileM{
-public:
-    FileM(){} //NOLINT
-    MOCK_CONST_METHOD2(read, ByteVect(uint_fast32_t offset, uint_fast32_t size));
-    MOCK_CONST_METHOD1(write, void(ByteVect vect)); //NOLINT
-    MOCK_CONST_METHOD0(finish, void());
-    MOCK_CONST_METHOD0(close, void());
-    MOCK_CONST_METHOD0(getSize, uint_fast32_t());
-};
-
 class ParserM{
 public:
     ParserM(){} //NOLINT
     MOCK_CONST_METHOD1(parse, void(const std::shared_ptr<vk_music_fs::BlockingBuffer> &vect));
 };
 
-class StreamM{
-public:
-    StreamM(){} //NOLINT
-    MOCK_CONST_METHOD2(read, ByteVect(uint_fast32_t offset, uint_fast32_t size));
-    MOCK_CONST_METHOD0(read, std::optional<ByteVect>());
-    MOCK_CONST_METHOD0(getSize, uint_fast32_t());
-};
-
-
 typedef vk_music_fs::FileProcessor<StreamM, FileM, ParserM, ThreadPoolM> FileProcessor;
-
-class MusicData{
-private:
-    ByteVect _data;
-    uint_fast32_t _offset;
-    const int LEN = 2;
-public:
-    explicit MusicData(ByteVect data) : _data(std::move(data)), _offset(0){}
-    std::optional<ByteVect> readData(){
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        ByteVect res;
-        if(_offset >= _data.size()){
-            return std::nullopt;
-        }
-        uint_fast32_t realLen = std::min(_offset + LEN, _data.size());
-        std::copy(_data.cbegin() + _offset, _data.cbegin() + realLen, std::back_inserter(res));
-        _offset += LEN;
-        return res;
-    }
-};
 
 class FileProcessorT: public ::testing::Test {
 public:
@@ -89,7 +41,7 @@ public:
     std::promise<void> finishPromise;
 
     void init(const ByteVect &dataVect){
-        data = std::make_shared<MusicData>(dataVect);
+        data = std::make_shared<MusicData>(dataVect, 1);
 
         EXPECT_CALL(*inj.create<std::shared_ptr<StreamM>>(), getSize()).WillOnce(testing::Return(dataVect.size()));
         EXPECT_CALL(*inj.create<std::shared_ptr<StreamM>>(), read()).WillRepeatedly(testing::Invoke([&data = data] {
