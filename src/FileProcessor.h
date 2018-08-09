@@ -11,7 +11,7 @@
 namespace vk_music_fs {
     class FileProcessorInt{
     protected:
-        explicit FileProcessorInt(uint_fast32_t size);
+        explicit FileProcessorInt();
         bool addToBuffer(std::optional<ByteVect> vect);
         void waitForStopAppend();
         void notifyAppendStopped();
@@ -33,9 +33,11 @@ namespace vk_music_fs {
                 const std::shared_ptr<TPool> &pool,
                 const std::shared_ptr<TMp3Parser> &parser
         )
-        :FileProcessorInt(stream->getSize()), _stream(stream), _file(file), _pool(pool), _parser(parser){
+        :FileProcessorInt(), _stream(stream), _file(file), _pool(pool), _parser(parser){
             auto promise = std::make_shared<std::promise<void>>();
             _pool->post([this, promise] {
+                _stream->open();
+                _buffer->setSize(_stream->getSize());
                 _pool->post([this, promise] {
                     while(!addToBuffer(_stream->read()));
                 });

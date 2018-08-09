@@ -10,7 +10,8 @@
 namespace vk_music_fs {
     class BlockingBuffer {
     public:
-        explicit BlockingBuffer(uint_fast32_t size);
+        explicit BlockingBuffer();
+        void setSize(uint_fast32_t size);
         void setEOF();
         ByteVect read(uint_fast32_t offset, uint_fast32_t len);
         void append(ByteVect vect);

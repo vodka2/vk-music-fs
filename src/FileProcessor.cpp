@@ -2,9 +2,9 @@
 
 using namespace vk_music_fs;
 
-FileProcessorInt::FileProcessorInt(uint_fast32_t size)
+FileProcessorInt::FileProcessorInt()
 :
-    _buffer(std::make_shared<BlockingBuffer>(size)),
+    _buffer(std::make_shared<BlockingBuffer>()),
     _metadataWasRead(false), _bufferAppendStopped(false), _closed(false){
 };
 

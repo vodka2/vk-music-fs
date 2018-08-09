@@ -44,7 +44,7 @@ ByteVect BlockingBuffer::clearStart() {
     return std::move(_startPart);
 }
 
-BlockingBuffer::BlockingBuffer(uint_fast32_t size) : _eof(false), _size(size), _portionRead(false){
+BlockingBuffer::BlockingBuffer() : _eof(false), _portionRead(false){
 }
 
 void BlockingBuffer::setEOF() {
@@ -59,4 +59,8 @@ void BlockingBuffer::notify() {
 
 uint_fast32_t BlockingBuffer::getSize() {
     return _size;
+}
+
+void BlockingBuffer::setSize(uint_fast32_t size) {
+    _size = size;
 }
