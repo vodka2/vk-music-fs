@@ -152,6 +152,6 @@ target_include_directories(
         ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty
 )
 
-target_compile_definitions(tag PRIVATE HAVE_CONFIG_H)
+target_compile_definitions(tag PUBLIC HAVE_CONFIG_H TAGLIB_STATIC)
 
 target_link_libraries(tag ${ZLIB_LIBRARIES})
