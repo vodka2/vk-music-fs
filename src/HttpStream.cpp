@@ -9,7 +9,6 @@ namespace http = boost::beast::http;
 namespace ssl = boost::asio::ssl;
 
 std::optional<ByteVect> HttpStream::read() {
-    namespace http = boost::beast::http;
     try {
         if (_parser.is_done()) {
             return std::nullopt;
@@ -33,8 +32,6 @@ std::optional<ByteVect> HttpStream::read() {
 }
 
 ByteVect HttpStream::read(uint_fast32_t offset, uint_fast32_t length) {
-    using tcp = boost::asio::ip::tcp;
-    namespace http = boost::beast::http;
     try {
         if (offset >= _size) {
             return {};
