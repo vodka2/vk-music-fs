@@ -16,6 +16,7 @@ namespace vk_music_fs{
         void open();
         std::optional<ByteVect> read();
         ByteVect read(uint_fast32_t offset, uint_fast32_t length);
+        void close();
     private:
         const uint_fast32_t BUFFER_SIZE = 1024 * 64;
 

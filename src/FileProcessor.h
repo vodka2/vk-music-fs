@@ -51,7 +51,7 @@ namespace vk_music_fs {
                 _buffer.reset();
                 while(true){
                     if(_closed){
-                        _file->close();
+                        _stream->close();
                         break;
                     }
                     auto buf = _stream->read();
@@ -89,6 +89,7 @@ namespace vk_music_fs {
 
         void close(){
             _closed = true;
+            _file->close();
         }
     private:
         std::future<void> _openFuture;

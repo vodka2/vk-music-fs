@@ -24,10 +24,7 @@ std::optional<ByteVect> HttpStream::read() {
         }
         _returnBuffer.resize(size);
         if (_parser.is_done()) {
-            _stream->shutdown(ec);
-            if (ec && ec != boost::asio::ssl::error::stream_truncated) {
-                throw boost::system::system_error{ec};
-            }
+            close();
         }
         return _returnBuffer;
     } catch (const boost::system::system_error &ex){
@@ -98,5 +95,13 @@ void HttpStream::open() {
         _size = static_cast<uint_fast32_t>(*_parser.content_length());
     } catch (const boost::system::system_error &ex){
         throw HttpException(std::string("Error opening uri ")  + _uri + ". " + ex.what());
+    }
+}
+
+void HttpStream::close() {
+    boost::beast::error_code ec;
+    _stream->shutdown(ec);
+    if (ec && ec != boost::asio::ssl::error::stream_truncated) {
+        throw HttpException(std::string("Error closing stream ") + _uri);
     }
 }

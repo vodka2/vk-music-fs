@@ -185,13 +185,14 @@ TEST_F(FileProcessorT, Close){ //NOLINT
     }));
     EXPECT_CALL(*inj.create<std::shared_ptr<FileM>>(), write(testing::_)).Times(testing::AtLeast(1));
     init({});
-    fp->close();
 
     finish = finishPromise.get_future();
     EXPECT_CALL(*inj.create<std::shared_ptr<FileM>>(), close()).WillOnce(testing::Invoke([this] {
         finishPromise.set_value();
     }));
     closedProm.set_value();
+
+    fp->close();
 
     end();
     waitForFinish();
