@@ -1,0 +1,102 @@
+#include "HttpStream.h"
+#include "HttpException.h"
+#include <iostream>
+
+using namespace vk_music_fs;
+
+using tcp = boost::asio::ip::tcp;
+namespace http = boost::beast::http;
+namespace ssl = boost::asio::ssl;
+
+std::optional<ByteVect> HttpStream::read() {
+    namespace http = boost::beast::http;
+    try {
+        if (_parser.is_done()) {
+            return std::nullopt;
+        }
+        _returnBuffer.resize(BUFFER_SIZE);
+        _parser.get().body().data = &_returnBuffer[0];
+        _parser.get().body().size = BUFFER_SIZE;
+        boost::beast::error_code ec;
+        auto size = http::read(*_stream, _readBuffer, _parser, ec);
+        if(ec && ec != boost::beast::http::error::need_buffer){
+            throw boost::system::system_error{ec};
+        }
+        _returnBuffer.resize(size);
+        if (_parser.is_done()) {
+            _stream->shutdown(ec);
+            if (ec && ec != boost::asio::ssl::error::stream_truncated) {
+                throw boost::system::system_error{ec};
+            }
+        }
+        return _returnBuffer;
+    } catch (const boost::system::system_error &ex){
+        throw HttpException(std::string("Error reading uri ") + _uri + ". " + ex.what());
+    }
+}
+
+ByteVect HttpStream::read(uint_fast32_t offset, uint_fast32_t length) {
+    using tcp = boost::asio::ip::tcp;
+    namespace http = boost::beast::http;
+    try {
+        if (offset >= _size) {
+            return {};
+        }
+
+        auto stream = _common->connect(_hostPath);
+        http::request<http::string_body> req{http::verb::get, _hostPath.path, HttpStreamCommon::HTTP_VERSION};
+        req.set(http::field::host, _hostPath.host);
+        auto maxReadByte = std::min(offset + length - 1, _size - 1);
+        auto readSize = maxReadByte + 1 - offset;
+        req.set(http::field::range, "bytes=" + std::to_string(offset) + "-" + std::to_string(maxReadByte));
+        req.set(http::field::user_agent, _userAgent);
+        http::write(*stream, req);
+
+        boost::beast::basic_flat_buffer<std::allocator<uint8_t>> readBuffer;
+        http::response_parser<http::buffer_body> parser;
+        http::read_header(*stream, readBuffer, parser);
+        if (parser.get().result() != http::status::partial_content && _parser.get().result() != http::status::ok) {
+            throw HttpException(
+                "Bad status code " + std::to_string(static_cast<uint_fast32_t>(parser.get().result())) +
+                " when opening " + _uri
+            );
+        }
+        ByteVect buf(readSize);
+
+        parser.get().body().data = &buf[0];
+        parser.get().body().size = readSize;
+
+        boost::beast::error_code ec;
+        http::read(*stream, readBuffer, parser, ec);
+        if(ec && ec != boost::beast::http::error::need_buffer){
+            throw boost::system::system_error{ec};
+        }
+        return buf;
+    } catch (const boost::system::system_error &ex){
+        throw HttpException(std::string("Error reading part of uri ") + _uri + ". " + ex.what());
+    }
+}
+
+HttpStream::HttpStream(const std::string &uri, const std::shared_ptr<HttpStreamCommon> &common, const std::string &userAgent)
+: _uri(uri), _userAgent(userAgent), _common(common), _hostPath(_common->getHostPath(uri)){
+}
+
+uint_fast32_t HttpStream::getSize() {
+    return _size;
+}
+
+void HttpStream::open() {
+    try {
+        _stream = _common->connect(_hostPath);
+        _common->sendGetReq(_stream, _hostPath, _userAgent);
+        http::read_header(*_stream, _readBuffer, _parser);
+        if (_parser.get().result() != http::status::ok) {
+            throw HttpException(
+                    "Bad status code " + std::to_string(static_cast<uint_fast32_t>(_parser.get().result())) +
+                    " when opening " + _uri);
+        }
+        _size = static_cast<uint_fast32_t>(*_parser.content_length());
+    } catch (const boost::system::system_error &ex){
+        throw HttpException(std::string("Error opening uri ")  + _uri + ". " + ex.what());
+    }
+}
