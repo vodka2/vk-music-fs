@@ -45,3 +45,11 @@ void HttpStreamCommon::sendGetReq(
 HttpStreamCommon::HttpStreamCommon() : _resolver{_ioc}, _sslCtx{boost::asio::ssl::context::tlsv12_client}{
     _sslCtx.set_options(boost::asio::ssl::context::default_workarounds);
 }
+
+void HttpStreamCommon::sendHeadReq(const std::shared_ptr<HttpStreamCommon::Stream> &stream,
+                                   const HttpStreamCommon::HostPath &hostPath, const std::string &userAgent) {
+    http::request<http::string_body> req{http::verb::head, hostPath.path, HttpStreamCommon::HTTP_VERSION};
+    req.set(http::field::host, hostPath.host);
+    req.set(http::field::user_agent, userAgent);
+    http::write(*stream, req);
+}

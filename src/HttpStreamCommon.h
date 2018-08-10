@@ -20,6 +20,9 @@ namespace vk_music_fs {
                 const HostPath &hostPath,
                 const std::string &userAgent
                 );
+        void sendHeadReq(const std::shared_ptr<HttpStreamCommon::Stream> &stream,
+                         const HostPath &hostPath,
+                         const std::string &userAgent);
     private:
         boost::asio::io_context _ioc;
         boost::asio::ssl::context _sslCtx;
