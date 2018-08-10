@@ -32,12 +32,17 @@ void BlockingBuffer::append(ByteVect vect) {
     notify();
 }
 
-void BlockingBuffer::prepend(ByteVect vect) {
+void BlockingBuffer::prepend(ByteVect vect, uint_fast32_t replace) {
     _startPart = std::move(vect);
+    _replaceLen = replace;
 }
 
 ByteVect BlockingBuffer::clearMain() {
-    return std::move(_buffer);
+    if(_replaceLen != 0){
+        return ByteVect(_buffer.cbegin() + _replaceLen, _buffer.cend());
+    } else {
+        return std::move(_buffer);
+    }
 }
 
 ByteVect BlockingBuffer::clearStart() {

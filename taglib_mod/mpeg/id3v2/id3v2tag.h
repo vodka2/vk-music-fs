@@ -375,6 +375,8 @@ namespace TagLib {
        */
       static void setLatin1StringHandler(const Latin1StringHandler *handler);
 
+      void setExtraSize(unsigned extraSize);
+
     protected:
       /*!
        * Reads data from the file specified in the constructor.  It does basic

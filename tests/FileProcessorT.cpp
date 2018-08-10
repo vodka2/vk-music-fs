@@ -74,7 +74,7 @@ TEST_F(FileProcessorT, Prepend){ //NOLINT
         const std::shared_ptr<vk_music_fs::BlockingBuffer> &buf
     ) {
         buf->read(3, 5);
-        buf->prepend(buf->read(10, 2));
+        buf->prepend(buf->read(10, 2), 0);
         buf->read(0, dataVect.size());
     }));
 

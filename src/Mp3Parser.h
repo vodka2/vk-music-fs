@@ -28,11 +28,11 @@ namespace vk_music_fs {
         }
 
         void insert(const TagLib::ByteVector &data, unsigned long start, unsigned long replace) override{
-            if(start == 0 && replace == 0){
+            if(start == 0){
                 ByteVect prep;
                 prep.reserve(data.size());
                 std::copy(data.begin(), data.end(), std::back_inserter(prep));
-                _buffer->prepend(std::move(prep));
+                _buffer->prepend(std::move(prep), replace);
             }
         }
 
@@ -77,19 +77,23 @@ namespace vk_music_fs {
 
     class Mp3Parser {
     public:
-        Mp3Parser(Artist artist, Title title);
+        Mp3Parser(Artist artist, Title title, TagSize tagSize);
         template <typename TBuffer>
         void parse(const std::shared_ptr<TBuffer> &buffer){
             auto strm = std::make_shared<IOStream<TBuffer>>(buffer);
             TagLib::MPEG::File f(strm.get(), TagLib::ID3v2::FrameFactory::instance());
-            if(!f.hasID3v2Tag()) {
-                f.ID3v2Tag(true)->setTitle(_title.t);
+            f.ID3v2Tag(true)->setExtraSize(_tagSize);
+            if(f.ID3v2Tag()->artist().isEmpty()){
                 f.ID3v2Tag()->setArtist(_artist.t);
-                f.save();
             }
+            if(f.ID3v2Tag()->title().isEmpty()) {
+                f.ID3v2Tag()->setTitle(_title.t);
+            }
+            f.save();
         }
     private:
         Artist _artist;
         Title _title;
+        TagSize _tagSize;
     };
 }

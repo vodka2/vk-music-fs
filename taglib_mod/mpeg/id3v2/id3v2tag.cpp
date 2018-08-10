@@ -63,6 +63,7 @@ public:
     factory(0),
     file(0),
     tagOffset(0),
+    extraSize(0),
     extendedHeader(0),
     footer(0)
   {
@@ -79,6 +80,7 @@ public:
 
   File *file;
   long tagOffset;
+  long extraSize;
 
   Header header;
   ExtendedHeader *extendedHeader;
@@ -621,23 +623,29 @@ ByteVector ID3v2::Tag::render(int version) const
   // Compute the amount of padding, and append that to tagData.
 
   long originalSize = d->header.tagSize();
-  long paddingSize = originalSize - (tagData.size() - Header::size());
+  unsigned newSize;
+  if(originalSize != 0){
+    newSize = std::max<unsigned>(tagData.size(), originalSize + d->extraSize + Header::size());
+  } else {
+    long paddingSize = originalSize - (tagData.size() - Header::size());
 
-  if(paddingSize <= 0) {
-    paddingSize = MinPaddingSize;
-  }
-  else {
-    // Padding won't increase beyond 1% of the file size or 1MB.
-
-    long threshold = d->file ? d->file->length() / 100 : 0;
-    threshold = std::max(threshold, MinPaddingSize);
-    threshold = std::min(threshold, MaxPaddingSize);
-
-    if(paddingSize > threshold)
+    if (paddingSize <= 0) {
       paddingSize = MinPaddingSize;
+    } else {
+      // Padding won't increase beyond 1% of the file size or 1MB.
+
+      long threshold = d->file ? d->file->length() / 100 : 0;
+      threshold = std::max(threshold, MinPaddingSize);
+      threshold = std::min(threshold, MaxPaddingSize);
+
+      if (paddingSize > threshold)
+        paddingSize = MinPaddingSize;
+    }
+
+    newSize = tagData.size() + paddingSize;
   }
 
-  tagData.resize(static_cast<unsigned int>(tagData.size() + paddingSize), '\0');
+  tagData.resize(newSize, '\0');
 
   // Set the version and data size.
   d->header.setMajorVersion(version);
@@ -791,4 +799,8 @@ void ID3v2::Tag::setTextFrame(const ByteVector &id, const String &value)
     addFrame(f);
     f->setText(value);
   }
+}
+
+void TagLib::ID3v2::Tag::setExtraSize(unsigned extraSize) {
+  d->extraSize = extraSize;
 }
