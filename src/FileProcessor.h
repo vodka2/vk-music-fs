@@ -39,7 +39,9 @@ namespace vk_music_fs {
                 _stream->open();
                 _buffer->setSize(_stream->getSize());
                 _pool->post([this, promise] {
-                    while(!addToBuffer(_stream->read()));
+                    while(!addToBuffer(_stream->read())){
+                        std::this_thread::sleep_for(std::chrono::milliseconds(30));
+                    }
                 });
                 _parser->parse(_buffer);
                 waitForStopAppend();

@@ -1,6 +1,5 @@
 #include "HttpStream.h"
 #include "HttpException.h"
-#include <iostream>
 
 using namespace vk_music_fs;
 
@@ -73,6 +72,7 @@ ByteVect HttpStream::read(uint_fast32_t offset, uint_fast32_t length) {
 
 HttpStream::HttpStream(const std::string &uri, const std::shared_ptr<HttpStreamCommon> &common, const std::string &userAgent)
 : _uri(uri), _userAgent(userAgent), _common(common), _hostPath(_common->getHostPath(uri)){
+    _parser.body_limit(std::numeric_limits<std::uint_fast32_t>::max());
 }
 
 uint_fast32_t HttpStream::getSize() {

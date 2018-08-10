@@ -9,8 +9,12 @@ MusicFile::MusicFile(const std::string &name) : _name(name), _size(0), _finished
 
 void MusicFile::write(ByteVect vect) {
     std::scoped_lock <std::mutex> lock(_mutex);
-    _size += vect.size();
-    _fs.write(reinterpret_cast<const char *>(&vect[0]), vect.size());
+    if(vect.size() != 0) {
+        _size += vect.size();
+        _fs.seekp(0, std::ios::end);
+        _fs.write(reinterpret_cast<const char *>(&vect[0]), vect.size());
+        _fs.flush();
+    }
 }
 
 ByteVect MusicFile::read(uint_fast32_t offset, uint_fast32_t size) {
