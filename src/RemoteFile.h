@@ -11,9 +11,11 @@ namespace vk_music_fs {
                 const std::string &uri, uint_fast32_t ownerId, uint_fast32_t userId,
                 const std::string &artist, const std::string &title
         );
-        std::string& getUri();
-        std::string& getArtist();
-        std::string& getTitle();
+        const std::string& getUri() const;
+        const std::string& getArtist() const;
+        const std::string& getTitle() const;
+        int_fast32_t getOwnerId() const;
+        uint_fast32_t getFileId() const;
         bool operator ==(const RemoteFile &other) const{
             return _fileId == other._fileId && _ownerId == other._ownerId;
         }

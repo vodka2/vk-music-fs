@@ -7,14 +7,22 @@ RemoteFile::RemoteFile(const std::string &uri, uint_fast32_t ownerId, uint_fast3
     _uri(uri), _ownerId(ownerId), _fileId(fileId), _artist(artist), _title(title) {
 }
 
-std::string &RemoteFile::getUri() {
+const std::string &RemoteFile::getUri() const{
     return _uri;
 }
 
-std::string &RemoteFile::getArtist() {
+const std::string &RemoteFile::getArtist() const{
     return _artist;
 }
 
-std::string &RemoteFile::getTitle() {
+const std::string &RemoteFile::getTitle() const{
     return _title;
+}
+
+int_fast32_t RemoteFile::getOwnerId() const{
+    return _ownerId;
+}
+
+uint_fast32_t RemoteFile::getFileId() const{
+    return _fileId;
 }
