@@ -49,7 +49,7 @@ ByteVect BlockingBuffer::clearStart() {
     return std::move(_startPart);
 }
 
-BlockingBuffer::BlockingBuffer() : _eof(false), _portionRead(false){
+BlockingBuffer::BlockingBuffer() : _eof(false), _portionRead(false), _replaceLen(0){
 }
 
 void BlockingBuffer::setEOF() {
