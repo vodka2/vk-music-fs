@@ -25,4 +25,10 @@ add_subdirectory(tests)
 
 add_executable(vk_music_fs main.cpp)
 target_compile_definitions(vk_music_fs PUBLIC -D_FILE_OFFSET_BITS=64)
-target_link_libraries(vk_music_fs vk_music_fs_lib fuse)
+
+if(DEFINED MINGW_W64)
+    target_include_directories(vk_music_fs PUBLIC winfsp/include)
+    target_link_libraries(vk_music_fs vk_music_fs_lib ${CMAKE_CURRENT_SOURCE_DIR}/winfsp/winfsp-x86.lib)
+else()
+    target_link_libraries(vk_music_fs vk_music_fs_lib fuse)
+endif()
