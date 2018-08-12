@@ -63,7 +63,6 @@ namespace vk_music_fs {
             std::scoped_lock<std::mutex> _lock(_readersMutex);
             reader = _readers[_idToRemFile.find(id)->second].ids.find(id)->second;
             std::visit([id, offset, size, &ret](auto &&el) {
-                el->openBlocking();
                 ret = std::move(el->read(offset, size));
             }, reader);
             return std::move(ret);
@@ -72,16 +71,13 @@ namespace vk_music_fs {
             std::scoped_lock<std::mutex> procsLock(_procsMutex);
             std::scoped_lock<std::mutex> readersLock(_readersMutex);
             auto remFile = _idToRemFile.find(id)->second;
-            bool isFinished;
-            if(_procs.find(remFile) != _procs.end()){
-                isFinished = _procs[remFile].proc->isFinished();
-            } else {
-                isFinished = true;
-            }
             if(_procs.find(remFile) != _procs.end()) {
                 _procs[remFile].ids.erase(id);
                 if(_procs[remFile].ids.size() == 0) {
+                    auto isFinished = _procs[remFile].proc->isFinished();
+                    _procs[remFile].proc->close();
                     _procs.erase(remFile);
+                    _fileCache->fileClosed(remFile, isFinished);
                 }
             }
             if(_readers.find(remFile) != _readers.end()) {
@@ -90,7 +86,6 @@ namespace vk_music_fs {
                     _readers.erase(remFile);
                 }
             }
-            _fileCache->fileClosed(remFile, isFinished);
         }
         uint_fast32_t getFileSize(const std::string &filename) override{
             RemoteFile remFile = _api->getRemoteFile(filename);

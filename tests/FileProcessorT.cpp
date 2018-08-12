@@ -32,6 +32,7 @@ public:
         di::bind<FileProcessor>.in(di::extension::scoped),
         di::bind<StreamM>.in(di::extension::scoped),
         di::bind<FileM>.in(di::extension::scoped),
+        di::bind<ParserM>.in(di::extension::scoped),
         di::bind<ThreadPoolM>.in(di::extension::scoped)
     );
 
@@ -57,10 +58,6 @@ public:
         }));
     }
 
-    void end(){
-        fp->openFile().wait();
-    }
-
     void waitForFinish(){
         finish.wait();
         inj.create<std::shared_ptr<ThreadPoolM>>()->tp.join();
@@ -80,10 +77,11 @@ TEST_F(FileProcessorT, Prepend){ //NOLINT
 
     EXPECT_CALL(*inj.create<std::shared_ptr<FileM>>(), write(ByteVect{1, 2}));
     EXPECT_CALL(*inj.create<std::shared_ptr<FileM>>(), write(dataVect));
+    EXPECT_CALL(*inj.create<std::shared_ptr<FileM>>(), getSize()).WillOnce(testing::Return(dataVect.size()));
 
     expectFinish();
     init(dataVect);
-    end();
+    fp->read(0, 1);
     waitForFinish();
 }
 
@@ -102,7 +100,7 @@ TEST_F(FileProcessorT, NoPrepend){ //NOLINT
 
     expectFinish();
     init(dataVect);
-    end();
+    fp->read(0, 1);
     waitForFinish();
 }
 
@@ -122,7 +120,7 @@ TEST_F(FileProcessorT, OnEOF){ //NOLINT
 
     expectFinish();
     init(dataVect);
-    end();
+    fp->read(0, 1);
     waitForFinish();
 }
 
@@ -138,7 +136,6 @@ TEST_F(FileProcessorT, ReadBytesFromFile){ //NOLINT
     auto exp = ByteVect{1,2,3};
     EXPECT_EQ(fp->read(1, 3), exp);
 
-    end();
     waitForFinish();
 }
 
@@ -155,7 +152,6 @@ TEST_F(FileProcessorT, ReadBytesFromStreamAndFile){ //NOLINT
     auto exp = ByteVect{1,2,3,4};
     EXPECT_EQ(fp->read(1, 4), exp);
 
-    end();
     waitForFinish();
 }
 
@@ -171,29 +167,20 @@ TEST_F(FileProcessorT, ReadBytesFromStream){ //NOLINT
     auto exp = ByteVect{1,2,3,4};
     EXPECT_EQ(fp->read(1, 4), exp);
 
-    end();
     waitForFinish();
 }
 
 TEST_F(FileProcessorT, Close){ //NOLINT
-    std::promise<void> closedProm;
-    std::future<void> closed = closedProm.get_future();
-    EXPECT_CALL(*inj.create<std::shared_ptr<ParserM>>(), parse(testing::_)).WillOnce(testing::Invoke([&closed] (
-            const std::shared_ptr<vk_music_fs::BlockingBuffer> &buf
-    ){
-        closed.wait();
-    }));
     EXPECT_CALL(*inj.create<std::shared_ptr<FileM>>(), write(testing::_)).Times(testing::AtLeast(1));
     init({});
+    fp->read(0, 1);
 
     finish = finishPromise.get_future();
     EXPECT_CALL(*inj.create<std::shared_ptr<FileM>>(), close()).WillOnce(testing::Invoke([this] {
         finishPromise.set_value();
     }));
-    closedProm.set_value();
 
     fp->close();
 
-    end();
     waitForFinish();
 }

@@ -22,6 +22,9 @@ namespace vk_music_fs {
         std::atomic_bool _bufferAppendStopped;
         std::atomic_bool _closed;
         std::atomic_bool _finished;
+        std::atomic_bool _opened;
+        std::shared_ptr<std::promise<void>> _openedPromise;
+        std::shared_ptr<std::promise<void>> _threadPromise;
         uint_fast32_t _prependSize;
         std::future<void> _openFuture;
         std::future<void> _threadFinishedFuture;
@@ -37,49 +40,6 @@ namespace vk_music_fs {
                 const std::shared_ptr<TMp3Parser> &parser
         )
         :FileProcessorInt(), _stream(stream), _file(file), _pool(pool), _parser(parser){
-            auto openPromise = std::make_shared<std::promise<void>>();
-            auto threadPromise = std::make_shared<std::promise<void>>();
-            _openFuture = std::move(openPromise->get_future());
-            _threadFinishedFuture = std::move(threadPromise->get_future());
-            _pool->post([this, openPromise, threadPromise] {
-                _stream->open();
-                _buffer->setSize(_stream->getSize());
-                _pool->post([this, openPromise] {
-                    while(!addToBuffer(_stream->read())){
-                        std::this_thread::sleep_for(std::chrono::milliseconds(30));
-                    }
-                });
-                _parser->parse(_buffer);
-                waitForStopAppend();
-                auto prepVect = std::move(_buffer->clearStart());
-                _prependSize = prepVect.size();
-                openPromise->set_value();
-                _file->write(std::move(prepVect));
-                _file->write(std::move(_buffer->clearMain()));
-                _buffer.reset();
-                while(true){
-                    if(_closed){
-                        _stream->close();
-                        break;
-                    }
-                    auto buf = _stream->read();
-                    if(!buf){
-                        _finished = true;
-                        _file->finish();
-                        break;
-                    }
-                    _file->write(std::move(*buf));
-                }
-                threadPromise->set_value();
-            });
-        }
-
-        std::future<void>& openFile(){
-            return _openFuture;
-        }
-
-        void openBlocking(){
-            _openFuture.wait();
         }
 
         bool isFinished(){
@@ -87,6 +47,42 @@ namespace vk_music_fs {
         }
 
         ByteVect read(uint_fast32_t start, uint_fast32_t size){
+            bool exp = false;
+            if(_opened.compare_exchange_strong(exp, true)){
+                _pool->post([this] {
+                    _stream->open();
+                    _file->open();
+                    _buffer->setSize(_stream->getSize());
+                    _pool->post([this] {
+                        while(!addToBuffer(_stream->read())){
+                            std::this_thread::sleep_for(std::chrono::milliseconds(30));
+                        }
+                    });
+                    _parser->parse(_buffer);
+                    waitForStopAppend();
+                    auto prepVect = std::move(_buffer->clearStart());
+                    _prependSize = prepVect.size();
+                    _openedPromise->set_value();
+                    _file->write(std::move(prepVect));
+                    _file->write(std::move(_buffer->clearMain()));
+                    _buffer.reset();
+                    while(true){
+                        if(_closed){
+                            _stream->close();
+                            break;
+                        }
+                        auto buf = _stream->read();
+                        if(!buf){
+                            _finished = true;
+                            _file->finish();
+                            break;
+                        }
+                        _file->write(std::move(*buf));
+                    }
+                    _threadPromise->set_value();
+                });
+            }
+
             _openFuture.wait();
             auto fileSize = _file->getSize();
             if(start + size <= fileSize){
@@ -105,16 +101,20 @@ namespace vk_music_fs {
         }
 
         void close(){
-            _closed = true;
-            _file->close();
-        }
-
-        ~FileProcessor(){
-            if(!_closed){
+            if(_opened) {
                 _closed = true;
                 _file->close();
             }
-            _threadFinishedFuture.wait();
+        }
+
+        ~FileProcessor() {
+            if (_opened) {
+                if (!_closed) {
+                    _closed = true;
+                    _file->close();
+                }
+                _threadFinishedFuture.wait();
+            }
         }
     private:
         std::shared_ptr<TStream> _stream;

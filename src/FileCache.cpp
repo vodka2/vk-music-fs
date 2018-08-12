@@ -1,3 +1,5 @@
+#include <boost/beast/http.hpp>
+#include <boost/asio/ip/tcp.hpp>
 #include "FileCache.h"
 
 using namespace vk_music_fs;
@@ -8,19 +10,19 @@ FileCache::FileCache(
         FilesCacheSize filesCacheSize
 ): _sizeObtainer(sizeObtainer),
 _sizesCache(sizesCacheSize, [](...){}),
-_filesCache(filesCacheSize, [this](auto file){std::remove(constructFilename(file).c_str());}) {
+_filesCache(filesCacheSize, [this](auto file){
+    std::remove(constructFilename(file).c_str());
+}) {
 
 }
 
 FNameCache FileCache::getFilename(const RemoteFile &file) {
     std::scoped_lock<std::mutex> lock(_filesMutex);
     if(_filesCache.exists(file)){
-        _openedFiles.insert(std::make_pair<>(file, true));
         return {_filesCache.get(file), true};
     } else {
         std::string name = constructFilename(file);
         _filesCache.put(file, name);
-        _openedFiles.insert(std::make_pair<>(file, false));
         return {name, false};
     }
 }
@@ -42,11 +44,8 @@ uint_fast32_t FileCache::getFileSize(const RemoteFile &file) {
 }
 
 void FileCache::fileClosed(const RemoteFile &file, bool isFinished) {
-    std::scoped_lock<std::mutex> lock(_filesMutex);
-    if(!isFinished && !_openedFiles[file]){
+    if(!isFinished){
         _filesCache.remove(file);
-    } else {
-        _openedFiles[file] = true;
     }
 }
 

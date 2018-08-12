@@ -66,10 +66,6 @@ public:
         }));
     }
 
-    void end(){
-        fp->openFile().wait();
-    }
-
     void waitForFinish(){
         finish.wait();
         inj.create<std::shared_ptr<ThreadPoolM>>()->tp.join();
@@ -83,10 +79,11 @@ TEST_F(FileProcessorMp3ParserT, AddID3){ //NOLINT
     EXPECT_CALL(*inj.create<std::shared_ptr<FileM>>(), write(testing::_)).WillRepeatedly(testing::Invoke([&resVect] (ByteVect vect) {
         std::copy(vect.cbegin(), vect.cend(), std::back_inserter(resVect));
     }));
+    EXPECT_CALL(*inj.create<std::shared_ptr<FileM>>(), getSize()).WillOnce(testing::Return(1));
 
     expectFinish();
     init(dataVect);
-    end();
+    fp->read(0, 1);
     waitForFinish();
 
     TagLib::ByteVector bvect(reinterpret_cast<char*>(&resVect[0]), static_cast<unsigned int>(resVect.size()));

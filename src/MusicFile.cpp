@@ -3,8 +3,6 @@
 using namespace vk_music_fs;
 
 MusicFile::MusicFile(const CachedFilename &name) : _name(name.t), _size(0) {
-    std::ofstream{name};
-    _fs.open(name, std::ios::binary | std::ios::in | std::ios::out);
 }
 
 void MusicFile::write(ByteVect vect) {
@@ -35,4 +33,9 @@ void MusicFile::finish() {
 
 uint_fast32_t MusicFile::getSize() {
     return _size;
+}
+
+void MusicFile::open() {
+    std::ofstream{_name};
+    _fs.open(_name, std::ios::binary | std::ios::in | std::ios::out);
 }

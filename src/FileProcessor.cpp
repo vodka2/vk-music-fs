@@ -5,7 +5,12 @@ using namespace vk_music_fs;
 FileProcessorInt::FileProcessorInt()
 :
     _buffer(std::make_shared<BlockingBuffer>()),
-    _metadataWasRead(false), _bufferAppendStopped(false), _closed(false), _finished(false){
+    _metadataWasRead(false), _bufferAppendStopped(false), _closed(false), _finished(false),
+    _opened(false),
+    _openedPromise(std::make_shared<std::promise<void>>()),
+    _threadPromise(std::make_shared<std::promise<void>>()),
+    _openFuture(std::move(_openedPromise->get_future())),
+    _threadFinishedFuture(std::move(_threadPromise->get_future())){
 };
 
 bool FileProcessorInt::addToBuffer(std::optional<ByteVect> vect) {

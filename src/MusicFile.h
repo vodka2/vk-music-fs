@@ -10,11 +10,13 @@ namespace vk_music_fs {
     class MusicFile {
     public:
         explicit MusicFile(const CachedFilename &name);
-
+        
+        void open();
+        
         void write(ByteVect vect);
 
         ByteVect read(uint_fast32_t offset, uint_fast32_t size);
-
+        
         void finish();
 
         void close();
