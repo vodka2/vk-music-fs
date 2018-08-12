@@ -70,8 +70,8 @@ ByteVect HttpStream::read(uint_fast32_t offset, uint_fast32_t length) {
     }
 }
 
-HttpStream::HttpStream(const std::string &uri, const std::shared_ptr<HttpStreamCommon> &common, const std::string &userAgent)
-: _uri(uri), _userAgent(userAgent), _common(common), _hostPath(_common->getHostPath(uri)){
+HttpStream::HttpStream(const Mp3Uri &uri, const std::shared_ptr<HttpStreamCommon> &common, const UserAgent &userAgent)
+: _uri(uri.t), _userAgent(userAgent.t), _common(common), _hostPath(_common->getHostPath(uri)){
     _parser.body_limit(std::numeric_limits<std::uint_fast32_t>::max());
 }
 

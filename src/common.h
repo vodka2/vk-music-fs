@@ -20,14 +20,24 @@ namespace vk_music_fs{
     BOOST_STRONG_TYPEDEF(std::string, Artist); //NOLINT
     BOOST_STRONG_TYPEDEF(std::string, Title); //NOLINT
     BOOST_STRONG_TYPEDEF(uint_fast32_t, TagSize); //NOLINT
+    BOOST_STRONG_TYPEDEF(uint_fast32_t, FileSize); //NOLINT
     BOOST_STRONG_TYPEDEF(std::string, Mp3Uri); //NOLINT
+    BOOST_STRONG_TYPEDEF(std::string, UserAgent); //NOLINT
     BOOST_STRONG_TYPEDEF(std::string, CachedFilename); //NOLINT
     BOOST_STRONG_TYPEDEF(std::string, Mp3CacheSize); //NOLINT
     BOOST_STRONG_TYPEDEF(uint_fast32_t, SizesCacheSize); //NOLINT
     BOOST_STRONG_TYPEDEF(uint_fast32_t, FilesCacheSize); //NOLINT
-    template <typename T, typename ...Ts>
-    class InjPtr: public std::shared_ptr<boost::di::injector<T, Ts...>>{
+    template <typename T>
+    class InjPtr: public std::shared_ptr<T>{
     public:
-        InjPtr(std::shared_ptr<boost::di::injector<T, Ts...>> t): std::shared_ptr<boost::di::injector<T, Ts...>>(t){} //NOLINT
+        InjPtr(std::shared_ptr<T> t): std::shared_ptr<T>(t){} //NOLINT
     };
+
+    template <typename ...Ts>
+    auto makeInjPtr(Ts... data){
+        typedef decltype(boost::di::make_injector(std::forward<Ts>(data)...)) InjType;
+        return InjPtr<InjType>{std::make_shared<InjType>(boost::di::make_injector(std::forward<Ts>(data)...))};
+    }
+
+    #define auto_init(variable, value) std::decay<decltype(value)>::type variable = value
 }

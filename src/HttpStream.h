@@ -10,8 +10,8 @@
 namespace vk_music_fs{
     class HttpStream{
     public:
-        HttpStream(const std::string &uri, const std::shared_ptr<HttpStreamCommon> &common,
-                   const std::string &userAgent);
+        HttpStream(const Mp3Uri &uri, const std::shared_ptr<HttpStreamCommon> &common,
+                   const UserAgent &userAgent);
         uint_fast32_t getSize();
         void open();
         std::optional<ByteVect> read();

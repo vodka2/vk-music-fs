@@ -21,6 +21,7 @@ namespace vk_music_fs {
         std::condition_variable _bufferAppendStoppedCond;
         std::atomic_bool _bufferAppendStopped;
         std::atomic_bool _closed;
+        std::atomic_bool _finished;
         uint_fast32_t _prependSize;
         std::future<void> _openFuture;
         std::future<void> _threadFinishedFuture;
@@ -63,6 +64,7 @@ namespace vk_music_fs {
                     }
                     auto buf = _stream->read();
                     if(!buf){
+                        _finished = true;
                         _file->finish();
                         break;
                     }
@@ -74,6 +76,14 @@ namespace vk_music_fs {
 
         std::future<void>& openFile(){
             return _openFuture;
+        }
+
+        void openBlocking(){
+            _openFuture.wait();
+        }
+
+        bool isFinished(){
+            return _finished;
         }
 
         ByteVect read(uint_fast32_t start, uint_fast32_t size){

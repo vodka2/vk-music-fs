@@ -6,17 +6,22 @@ FileCache::FileCache(
         const std::shared_ptr<SizeObtainer> &sizeObtainer,
         SizesCacheSize sizesCacheSize,
         FilesCacheSize filesCacheSize
-): _sizeObtainer(sizeObtainer), _sizesCache(sizesCacheSize), _filesCache(filesCacheSize) {
+): _sizeObtainer(sizeObtainer),
+_sizesCache(sizesCacheSize, [](...){}),
+_filesCache(filesCacheSize, [this](auto file){std::remove(constructFilename(file).c_str());}) {
 
 }
 
-std::string FileCache::getFilename(const RemoteFile &file) {
+FNameCache FileCache::getFilename(const RemoteFile &file) {
+    std::scoped_lock<std::mutex> lock(_filesMutex);
     if(_filesCache.exists(file)){
-        return _filesCache.get(file).name;
+        _openedFiles.insert(std::make_pair<>(file, true));
+        return {_filesCache.get(file), true};
     } else {
-        std::string name = std::to_string(file.getOwnerId()) + "_" + std::to_string(file.getFileId()) + ".mp3";
-        _filesCache.put(file, FileCacheItem{name});
-        return name;
+        std::string name = constructFilename(file);
+        _filesCache.put(file, name);
+        _openedFiles.insert(std::make_pair<>(file, false));
+        return {name, false};
     }
 }
 
@@ -25,6 +30,7 @@ uint_fast32_t FileCache::getTagSize(const RemoteFile &file) {
 }
 
 uint_fast32_t FileCache::getFileSize(const RemoteFile &file) {
+    std::scoped_lock<std::mutex> lock(_sizesMutex);
     if(_sizesCache.exists(file)){
         return _sizesCache.get(file);
     } else {
@@ -35,5 +41,15 @@ uint_fast32_t FileCache::getFileSize(const RemoteFile &file) {
     }
 }
 
-void FileCache::fileClosed(const std::string &fname) {
+void FileCache::fileClosed(const RemoteFile &file, bool isFinished) {
+    std::scoped_lock<std::mutex> lock(_filesMutex);
+    if(!isFinished && !_openedFiles[file]){
+        _filesCache.remove(file);
+    } else {
+        _openedFiles[file] = true;
+    }
+}
+
+std::string FileCache::constructFilename(const RemoteFile &file) {
+    return std::to_string(file.getOwnerId()) + "_" + std::to_string(file.getFileId()) + ".mp3";
 }

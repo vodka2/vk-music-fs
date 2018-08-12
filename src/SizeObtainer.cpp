@@ -23,7 +23,7 @@ Mp3FileSize SizeObtainer::getSize(const std::string &uri, const std::string &art
 }
 
 SizeObtainer::SizeObtainer(const std::shared_ptr<HttpStreamCommon> &common,
-                           const std::string &userAgent)  : _common(common), _userAgent(userAgent){
+                           const UserAgent &userAgent)  : _common(common), _userAgent(userAgent.t){
 
 }
 

@@ -9,7 +9,7 @@
 namespace vk_music_fs{
     class SizeObtainer {
     public:
-        explicit SizeObtainer(const std::shared_ptr<HttpStreamCommon> &common, const std::string &userAgent);
+        explicit SizeObtainer(const std::shared_ptr<HttpStreamCommon> &common, const UserAgent &userAgent);
         Mp3FileSize getSize(const std::string &uri, const std::string &artist, const std::string &title);
         uint_fast32_t getTagSize(const std::string &artist, const std::string &title);
     private:

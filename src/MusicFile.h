@@ -9,7 +9,7 @@
 namespace vk_music_fs {
     class MusicFile {
     public:
-        explicit MusicFile(const std::string &name);
+        explicit MusicFile(const CachedFilename &name);
 
         void write(ByteVect vect);
 
@@ -26,6 +26,5 @@ namespace vk_music_fs {
         std::mutex _mutex;
         std::fstream _fs;
         std::atomic_uint_fast32_t _size;
-        std::atomic_bool _finished;
     };
 }

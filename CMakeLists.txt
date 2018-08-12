@@ -9,6 +9,7 @@ add_subdirectory(taglib_mod)
 include_directories(di/extension/include)
 
 add_subdirectory(boost-nowide)
+add_subdirectory(cpp-lru-cache-mod)
 add_subdirectory(googletest)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -23,4 +24,5 @@ add_subdirectory(src)
 add_subdirectory(tests)
 
 add_executable(vk_music_fs main.cpp)
-target_link_libraries(vk_music_fs vk_music_fs_lib)
+target_compile_definitions(vk_music_fs PUBLIC -D_FILE_OFFSET_BITS=64)
+target_link_libraries(vk_music_fs vk_music_fs_lib fuse)
