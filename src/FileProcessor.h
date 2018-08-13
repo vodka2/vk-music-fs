@@ -50,22 +50,24 @@ namespace vk_music_fs {
             bool exp = false;
             if(_opened.compare_exchange_strong(exp, true)){
                 _pool->post([this] {
-                    _stream->open();
+                    _stream->open(_file->getInitialSize(), _file->getTotalSize());
                     _file->open();
-                    _buffer->setSize(_stream->getSize());
-                    _pool->post([this] {
-                        while(!addToBuffer(_stream->read())){
-                            std::this_thread::sleep_for(std::chrono::milliseconds(30));
-                        }
-                    });
-                    _parser->parse(_buffer);
-                    waitForStopAppend();
-                    auto prepVect = std::move(_buffer->clearStart());
-                    _prependSize = prepVect.size();
+                    if(_file->getInitialSize() == 0) {
+                        _buffer->setSize(_file->getTotalSize());
+                        _pool->post([this] {
+                            while (!addToBuffer(_stream->read())) {
+                                std::this_thread::sleep_for(std::chrono::milliseconds(30));
+                            }
+                        });
+                        _parser->parse(_buffer);
+                        waitForStopAppend();
+                        auto prepVect = std::move(_buffer->clearStart());
+                        _prependSize = prepVect.size();
+                        _file->write(std::move(prepVect));
+                        _file->write(std::move(_buffer->clearMain()));
+                        _buffer.reset();
+                    }
                     _openedPromise->set_value();
-                    _file->write(std::move(prepVect));
-                    _file->write(std::move(_buffer->clearMain()));
-                    _buffer.reset();
                     while(true){
                         if(_closed){
                             _stream->close();
@@ -101,18 +103,15 @@ namespace vk_music_fs {
         }
 
         void close(){
-            if(_opened) {
-                _closed = true;
-                _file->close();
-            }
+            _file->close();
+            _closed = true;
         }
 
         ~FileProcessor() {
+            if (!_closed) {
+                close();
+            }
             if (_opened) {
-                if (!_closed) {
-                    _closed = true;
-                    _file->close();
-                }
                 _threadFinishedFuture.wait();
             }
         }

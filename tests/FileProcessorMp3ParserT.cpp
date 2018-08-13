@@ -52,7 +52,6 @@ public:
     void init(const ByteVect &dataVect){
         data = std::make_shared<MusicData>(dataVect, 10);
 
-        EXPECT_CALL(*inj.create<std::shared_ptr<StreamM>>(), getSize()).WillOnce(testing::Return(dataVect.size()));
         EXPECT_CALL(*inj.create<std::shared_ptr<StreamM>>(), read()).WillRepeatedly(testing::Invoke([&data = data] {
             return data->readData();
         }));

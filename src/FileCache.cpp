@@ -10,19 +10,23 @@ FileCache::FileCache(
         FilesCacheSize filesCacheSize
 ): _sizeObtainer(sizeObtainer),
 _sizesCache(sizesCacheSize, [](...){}),
-_filesCache(filesCacheSize, [this](auto file){
+_initialSizesCache(filesCacheSize, [this](auto file){
     std::remove(constructFilename(file).c_str());
 }) {
 
 }
 
 FNameCache FileCache::getFilename(const RemoteFile &file) {
-    std::scoped_lock<std::mutex> lock(_filesMutex);
-    if(_filesCache.exists(file)){
-        return {_filesCache.get(file), true};
+    std::scoped_lock<std::mutex> lock(_initialSizesMutex);
+    if(_initialSizesCache.exists(file)){
+        if(_initialSizesCache.get(file) == getFileSize(file)){
+            return {constructFilename(file), true};
+        } else {
+            return {constructFilename(file), false};
+        }
     } else {
         std::string name = constructFilename(file);
-        _filesCache.put(file, name);
+        _initialSizesCache.put(file, 0);
         return {name, false};
     }
 }
@@ -43,12 +47,16 @@ uint_fast32_t FileCache::getFileSize(const RemoteFile &file) {
     }
 }
 
-void FileCache::fileClosed(const RemoteFile &file, bool isFinished) {
-    if(!isFinished){
-        _filesCache.remove(file);
-    }
+void FileCache::fileClosed(const RemoteFile &file, uint_fast32_t curSize) {
+    std::scoped_lock<std::mutex> lock(_initialSizesMutex);
+    _initialSizesCache.put(file, curSize);
 }
 
 std::string FileCache::constructFilename(const RemoteFile &file) {
     return std::to_string(file.getOwnerId()) + "_" + std::to_string(file.getFileId()) + ".mp3";
+}
+
+uint_fast32_t FileCache::getInitialSize(const RemoteFile &file) {
+    std::scoped_lock<std::mutex> lock(_initialSizesMutex);
+    return _initialSizesCache.get(file);
 }

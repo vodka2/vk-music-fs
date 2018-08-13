@@ -12,6 +12,8 @@ public:
     MOCK_CONST_METHOD1(write, void(ByteVect vect)); //NOLINT
     MOCK_CONST_METHOD0(finish, void());
     MOCK_CONST_METHOD0(open, void());
+    MOCK_CONST_METHOD0(getInitialSize, uint_fast32_t());
+    MOCK_CONST_METHOD0(getTotalSize, uint_fast32_t());
     MOCK_CONST_METHOD0(close, void());
     MOCK_CONST_METHOD0(getSize, uint_fast32_t());
 };

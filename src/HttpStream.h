@@ -12,8 +12,7 @@ namespace vk_music_fs{
     public:
         HttpStream(const Mp3Uri &uri, const std::shared_ptr<HttpStreamCommon> &common,
                    const UserAgent &userAgent);
-        uint_fast32_t getSize();
-        void open();
+        void open(uint_fast32_t offset, uint_fast32_t totalSize);
         std::optional<ByteVect> read();
         ByteVect read(uint_fast32_t offset, uint_fast32_t length);
         void close();

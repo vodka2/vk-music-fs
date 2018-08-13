@@ -44,7 +44,6 @@ public:
     void init(const ByteVect &dataVect){
         data = std::make_shared<MusicData>(dataVect, 1);
 
-        EXPECT_CALL(*inj.create<std::shared_ptr<StreamM>>(), getSize()).WillOnce(testing::Return(dataVect.size()));
         EXPECT_CALL(*inj.create<std::shared_ptr<StreamM>>(), read()).WillRepeatedly(testing::Invoke([&data = data] {
             return data->readData();
         }));
@@ -75,6 +74,8 @@ TEST_F(FileProcessorT, Prepend){ //NOLINT
         buf->read(0, dataVect.size());
     }));
 
+    EXPECT_CALL(*inj.create<std::shared_ptr<FileM>>(), getTotalSize()).WillRepeatedly(testing::Return(dataVect.size()));
+
     EXPECT_CALL(*inj.create<std::shared_ptr<FileM>>(), write(ByteVect{1, 2}));
     EXPECT_CALL(*inj.create<std::shared_ptr<FileM>>(), write(dataVect));
     EXPECT_CALL(*inj.create<std::shared_ptr<FileM>>(), getSize()).WillOnce(testing::Return(dataVect.size()));
@@ -95,6 +96,8 @@ TEST_F(FileProcessorT, NoPrepend){ //NOLINT
         buf->read(0, dataVect.size());
     }));
 
+    EXPECT_CALL(*inj.create<std::shared_ptr<FileM>>(), getTotalSize()).WillRepeatedly(testing::Return(dataVect.size()));
+
     EXPECT_CALL(*inj.create<std::shared_ptr<FileM>>(), write(ByteVect{}));
     EXPECT_CALL(*inj.create<std::shared_ptr<FileM>>(), write(dataVect));
 
@@ -114,6 +117,8 @@ TEST_F(FileProcessorT, OnEOF){ //NOLINT
         EXPECT_EQ(buf->read(4, 10).size(), 1);
         EXPECT_EQ(buf->read(4, 10).size(), 1);
     }));
+
+    EXPECT_CALL(*inj.create<std::shared_ptr<FileM>>(), getTotalSize()).WillRepeatedly(testing::Return(dataVect.size()));
 
     EXPECT_CALL(*inj.create<std::shared_ptr<FileM>>(), write(ByteVect{}));
     EXPECT_CALL(*inj.create<std::shared_ptr<FileM>>(), write(dataVect));
@@ -182,5 +187,18 @@ TEST_F(FileProcessorT, Close){ //NOLINT
 
     fp->close();
 
+    waitForFinish();
+}
+
+TEST_F(FileProcessorT, NonZeroInitialSize){ //NOLINT
+    EXPECT_CALL(*inj.create<std::shared_ptr<FileM>>(), getInitialSize()).WillRepeatedly(testing::Return(10));
+    EXPECT_CALL(*inj.create<std::shared_ptr<FileM>>(), getTotalSize()).WillRepeatedly(testing::Return(20));
+    EXPECT_CALL(*inj.create<std::shared_ptr<StreamM>>(), open(10, 20));
+    EXPECT_CALL(*inj.create<std::shared_ptr<ParserM>>(), parse(testing::_)).Times(0);
+
+    init({});
+    fp->read(0, 1);
+
+    expectFinish();
     waitForFinish();
 }

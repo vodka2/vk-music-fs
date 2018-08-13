@@ -2,7 +2,8 @@
 
 using namespace vk_music_fs;
 
-MusicFile::MusicFile(const CachedFilename &name) : _name(name.t), _size(0) {
+MusicFile::MusicFile(const CachedFilename &name, const RemoteFile &remFile, const std::shared_ptr<FileCache> &cache)
+: _name(name.t), _remFile(remFile), _cache(cache), _size(0) {
 }
 
 void MusicFile::write(ByteVect vect) {
@@ -25,6 +26,7 @@ ByteVect MusicFile::read(uint_fast32_t offset, uint_fast32_t size) {
 
 void MusicFile::close() {
     std::scoped_lock <std::mutex> lock(_mutex);
+    _cache->fileClosed(_remFile, 0);
     _fs.close();
 }
 
@@ -38,4 +40,12 @@ uint_fast32_t MusicFile::getSize() {
 void MusicFile::open() {
     std::ofstream{_name};
     _fs.open(_name, std::ios::binary | std::ios::in | std::ios::out);
+}
+
+uint_fast32_t MusicFile::getInitialSize() {
+    return _cache->getInitialSize(_remFile);
+}
+
+uint_fast32_t MusicFile::getTotalSize() {
+    return _cache->getFileSize(_remFile);
 }

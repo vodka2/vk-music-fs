@@ -13,13 +13,14 @@ namespace vk_music_fs{
         FNameCache getFilename(const RemoteFile &file);
         uint_fast32_t getTagSize(const RemoteFile &file);
         uint_fast32_t getFileSize(const RemoteFile &file);
-        void fileClosed(const RemoteFile &file, bool isFinished = true);
+        uint_fast32_t getInitialSize(const RemoteFile &file);
+        void fileClosed(const RemoteFile &file, uint_fast32_t curSize);
     private:
         std::string constructFilename(const RemoteFile &file);
-        std::mutex _filesMutex;
+        std::mutex _initialSizesMutex;
         std::mutex _sizesMutex;
         std::shared_ptr<SizeObtainer> _sizeObtainer;
         cache::lru_cache<RemoteFile, uint_fast32_t, RemoteFileHasher> _sizesCache;
-        cache::lru_cache<RemoteFile, std::string, RemoteFileHasher> _filesCache;
+        cache::lru_cache<RemoteFile, uint_fast32_t, RemoteFileHasher> _initialSizesCache;
     };
 }
