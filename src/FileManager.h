@@ -6,22 +6,37 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <variant>
-#include <boost/di/extension/injections/extensible_injector.hpp>
+#include <ext_factory.hpp>
 #include "RemoteFile.h"
 #include "IFileManager.h"
 #include <mutex>
 
 namespace vk_music_fs {
-    template <typename TVkApi, typename TFileCache, typename TFileProcessor, typename TReader, typename TFact>
+
+    template <typename TVkApi, typename TFileCache, typename TFileProcessor, typename TReader>
     class FileManager: public IFileManager {
     public:
         FileManager(
                 const std::shared_ptr<TVkApi> &api,
                 const std::shared_ptr<TFileCache> &fileCache,
-                const TFact &injector
+                std::shared_ptr<boost::di::extension::iextfactory<
+                        TFileProcessor,
+                        Artist,
+                        Title,
+                        Mp3Uri,
+                        TagSize,
+                        RemoteFile,
+                        CachedFilename
+                >> procsFact,
+                std::shared_ptr<boost::di::extension::iextfactory<
+                        TReader,
+                        CachedFilename,
+                        FileSize
+                >> readersFact
         ) :_api(api), _fileCache(fileCache),
-        _injector(injector){
+        _procsFact(procsFact), _readersFact(readersFact){
         }
+
         int_fast32_t open(const std::string &filename) override{
             namespace di = boost::di;
             RemoteFile remFile = _api->getRemoteFile(filename);
@@ -35,21 +50,19 @@ namespace vk_music_fs {
             } else {
                 auto fname = _fileCache->getFilename(remFile);
                 if(fname.inCache){
-                    auto reader = di::make_injector(
-                            di::extension::make_extensible(*_injector),
-                            di::bind<CachedFilename>.to(CachedFilename{fname.data}),
-                            di::bind<FileSize>.to(FileSize{_fileCache->getFileSize(remFile)})
-                    ).template create<std::shared_ptr<TReader>>();
+                    std::shared_ptr<TReader> reader = _readersFact->createShared(
+                            CachedFilename{fname.data}, FileSize{_fileCache->getFileSize(remFile)}
+                    );
                     _readers[remFile].ids.insert(std::make_pair<>(retId, reader));
                 } else {
-                    _procs[remFile].proc = di::make_injector(
-                            di::extension::make_extensible(*_injector),
-                            di::bind<Artist>.to(Artist{remFile.getArtist()}),
-                            di::bind<Title>.to(Title{remFile.getTitle()}),
-                            di::bind<Mp3Uri>.to(Mp3Uri{remFile.getUri()}),
-                            di::bind<TagSize>.to(TagSize(_fileCache->getTagSize(remFile))),
-                            di::bind<CachedFilename>.to(CachedFilename{fname.data})
-                    ).template create<std::shared_ptr<TFileProcessor>>();
+                    _procs[remFile].proc = _procsFact->createShared(
+                            Artist{remFile.getArtist()},
+                            Title{remFile.getTitle()},
+                            Mp3Uri{remFile.getUri()},
+                            TagSize{_fileCache->getTagSize(remFile)},
+                            RemoteFile(remFile),
+                            CachedFilename{fname.data}
+                    );
                     _readers[remFile].ids.insert(std::make_pair<>(retId, _procs[remFile].proc));
                     _procs[remFile].ids.insert(retId);
                 }
@@ -77,7 +90,6 @@ namespace vk_music_fs {
                     auto isFinished = _procs[remFile].proc->isFinished();
                     _procs[remFile].proc->close();
                     _procs.erase(remFile);
-                    _fileCache->fileClosed(remFile, isFinished);
                 }
             }
             if(_readers.find(remFile) != _readers.end()) {
@@ -94,7 +106,21 @@ namespace vk_music_fs {
     private:
         std::shared_ptr<TVkApi> _api;
         std::shared_ptr<TFileCache> _fileCache;
-        TFact _injector;
+        std::shared_ptr<boost::di::extension::iextfactory<
+                TFileProcessor,
+                Artist,
+                Title,
+                Mp3Uri,
+                TagSize,
+                RemoteFile,
+                CachedFilename
+        >> _procsFact;
+
+        std::shared_ptr<boost::di::extension::iextfactory<
+                TReader,
+                CachedFilename,
+                FileSize
+        >> _readersFact;
 
         struct ProcMapEntry{
             std::shared_ptr<TFileProcessor> proc;
