@@ -23,6 +23,7 @@ namespace vk_music_fs{
     BOOST_STRONG_TYPEDEF(uint_fast32_t, FileSize); //NOLINT
     BOOST_STRONG_TYPEDEF(std::string, Mp3Uri); //NOLINT
     BOOST_STRONG_TYPEDEF(std::string, UserAgent); //NOLINT
+    BOOST_STRONG_TYPEDEF(std::string, Token); //NOLINT
     BOOST_STRONG_TYPEDEF(std::string, CachedFilename); //NOLINT
     BOOST_STRONG_TYPEDEF(std::string, Mp3CacheSize); //NOLINT
     BOOST_STRONG_TYPEDEF(uint_fast32_t, SizesCacheSize); //NOLINT

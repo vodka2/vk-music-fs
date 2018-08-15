@@ -2,6 +2,7 @@
 #include <regex>
 #include <boost/asio/connect.hpp>
 #include <boost/beast/http.hpp>
+#include <iomanip>
 
 using namespace vk_music_fs;
 
@@ -52,6 +53,33 @@ void HttpStreamCommon::sendHeadReq(const std::shared_ptr<HttpStreamCommon::Strea
     req.set(http::field::host, hostPath.host);
     req.set(http::field::user_agent, userAgent);
     http::write(*stream, req);
+}
+
+std::string HttpStreamCommon::uriEncode(const std::string &str) {
+    std::ostringstream escaped;
+    escaped.fill('0');
+    escaped << std::hex;
+
+    for (char c : str) {
+        if (isalnum((unsigned char)c) || c == '-' || c == '_' || c == '.' || c == '~') {
+            escaped << c;
+            continue;
+        }
+
+        escaped << std::uppercase;
+        escaped << '%' << std::setw(2) << int((unsigned char) c);
+        escaped << std::nouppercase;
+    }
+
+    return escaped.str();
+}
+
+void HttpStreamCommon::closeStream(const std::shared_ptr<HttpStreamCommon::Stream> &stream) {
+    boost::beast::error_code ec;
+    stream->shutdown(ec);
+    if (ec && ec != boost::asio::ssl::error::stream_truncated) {
+        throw boost::system::system_error{ec};
+    }
 }
 
 void HttpStreamCommon::sendPartialGetReq(

@@ -16,6 +16,7 @@ namespace vk_music_fs {
         };
         HostPath getHostPath(const std::string &uri);
         std::shared_ptr<Stream> connect(const HostPath &hostPath);
+        void closeStream(const std::shared_ptr<HttpStreamCommon::Stream> &stream);
         void sendGetReq(const std::shared_ptr<HttpStreamCommon::Stream> &stream,
                 const HostPath &hostPath,
                 const std::string &userAgent
@@ -29,6 +30,7 @@ namespace vk_music_fs {
         void sendHeadReq(const std::shared_ptr<HttpStreamCommon::Stream> &stream,
                          const HostPath &hostPath,
                          const std::string &userAgent);
+        std::string uriEncode(const std::string &str);
     private:
         boost::asio::io_context _ioc;
         boost::asio::ssl::context _sslCtx;

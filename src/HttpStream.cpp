@@ -22,7 +22,7 @@ std::optional<ByteVect> HttpStream::read() {
         }
         _returnBuffer.resize(size);
         if (_parser.is_done()) {
-            close();
+            _common->closeStream(_stream);
         }
         return _returnBuffer;
     } catch (const boost::system::system_error &ex){
@@ -60,6 +60,7 @@ ByteVect HttpStream::read(uint_fast32_t offset, uint_fast32_t length) {
         if(ec && ec != boost::beast::http::error::need_buffer){
             throw boost::system::system_error{ec};
         }
+        _common->closeStream(stream);
         return buf;
     } catch (const boost::system::system_error &ex){
         throw HttpException(std::string("Error reading part of uri ") + _uri + ". " + ex.what());
@@ -95,9 +96,9 @@ void HttpStream::open(uint_fast32_t offset, uint_fast32_t totalSize) {
 }
 
 void HttpStream::close() {
-    boost::beast::error_code ec;
-    _stream->shutdown(ec);
-    if (ec && ec != boost::asio::ssl::error::stream_truncated) {
+    try{
+        _common->closeStream(_stream);
+    } catch (const boost::system::system_error &ex){
         throw HttpException(std::string("Error closing stream ") + _uri);
     }
 }
