@@ -19,14 +19,14 @@ _initialSizesCache(filesCacheSize, [this](auto file){
 FNameCache FileCache::getFilename(const RemoteFile &file) {
     std::scoped_lock<std::mutex> lock(_initialSizesMutex);
     if(_initialSizesCache.exists(file)){
-        if(_initialSizesCache.get(file) == getFileSize(file)){
+        if(_initialSizesCache.get(file).totalSize == getFileSize(file)){
             return {constructFilename(file), true};
         } else {
             return {constructFilename(file), false};
         }
     } else {
         std::string name = constructFilename(file);
-        _initialSizesCache.put(file, 0);
+        _initialSizesCache.put(file, {0, 0});
         return {name, false};
     }
 }
@@ -47,16 +47,16 @@ uint_fast32_t FileCache::getFileSize(const RemoteFile &file) {
     }
 }
 
-void FileCache::fileClosed(const RemoteFile &file, uint_fast32_t curSize) {
+void FileCache::fileClosed(const RemoteFile &file, const TotalPrepSizes &sizes) {
     std::scoped_lock<std::mutex> lock(_initialSizesMutex);
-    _initialSizesCache.put(file, curSize);
+    _initialSizesCache.put(file, sizes);
 }
 
 std::string FileCache::constructFilename(const RemoteFile &file) {
     return std::to_string(file.getOwnerId()) + "_" + std::to_string(file.getFileId()) + ".mp3";
 }
 
-uint_fast32_t FileCache::getInitialSize(const RemoteFile &file) {
+TotalPrepSizes FileCache::getInitialSize(const RemoteFile &file) {
     std::scoped_lock<std::mutex> lock(_initialSizesMutex);
     return _initialSizesCache.get(file);
 }

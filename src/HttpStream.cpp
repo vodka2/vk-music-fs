@@ -37,21 +37,17 @@ ByteVect HttpStream::read(uint_fast32_t offset, uint_fast32_t length) {
         }
 
         auto stream = _common->connect(_hostPath);
-        http::request<http::string_body> req{http::verb::get, _hostPath.path, HttpStreamCommon::HTTP_VERSION};
-        req.set(http::field::host, _hostPath.host);
         auto maxReadByte = std::min(offset + length - 1, _size - 1);
         auto readSize = maxReadByte + 1 - offset;
-        req.set(http::field::range, "bytes=" + std::to_string(offset) + "-" + std::to_string(maxReadByte));
-        req.set(http::field::user_agent, _userAgent);
-        http::write(*stream, req);
+        _common->sendPartialGetReq(stream, _hostPath, _userAgent, offset, maxReadByte);
 
         boost::beast::basic_flat_buffer<std::allocator<uint8_t>> readBuffer;
         http::response_parser<http::buffer_body> parser;
         http::read_header(*stream, readBuffer, parser);
-        if (parser.get().result() != http::status::partial_content && _parser.get().result() != http::status::ok) {
+        if (parser.get().result() != http::status::partial_content && parser.get().result() != http::status::ok) {
             throw HttpException(
                 "Bad status code " + std::to_string(static_cast<uint_fast32_t>(parser.get().result())) +
-                " when opening " + _uri
+                " when opening " + _uri + " when reading part"
             );
         }
         ByteVect buf(readSize);
@@ -81,12 +77,17 @@ void HttpStream::open(uint_fast32_t offset, uint_fast32_t totalSize) {
         _stream = _common->connect(_hostPath);
         if(offset == 0) {
             _common->sendGetReq(_stream, _hostPath, _userAgent);
+        } else {
+            _common->sendPartialGetReq(_stream, _hostPath, _userAgent, offset, _size);
         }
         http::read_header(*_stream, _readBuffer, _parser);
-        if (_parser.get().result() != http::status::ok) {
+        if (
+                (offset == 0 && _parser.get().result() != http::status::ok) ||
+                (offset != 0 && _parser.get().result() != http::status::partial_content)
+        ) {
             throw HttpException(
                     "Bad status code " + std::to_string(static_cast<uint_fast32_t>(_parser.get().result())) +
-                    " when opening " + _uri);
+                    " when opening " + _uri + " when reading");
         }
     } catch (const boost::system::system_error &ex){
         throw HttpException(std::string("Error opening uri ")  + _uri + ". " + ex.what());

@@ -20,6 +20,12 @@ namespace vk_music_fs {
                 const HostPath &hostPath,
                 const std::string &userAgent
                 );
+        void sendPartialGetReq(const std::shared_ptr<HttpStreamCommon::Stream> &stream,
+                        const HostPath &hostPath,
+                        const std::string &userAgent,
+                        uint_fast32_t byteStart,
+                        uint_fast32_t byteEnd
+        );
         void sendHeadReq(const std::shared_ptr<HttpStreamCommon::Stream> &stream,
                          const HostPath &hostPath,
                          const std::string &userAgent);

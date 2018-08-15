@@ -87,7 +87,6 @@ namespace vk_music_fs {
             if(_procs.find(remFile) != _procs.end()) {
                 _procs[remFile].ids.erase(id);
                 if(_procs[remFile].ids.size() == 0) {
-                    auto isFinished = _procs[remFile].proc->isFinished();
                     _procs[remFile].proc->close();
                     _procs.erase(remFile);
                 }

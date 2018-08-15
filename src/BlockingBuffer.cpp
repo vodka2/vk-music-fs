@@ -34,6 +34,7 @@ void BlockingBuffer::append(ByteVect vect) {
 
 void BlockingBuffer::prepend(ByteVect vect, uint_fast32_t replace) {
     _startPart = std::move(vect);
+    _prepBufSize = _startPart.size();
     _replaceLen = replace;
 }
 
@@ -49,7 +50,7 @@ ByteVect BlockingBuffer::clearStart() {
     return std::move(_startPart);
 }
 
-BlockingBuffer::BlockingBuffer() : _eof(false), _portionRead(false), _replaceLen(0){
+BlockingBuffer::BlockingBuffer() : _eof(false), _portionRead(false), _replaceLen(0), _prepBufSize(0){
 }
 
 void BlockingBuffer::setEOF() {
@@ -64,6 +65,10 @@ void BlockingBuffer::notify() {
 
 uint_fast32_t BlockingBuffer::getSize() {
     return _size;
+}
+
+uint_fast32_t BlockingBuffer::getPrependSize() {
+    return _prepBufSize - _replaceLen;
 }
 
 void BlockingBuffer::setSize(uint_fast32_t size) {

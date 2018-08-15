@@ -53,3 +53,17 @@ void HttpStreamCommon::sendHeadReq(const std::shared_ptr<HttpStreamCommon::Strea
     req.set(http::field::user_agent, userAgent);
     http::write(*stream, req);
 }
+
+void HttpStreamCommon::sendPartialGetReq(
+        const std::shared_ptr<HttpStreamCommon::Stream> &stream,
+        const HttpStreamCommon::HostPath &hostPath,
+        const std::string &userAgent,
+        uint_fast32_t byteStart,
+        uint_fast32_t byteEnd
+) {
+    http::request<http::string_body> req{http::verb::get, hostPath.path, HttpStreamCommon::HTTP_VERSION};
+    req.set(http::field::host, hostPath.host);
+    req.set(http::field::range, "bytes=" + std::to_string(byteStart) + "-" + std::to_string(byteEnd));
+    req.set(http::field::user_agent, userAgent);
+    http::write(*stream, req);
+}

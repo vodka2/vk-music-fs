@@ -1,12 +1,12 @@
 #pragma once
 
+#include "FileCache.h"
 #include <string>
 #include <fstream>
 #include <common.h>
 #include <mutex>
 #include <atomic>
 #include "RemoteFile.h"
-#include "FileCache.h"
 
 namespace vk_music_fs {
     class MusicFile {
@@ -15,7 +15,9 @@ namespace vk_music_fs {
         
         void open();
 
-        uint_fast32_t getInitialSize();
+        uint_fast32_t getPrependSize();
+
+        void setPrependSize(uint_fast32_t size);
 
         uint_fast32_t getTotalSize();
 
@@ -35,6 +37,8 @@ namespace vk_music_fs {
         std::shared_ptr<FileCache> _cache;
         std::mutex _mutex;
         std::fstream _fs;
-        std::atomic_uint_fast32_t _size;
+        std::atomic_uint_fast32_t _totalInitialSize;
+        std::atomic_uint_fast32_t _totalUriSize;
+        std::atomic_uint_fast32_t _prepSize;
     };
 }

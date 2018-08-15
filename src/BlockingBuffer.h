@@ -19,10 +19,12 @@ namespace vk_music_fs {
         ByteVect clearMain();
         ByteVect clearStart();
         uint_fast32_t getSize();
+        uint_fast32_t getPrependSize();
     private:
         void notify();
 
         uint_fast32_t _replaceLen;
+        uint_fast32_t _prepBufSize;
         std::atomic_bool _eof;
         std::atomic_uint_fast32_t _size;
         std::mutex _bufMutex;

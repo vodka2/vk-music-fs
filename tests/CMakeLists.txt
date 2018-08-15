@@ -1,6 +1,6 @@
 project(vk_music_fs_tests)
 
-add_library(testlib data/Mp3Files.h data/FileM.h data/ThreadPoolM.h data/StreamM.h data/MusicData.h)
+add_library(testlib data/Mp3Files.h data/FileM.h data/ThreadPoolM.h data/StreamM.h data/MusicData.h data/Writer.h)
 target_link_libraries(testlib PUBLIC gtest_main gmock)
 target_include_directories(testlib PUBLIC ${CURRENT_SRC_DIR})
 

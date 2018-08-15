@@ -7,6 +7,7 @@
 #include "data/StreamM.h"
 #include "data/ThreadPoolM.h"
 #include "data/Mp3Files.h"
+#include "data/Writer.h"
 #include <boost/di.hpp>
 #include <boost/di/extension/scopes/scoped.hpp>
 #include <toolkit/tbytevectorstream.h>
@@ -46,16 +47,24 @@ public:
 
     std::shared_ptr<FileProcessor> fp;
     std::shared_ptr<MusicData> data;
+    std::shared_ptr<Writer> writer;
     std::future<void> finish;
     std::promise<void> finishPromise;
 
     void init(const ByteVect &dataVect){
         data = std::make_shared<MusicData>(dataVect, 10);
+        writer = std::make_shared<Writer>();
 
         EXPECT_CALL(*inj.create<std::shared_ptr<StreamM>>(), read()).WillRepeatedly(testing::Invoke([&data = data] {
             return data->readData();
         }));
         fp = inj.create<std::shared_ptr<FileProcessor>>();
+        ON_CALL(*inj.create<std::shared_ptr<FileM>>(), write(testing::_)).WillByDefault(testing::Invoke([this] (auto data){
+            writer->write(data);
+        }));
+        ON_CALL(*inj.create<std::shared_ptr<FileM>>(), getSize()).WillByDefault(testing::Invoke([this] (){
+            return writer->getSize();
+        }));
     }
 
     void expectFinish(){
@@ -74,18 +83,12 @@ public:
 TEST_F(FileProcessorMp3ParserT, AddID3){ //NOLINT
     ByteVect dataVect(fileMp3NoID3, fileMp3NoID3 + fileMp3NoID3Len);
 
-    ByteVect resVect;
-    EXPECT_CALL(*inj.create<std::shared_ptr<FileM>>(), write(testing::_)).WillRepeatedly(testing::Invoke([&resVect] (ByteVect vect) {
-        std::copy(vect.cbegin(), vect.cend(), std::back_inserter(resVect));
-    }));
-    EXPECT_CALL(*inj.create<std::shared_ptr<FileM>>(), getSize()).WillOnce(testing::Return(1));
-
     expectFinish();
     init(dataVect);
     fp->read(0, 1);
     waitForFinish();
 
-    TagLib::ByteVector bvect(reinterpret_cast<char*>(&resVect[0]), static_cast<unsigned int>(resVect.size()));
+    TagLib::ByteVector bvect(reinterpret_cast<char*>(&writer->data[0]), static_cast<unsigned int>(writer->data.size()));
     TagLib::ByteVectorStream strm(bvect);
     TagLib::MPEG::File f(&strm, TagLib::ID3v2::FrameFactory::instance());
     ASSERT_TRUE(f.hasID3v2Tag());

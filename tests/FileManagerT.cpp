@@ -28,7 +28,6 @@ public:
 class FileProcessorM{
 public:
     FileProcessorM(){} //NOLINT
-    MOCK_CONST_METHOD0(isFinished, bool());
     MOCK_CONST_METHOD0(close, void());
     MOCK_CONST_METHOD2(read, ByteVect(uint_fast32_t offset, uint_fast32_t size));
 };
@@ -158,7 +157,6 @@ TEST_F(FileManagerT, OpenFileNoCacheRead){ //NOLINT
     EXPECT_CALL(*inj.create<std::shared_ptr<FileCacheM>>(), getFilename(rf))
             .WillOnce(testing::Return(FNameCache{cachedFile, false}));
     EXPECT_CALL(*inj.create<std::shared_ptr<FileProcessorM>>(), read(10, 200)).WillOnce(testing::Return(fileContents));
-    EXPECT_CALL(*inj.create<std::shared_ptr<FileProcessorM>>(), isFinished()).WillOnce(testing::Return(true));
     EXPECT_CALL(*inj.create<std::shared_ptr<FileProcessorM>>(), close());
     auto id = static_cast<uint_fast32_t>(t->open(file));
     EXPECT_EQ(t->read(id, 10, 200), fileContents);

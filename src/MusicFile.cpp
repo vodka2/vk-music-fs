@@ -1,15 +1,21 @@
+#include <boost/beast/http.hpp>
+#include <boost/asio/ip/tcp.hpp>
 #include "MusicFile.h"
 
 using namespace vk_music_fs;
 
 MusicFile::MusicFile(const CachedFilename &name, const RemoteFile &remFile, const std::shared_ptr<FileCache> &cache)
-: _name(name.t), _remFile(remFile), _cache(cache), _size(0) {
+: _name(name.t), _remFile(remFile), _cache(cache) {
+    auto t = _cache->getInitialSize(_remFile);
+    _totalInitialSize = t.totalSize;
+    _prepSize = t.prependSize;
+    _totalUriSize = _cache->getFileSize(_remFile);
 }
 
 void MusicFile::write(ByteVect vect) {
     std::scoped_lock <std::mutex> lock(_mutex);
     if(!vect.empty()) {
-        _size += vect.size();
+        _totalInitialSize += vect.size();
         _fs.seekp(0, std::ios::end);
         _fs.write(reinterpret_cast<const char *>(&vect[0]), vect.size());
         _fs.flush();
@@ -26,7 +32,7 @@ ByteVect MusicFile::read(uint_fast32_t offset, uint_fast32_t size) {
 
 void MusicFile::close() {
     std::scoped_lock <std::mutex> lock(_mutex);
-    _cache->fileClosed(_remFile, 0);
+    _cache->fileClosed(_remFile, {_totalInitialSize, _prepSize});
     _fs.close();
 }
 
@@ -34,18 +40,24 @@ void MusicFile::finish() {
 }
 
 uint_fast32_t MusicFile::getSize() {
-    return _size;
+    return _totalInitialSize;
 }
 
 void MusicFile::open() {
-    std::ofstream{_name};
+    if(_totalInitialSize == 0) {
+        std::ofstream{_name};
+    }
     _fs.open(_name, std::ios::binary | std::ios::in | std::ios::out);
 }
 
-uint_fast32_t MusicFile::getInitialSize() {
-    return _cache->getInitialSize(_remFile);
+uint_fast32_t MusicFile::getTotalSize() {
+    return _totalUriSize;
 }
 
-uint_fast32_t MusicFile::getTotalSize() {
-    return _cache->getFileSize(_remFile);
+uint_fast32_t MusicFile::getPrependSize() {
+    return _prepSize;
+}
+
+void MusicFile::setPrependSize(uint_fast32_t size) {
+    _prepSize = size;
 }

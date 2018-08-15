@@ -50,10 +50,13 @@ namespace vk_music_fs {
             bool exp = false;
             if(_opened.compare_exchange_strong(exp, true)){
                 _pool->post([this] {
-                    _stream->open(_file->getInitialSize(), _file->getTotalSize());
+                    _stream->open(
+                            _file->getSize() - _file->getPrependSize(),
+                            _file->getTotalSize() - _file->getPrependSize()
+                    );
                     _file->open();
-                    if(_file->getInitialSize() == 0) {
-                        _buffer->setSize(_file->getTotalSize());
+                    if(_file->getSize() == 0) {
+                        _buffer->setSize(_file->getTotalSize() - _file->getPrependSize());
                         _pool->post([this] {
                             while (!addToBuffer(_stream->read())) {
                                 std::this_thread::sleep_for(std::chrono::milliseconds(30));
@@ -61,11 +64,13 @@ namespace vk_music_fs {
                         });
                         _parser->parse(_buffer);
                         waitForStopAppend();
-                        auto prepVect = std::move(_buffer->clearStart());
-                        _prependSize = prepVect.size();
-                        _file->write(std::move(prepVect));
+                        _prependSize = _buffer->getPrependSize();
+                        _file->setPrependSize(_prependSize);
+                        _file->write(std::move(_buffer->clearStart()));
                         _file->write(std::move(_buffer->clearMain()));
                         _buffer.reset();
+                    } else {
+                        _prependSize = _file->getPrependSize();
                     }
                     _openedPromise->set_value();
                     while(true){
