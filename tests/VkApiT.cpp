@@ -42,41 +42,43 @@ public:
 
 TEST_F(VkApiT, Empty){ //NOLINT
     auto api = inj.create<std::shared_ptr<VkApi>>();
-    EXPECT_EQ(api->getEntries("/").size(), 0);
+    EXPECT_EQ(api->getEntries("/").size(), 1);
+    EXPECT_EQ(api->getEntries("/Search").size(), 0);
 }
 
 TEST_F(VkApiT, CreateDir){ //NOLINT
     auto api = inj.create<std::shared_ptr<VkApi>>();
     initSongNameQuery();
-    api->createDir("/SongName");
+    api->createDir("/Search/SongName");
     std::vector<std::string> expDirs = {"SongName"};
-    EXPECT_EQ(api->getEntries("/"), expDirs);
+    EXPECT_EQ(api->getEntries("/Search"), expDirs);
     std::vector<std::string> expFiles = {"Artist1 - Song1.mp3", "Artist2 - Song2.mp3", "Artist3 - Song3.mp3"};
-    auto files = api->getEntries("/SongName");
+    auto files = api->getEntries("/Search/SongName");
     std::sort(files.begin(), files.end());
     EXPECT_EQ(files, expFiles);
-    EXPECT_EQ(api->getRemoteFile("/SongName/Artist2 - Song2.mp3").getOwnerId(), 3);
-    EXPECT_EQ(api->getRemoteFile("/SongName/Artist3 - Song3.mp3").getUri(), "https://uri3");
+    EXPECT_EQ(api->getRemoteFile("/Search/SongName/Artist2 - Song2.mp3").getOwnerId(), 3);
+    EXPECT_EQ(api->getRemoteFile("/Search/SongName/Artist3 - Song3.mp3").getUri(), "https://uri3");
 }
 
 TEST_F(VkApiT, GetType){ //NOLINT
     auto api = inj.create<std::shared_ptr<VkApi>>();
     EXPECT_EQ(api->getType("/"), FileOrDirType::DIR_ENTRY);
+    EXPECT_EQ(api->getType("/Search"), FileOrDirType::DIR_ENTRY);
     initSongNameQuery();
-    api->createDir("/SongName");
-    EXPECT_EQ(api->getType("/SongName"), FileOrDirType::DIR_ENTRY);
-    EXPECT_EQ(api->getType("/SongName/Artist2 - Song2.mp3"), FileOrDirType::FILE_ENTRY);
-    EXPECT_EQ(api->getType("/song"), FileOrDirType::NOT_EXISTS);
+    api->createDir("/Search/SongName");
+    EXPECT_EQ(api->getType("/Search/SongName"), FileOrDirType::DIR_ENTRY);
+    EXPECT_EQ(api->getType("/Search/SongName/Artist2 - Song2.mp3"), FileOrDirType::FILE_ENTRY);
+    EXPECT_EQ(api->getType("/Search/song"), FileOrDirType::NOT_EXISTS);
 }
 
 TEST_F(VkApiT, CreateDummyDir){ //NOLINT
     auto api = inj.create<std::shared_ptr<VkApi>>();
     initSongNameQuery();
-    api->createDummyDir("/New Folder");
-    EXPECT_EQ(api->getEntries("/New Folder").size(), 0);
-    api->renameDummyDir("/New Folder", "/SongName");
+    api->createDummyDir("/Search/New Folder");
+    EXPECT_EQ(api->getEntries("/Search/New Folder").size(), 0);
+    api->renameDummyDir("/Search/New Folder", "/Search/SongName");
     std::vector<std::string> expFiles = {"Artist1 - Song1.mp3", "Artist2 - Song2.mp3", "Artist3 - Song3.mp3"};
-    auto files = api->getEntries("/SongName");
+    auto files = api->getEntries("/Search/SongName");
     std::sort(files.begin(), files.end());
     EXPECT_EQ(files, expFiles);
 }
