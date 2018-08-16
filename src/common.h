@@ -13,6 +13,13 @@ namespace vk_music_fs{
         uint_fast32_t uriSize;
         uint_fast32_t tagSize;
     };
+
+    enum class  FileOrDirType{
+        FILE_ENTRY,
+        DIR_ENTRY,
+        NOT_EXISTS
+    };
+
     struct FNameCache{
         std::string data;
         bool inCache;
@@ -21,6 +28,7 @@ namespace vk_music_fs{
     BOOST_STRONG_TYPEDEF(std::string, Title); //NOLINT
     BOOST_STRONG_TYPEDEF(uint_fast32_t, TagSize); //NOLINT
     BOOST_STRONG_TYPEDEF(uint_fast32_t, FileSize); //NOLINT
+    BOOST_STRONG_TYPEDEF(uint_fast32_t, NumSearchFiles); //NOLINT
     BOOST_STRONG_TYPEDEF(std::string, Mp3Uri); //NOLINT
     BOOST_STRONG_TYPEDEF(std::string, UserAgent); //NOLINT
     BOOST_STRONG_TYPEDEF(std::string, Token); //NOLINT

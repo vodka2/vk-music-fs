@@ -8,7 +8,7 @@ namespace vk_music_fs {
     public:
         friend class RemoteFileHasher;
         RemoteFile(
-                const std::string &uri, uint_fast32_t ownerId, uint_fast32_t userId,
+                const std::string &uri, uint_fast32_t ownerId, uint_fast32_t fileId,
                 const std::string &artist, const std::string &title
         );
         const std::string& getUri() const;

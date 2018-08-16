@@ -74,12 +74,12 @@ HttpStream::HttpStream(const Mp3Uri &uri, const std::shared_ptr<HttpStreamCommon
 
 void HttpStream::open(uint_fast32_t offset, uint_fast32_t totalSize) {
     try {
-        _size = totalSize;
         _stream = _common->connect(_hostPath);
         if(offset == 0) {
             _common->sendGetReq(_stream, _hostPath, _userAgent);
         } else {
-            _common->sendPartialGetReq(_stream, _hostPath, _userAgent, offset, _size);
+            _size = totalSize;
+            _common->sendPartialGetReq(_stream, _hostPath, _userAgent, offset, _size - 1);
         }
         http::read_header(*_stream, _readBuffer, _parser);
         if (
@@ -89,6 +89,9 @@ void HttpStream::open(uint_fast32_t offset, uint_fast32_t totalSize) {
             throw HttpException(
                     "Bad status code " + std::to_string(static_cast<uint_fast32_t>(_parser.get().result())) +
                     " when opening " + _uri + " when reading");
+        }
+        if(offset == 0){
+            _size = *_parser.content_length();
         }
     } catch (const boost::system::system_error &ex){
         throw HttpException(std::string("Error opening uri ")  + _uri + ". " + ex.what());
