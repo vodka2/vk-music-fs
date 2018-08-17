@@ -18,9 +18,9 @@ VkApiQueryMaker::VkApiQueryMaker(
 
 }
 
-std::string VkApiQueryMaker::makeSearchQuery(const std::string &query, uint_fast32_t count) {
+std::string VkApiQueryMaker::makeSearchQuery(const std::string &query, uint_fast32_t offset, uint_fast32_t count) {
     std::string uri = "https://api.vk.com/method/audio.search?access_token=" + _token +
-    "&q=" + _common->uriEncode(query) + "&count=" + std::to_string(count) + "&v=5.71";
+    "&q=" + _common->uriEncode(query) + "&offset=" + std::to_string(offset) + "&count=" + std::to_string(count) + "&v=5.71";
     auto hostPath = _common->getHostPath(uri);
     auto stream = _common->connect(hostPath);
     _common->sendGetReq(stream, hostPath, _userAgent);

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iostream>
 #include <utility>
 #include <common.h>
 #include <unordered_map>
@@ -20,8 +21,10 @@ namespace vk_music_fs {
     public:
         AudioFs(const std::shared_ptr<TQueryMaker> &queryMaker, const NumSearchFiles &numSearchFiles)
         : _queryMaker(queryMaker), _numSearchFiles(numSearchFiles),
-          _rootDir(std::make_shared<Dir>("/", Dir::Type::ROOT_DIR, ContentsMap{}, DirWPtr{})){
-            std::shared_ptr<Dir> searchDir = std::make_shared<Dir>("Search", Dir::Type::ROOT_SEARCH_DIR, ContentsMap{}, _rootDir);
+          _rootDir(std::make_shared<Dir>("/", Dir::Type::ROOT_DIR, ContentsMap{},  std::nullopt, DirWPtr{})){
+            std::shared_ptr<Dir> searchDir = std::make_shared<Dir>(
+                    "Search", Dir::Type::ROOT_SEARCH_DIR, ContentsMap{}, std::nullopt, _rootDir
+            );
             _rootDir->contents.insert(std::make_pair<>(std::string("Search"), searchDir));
         }
 
@@ -31,7 +34,11 @@ namespace vk_music_fs {
             auto newDirO = findPath(newPath, 1);
             if(
                     isDir(oldDirO) &&
-                    std::get<DirPtr>(*oldDirO)->parent.lock()->type == Dir::Type::ROOT_SEARCH_DIR &&
+                    (
+                    std::get<DirPtr>(*oldDirO)->parent.lock()->type == Dir::Type::ROOT_SEARCH_DIR ||
+                    std::get<DirPtr>(*oldDirO)->parent.lock()->type == Dir::Type::SEARCH_DIR
+                    )
+                    &&
                     std::get<DirPtr>(*oldDirO)->type == Dir::Type::DUMMY_DIR &&
                     isDir(newDirO) &&
                     std::get<DirPtr>(*oldDirO)->parent.lock() == std::get<DirPtr>(*newDirO)
@@ -89,7 +96,7 @@ namespace vk_music_fs {
                 auto parentDir = std::get<DirPtr>(*pathO);
                 parentDir->contents.insert(std::make_pair(
                         dirName,
-                        std::make_shared<Dir>(dirName, Dir::Type::DUMMY_DIR, ContentsMap{}, DirWPtr{parentDir})
+                        std::make_shared<Dir>(dirName, Dir::Type::DUMMY_DIR, ContentsMap{}, std::nullopt, DirWPtr{parentDir})
                 ));
                 return true;
             }
@@ -117,6 +124,13 @@ namespace vk_music_fs {
             }
         };
 
+        struct OffsetName{
+            uint_fast32_t offset;
+            std::string name;
+            OffsetName(uint_fast32_t _offset, std::string _name) : offset(_offset), name(std::move(_name)){
+            }
+        };
+
         struct Dir{
             std::string name;
             enum class Type{
@@ -126,13 +140,17 @@ namespace vk_music_fs {
                 ROOT_SEARCH_DIR
             } type;
             ContentsMap contents;
+            std::optional<std::variant<OffsetName>> extra;
             DirWPtr parent;
             Dir(
                     std::string _name,
                     Type _type,
                     ContentsMap _contents,
+                    std::optional<std::variant<OffsetName>> _extra,
                     DirWPtr _parent
-            ) : name(std::move(_name)), type(_type), contents(std::move(_contents)), parent(_parent){
+            ) :
+            name(std::move(_name)), type(_type),
+            contents(std::move(_contents)), extra(std::move(_extra)), parent(_parent){
 
             }
         };
@@ -198,40 +216,67 @@ namespace vk_music_fs {
 
         bool createDirNoLock(const std::string &dirPath){
             auto dirO = findPath(dirPath, 1);
-            if(isDir(dirO) && std::get<DirPtr>(*dirO)->type == Dir::Type::ROOT_SEARCH_DIR ) {
-                auto dirName = getLast(dirPath);
+            if(!isDir(dirO)){
+                return false;
+            }
+            auto dirName = getLast(dirPath);
+            if(std::get<DirPtr>(*dirO)->type == Dir::Type::ROOT_SEARCH_DIR ) {
                 auto parentDir = std::get<DirPtr>(*dirO);
-                auto res = json::parse(_queryMaker->makeSearchQuery(dirName, _numSearchFiles));
-                auto resp = res["response"];
                 parentDir->contents.insert(std::make_pair(
                         dirName,
-                        std::make_shared<Dir>(dirName, Dir::Type::SEARCH_DIR, ContentsMap{}, DirWPtr{parentDir})
+                        std::make_shared<Dir>(
+                                dirName, Dir::Type::SEARCH_DIR, ContentsMap{},
+                                OffsetName{_numSearchFiles, dirName}, DirWPtr{parentDir}
+                        )
                 ));
-                auto curDir = std::get<DirPtr>(parentDir->contents[dirName]);
-                for (const auto &item: resp["items"]) {
-                    auto initialFileName = genFileName(item["artist"], item["title"]);
-                    auto fileName = initialFileName + ".mp3";
-                    uint_fast32_t i = 0;
-                    while(curDir->contents.find(fileName) != curDir->contents.end()){
-                        fileName = initialFileName + std::to_string(i) + ".mp3";
-                        i++;
-                    }
-                    curDir->contents.insert(
-                            std::make_pair<>(
-                                    fileName,
-                                    std::make_shared<File>(
-                                            fileName,
-                                            File::Type::MUSIC_FILE,
-                                            RemoteFile{item["url"], item["owner_id"],
-                                                       item["id"], item["artist"], item["title"]},
-                                            curDir
-                                    )
-                            )
-                    );
-                }
+                insertMp3sInDir(parentDir, dirName, dirName, 0, _numSearchFiles);
                 return true;
+            } else if(std::get<DirPtr>(*dirO)->type == Dir::Type::SEARCH_DIR){
+                auto cnt = std::stoul(dirName);
+                auto parentDir = std::get<DirPtr>(*dirO);
+                auto offset = std::get<OffsetName>(*parentDir->extra).offset;
+                auto searchName = std::get<OffsetName>(*parentDir->extra).name;
+                parentDir->contents.insert(std::make_pair(
+                        dirName,
+                        std::make_shared<Dir>(
+                                dirName, Dir::Type::SEARCH_DIR, ContentsMap{},
+                                OffsetName{offset + cnt, searchName}, DirWPtr{parentDir}
+                        )
+                ));
+                insertMp3sInDir(parentDir, dirName, searchName, offset, cnt);
             }
             return false;
+        }
+
+        void insertMp3sInDir(
+                const DirPtr &parentDir, const std::string &dirName,
+                const std::string &searchName,
+                uint_fast32_t offset, uint_fast32_t count
+        ){
+            auto res = json::parse(_queryMaker->makeSearchQuery(searchName, offset, count));
+            auto resp = res["response"];
+            auto curDir = std::get<DirPtr>(parentDir->contents[dirName]);
+            for (const auto &item: resp["items"]) {
+                auto initialFileName = genFileName(item["artist"], item["title"]);
+                auto fileName = initialFileName + ".mp3";
+                uint_fast32_t i = 0;
+                while(curDir->contents.find(fileName) != curDir->contents.end()){
+                    fileName = initialFileName + std::to_string(i) + ".mp3";
+                    i++;
+                }
+                curDir->contents.insert(
+                        std::make_pair<>(
+                                fileName,
+                                std::make_shared<File>(
+                                        fileName,
+                                        File::Type::MUSIC_FILE,
+                                        RemoteFile{item["url"], item["owner_id"],
+                                                   item["id"], item["artist"], item["title"]},
+                                        curDir
+                                )
+                        )
+                );
+            }
         }
 
         std::mutex _fsMutex;

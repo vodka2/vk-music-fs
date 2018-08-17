@@ -11,7 +11,7 @@ namespace vk_music_fs {
             const Token &token,
             const UserAgent &userAgent
         );
-        std::string makeSearchQuery(const std::string &query, uint_fast32_t count);
+        std::string makeSearchQuery(const std::string &query, uint_fast32_t offset, uint_fast32_t count);
     private:
         std::shared_ptr<HttpStreamCommon> _common;
         std::string _userAgent;

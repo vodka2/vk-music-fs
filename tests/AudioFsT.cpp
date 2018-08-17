@@ -11,7 +11,7 @@ using vk_music_fs::FileOrDirType;
 class QueryMakerM{
 public:
     QueryMakerM(){}//NOLINT
-    MOCK_CONST_METHOD2(makeSearchQuery, std::string(const std::string&, uint_fast32_t));
+    MOCK_CONST_METHOD3(makeSearchQuery, std::string(const std::string&, uint_fast32_t, uint_fast32_t));
 };
 
 class AudioFsT: public ::testing::Test {
@@ -27,13 +27,23 @@ public:
             ))
     );
     void initSongNameQuery(){
-        EXPECT_CALL(*inj.create<std::shared_ptr<QueryMakerM>>(), makeSearchQuery("SongName", 3))
+        EXPECT_CALL(*inj.create<std::shared_ptr<QueryMakerM>>(), makeSearchQuery("SongName", 0, 3))
                 .WillOnce(testing::Return(
                         R"(
                         {"response": {"count":3, "items": [
                             {"id": 1, "owner_id": 2, "artist":"Artist1", "title":"Song1", "url":"https:\/\/uri1"},
                             {"id": 2, "owner_id": 3, "artist":"Artist2", "title":"Song2", "url":"https:\/\/uri2"},
                             {"id": -1, "owner_id": 2, "artist":"Artist3", "title":"Song3", "url":"https:\/\/uri3"}
+                        ] }}
+                        )"
+                ));
+    }
+    void initSongNameSecondQuery(){
+        EXPECT_CALL(*inj.create<std::shared_ptr<QueryMakerM>>(), makeSearchQuery("SongName", 3, 1))
+                .WillOnce(testing::Return(
+                        R"(
+                        {"response": {"count":3, "items": [
+                            {"id": 1, "owner_id": 5, "artist":"Artist4", "title":"Song4", "url":"https:\/\/uri4"}
                         ] }}
                         )"
                 ));
@@ -81,4 +91,20 @@ TEST_F(AudioFsT, CreateDummyDir){ //NOLINT
     auto files = api->getEntries("/Search/SongName");
     std::sort(files.begin(), files.end());
     EXPECT_EQ(files, expFiles);
+}
+
+TEST_F(AudioFsT, CreateMoreDir){ //NOLINT
+    auto api = inj.create<std::shared_ptr<AudioFs>>();
+    initSongNameQuery();
+    initSongNameSecondQuery();
+    api->createDir("/Search/SongName");
+    api->createDir("/Search/SongName/1");
+    std::vector<std::string> expDirs = {"1", "Artist1 - Song1.mp3", "Artist2 - Song2.mp3", "Artist3 - Song3.mp3"};
+    auto dirs = api->getEntries("/Search/SongName");
+    std::sort(dirs.begin(), dirs.end());
+    EXPECT_EQ(dirs, expDirs);
+    std::vector<std::string> expFiles = {"Artist4 - Song4.mp3"};
+    auto files = api->getEntries("/Search/SongName/1");
+    EXPECT_EQ(files, expFiles);
+    EXPECT_EQ(api->getRemoteFile("/Search/SongName/1/Artist4 - Song4.mp3").getUri(), "https://uri4");
 }
