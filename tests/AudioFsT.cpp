@@ -2,7 +2,7 @@
 #include <gmock/gmock.h>
 #include <boost/di.hpp>
 #include <boost/di/extension/scopes/scoped.hpp>
-#include <VkApi.h>
+#include <AudioFs.h>
 
 namespace di = boost::di;
 
@@ -14,14 +14,14 @@ public:
     MOCK_CONST_METHOD2(makeSearchQuery, std::string(const std::string&, uint_fast32_t));
 };
 
-class VkApiT: public ::testing::Test {
+class AudioFsT: public ::testing::Test {
 public:
 
     uint_fast32_t numSearchFiles = 3;
 
-    typedef vk_music_fs::VkApi<QueryMakerM> VkApi;
+    typedef vk_music_fs::AudioFs<QueryMakerM> AudioFs;
     auto_init(inj, (di::make_injector(
-            di::bind<VkApi>.in(di::extension::scoped),
+            di::bind<AudioFs>.in(di::extension::scoped),
             di::bind<QueryMakerM>.in(di::extension::scoped),
             di::bind<vk_music_fs::NumSearchFiles>.to(vk_music_fs::NumSearchFiles{numSearchFiles})
             ))
@@ -40,14 +40,14 @@ public:
     }
 };
 
-TEST_F(VkApiT, Empty){ //NOLINT
-    auto api = inj.create<std::shared_ptr<VkApi>>();
+TEST_F(AudioFsT, Empty){ //NOLINT
+    auto api = inj.create<std::shared_ptr<AudioFs>>();
     EXPECT_EQ(api->getEntries("/").size(), 1);
     EXPECT_EQ(api->getEntries("/Search").size(), 0);
 }
 
-TEST_F(VkApiT, CreateDir){ //NOLINT
-    auto api = inj.create<std::shared_ptr<VkApi>>();
+TEST_F(AudioFsT, CreateDir){ //NOLINT
+    auto api = inj.create<std::shared_ptr<AudioFs>>();
     initSongNameQuery();
     api->createDir("/Search/SongName");
     std::vector<std::string> expDirs = {"SongName"};
@@ -60,8 +60,8 @@ TEST_F(VkApiT, CreateDir){ //NOLINT
     EXPECT_EQ(api->getRemoteFile("/Search/SongName/Artist3 - Song3.mp3").getUri(), "https://uri3");
 }
 
-TEST_F(VkApiT, GetType){ //NOLINT
-    auto api = inj.create<std::shared_ptr<VkApi>>();
+TEST_F(AudioFsT, GetType){ //NOLINT
+    auto api = inj.create<std::shared_ptr<AudioFs>>();
     EXPECT_EQ(api->getType("/"), FileOrDirType::DIR_ENTRY);
     EXPECT_EQ(api->getType("/Search"), FileOrDirType::DIR_ENTRY);
     initSongNameQuery();
@@ -71,8 +71,8 @@ TEST_F(VkApiT, GetType){ //NOLINT
     EXPECT_EQ(api->getType("/Search/song"), FileOrDirType::NOT_EXISTS);
 }
 
-TEST_F(VkApiT, CreateDummyDir){ //NOLINT
-    auto api = inj.create<std::shared_ptr<VkApi>>();
+TEST_F(AudioFsT, CreateDummyDir){ //NOLINT
+    auto api = inj.create<std::shared_ptr<AudioFs>>();
     initSongNameQuery();
     api->createDummyDir("/Search/New Folder");
     EXPECT_EQ(api->getEntries("/Search/New Folder").size(), 0);

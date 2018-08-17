@@ -13,11 +13,11 @@
 
 namespace vk_music_fs {
 
-    template <typename TVkApi, typename TFileCache, typename TFileProcessor, typename TReader>
+    template <typename TAudioFs, typename TFileCache, typename TFileProcessor, typename TReader>
     class FileManager: public IFileManager {
     public:
         FileManager(
-                const std::shared_ptr<TVkApi> &api,
+                const std::shared_ptr<TAudioFs> &audioFs,
                 const std::shared_ptr<TFileCache> &fileCache,
                 std::shared_ptr<boost::di::extension::iextfactory<
                         TFileProcessor,
@@ -33,13 +33,13 @@ namespace vk_music_fs {
                         CachedFilename,
                         FileSize
                 >> readersFact
-        ) :_api(api), _fileCache(fileCache),
+        ) :_audioFs(audioFs), _fileCache(fileCache),
         _procsFact(procsFact), _readersFact(readersFact){
         }
 
         int_fast32_t open(const std::string &filename) override{
             namespace di = boost::di;
-            RemoteFile remFile = _api->getRemoteFile(filename);
+            RemoteFile remFile = _audioFs->getRemoteFile(filename);
             std::scoped_lock<std::mutex> procsLock(_procsMutex);
             std::scoped_lock<std::mutex> readersLock(_readersMutex);
             uint_fast32_t retId = _idToRemFile.size() + 1;
@@ -99,11 +99,11 @@ namespace vk_music_fs {
             }
         }
         uint_fast32_t getFileSize(const std::string &filename) override{
-            RemoteFile remFile = _api->getRemoteFile(filename);
+            RemoteFile remFile = _audioFs->getRemoteFile(filename);
             return _fileCache->getFileSize(remFile);
         }
     private:
-        std::shared_ptr<TVkApi> _api;
+        std::shared_ptr<TAudioFs> _audioFs;
         std::shared_ptr<TFileCache> _fileCache;
         std::shared_ptr<boost::di::extension::iextfactory<
                 TFileProcessor,

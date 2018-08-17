@@ -11,9 +11,9 @@ using vk_music_fs::RemoteFile;
 using vk_music_fs::FNameCache;
 namespace di = boost::di;
 
-class VkApiM{
+class AudioFsM{
 public:
-    VkApiM(){} //NOLINT
+    AudioFsM(){} //NOLINT
     MOCK_CONST_METHOD1(getRemoteFile, RemoteFile(const std::string &str));
 };
 
@@ -77,11 +77,11 @@ public:
 
 class FileManagerT: public ::testing::Test {
 public:
-    typedef vk_music_fs::FileManager<VkApiM, FileCacheM, FileProcessorM, ReaderM> FileManager;
+    typedef vk_music_fs::FileManager<AudioFsM, FileCacheM, FileProcessorM, ReaderM> FileManager;
 
     auto_init(inj, (di::make_injector(
             di::bind<FileManager>.in(di::extension::scoped),
-            di::bind<VkApiM>.in(di::extension::scoped),
+            di::bind<AudioFsM>.in(di::extension::scoped),
             di::bind<FileProcessorM>.in(di::extension::scoped),
             di::bind<ReaderM>.in(di::extension::scoped),
             di::bind<FileCacheM>.in(di::extension::scoped),
@@ -121,7 +121,7 @@ protected:
 TEST_F(FileManagerT, OpenFileCache){ //NOLINT
     createReaders();
     auto t = inj.create<std::shared_ptr<FileManager>>();
-    EXPECT_CALL(*inj.create<std::shared_ptr<VkApiM>>(), getRemoteFile(file)).WillOnce(testing::Return(rf));
+    EXPECT_CALL(*inj.create<std::shared_ptr<AudioFsM>>(), getRemoteFile(file)).WillOnce(testing::Return(rf));
     EXPECT_CALL(*inj.create<std::shared_ptr<FileCacheM>>(), getFilename(rf))
         .WillOnce(testing::Return(FNameCache{cachedFile, true}));
     EXPECT_CALL(*inj.create<std::shared_ptr<FileCacheM>>(), getTagSize(rf)).Times(0);
@@ -131,7 +131,7 @@ TEST_F(FileManagerT, OpenFileCache){ //NOLINT
 TEST_F(FileManagerT, OpenFileNoCache){ //NOLINT
     createProcs();
     auto t = inj.create<std::shared_ptr<FileManager>>();
-    EXPECT_CALL(*inj.create<std::shared_ptr<VkApiM>>(), getRemoteFile(file)).WillOnce(testing::Return(rf));
+    EXPECT_CALL(*inj.create<std::shared_ptr<AudioFsM>>(), getRemoteFile(file)).WillOnce(testing::Return(rf));
     EXPECT_CALL(*inj.create<std::shared_ptr<FileCacheM>>(), getFilename(rf))
         .WillOnce(testing::Return(FNameCache{cachedFile, false}));
     EXPECT_CALL(*inj.create<std::shared_ptr<FileCacheM>>(), getTagSize(rf));
@@ -141,7 +141,7 @@ TEST_F(FileManagerT, OpenFileNoCache){ //NOLINT
 TEST_F(FileManagerT, OpenFileCacheRead){ //NOLINT
     createReaders();
     auto t = inj.create<std::shared_ptr<FileManager>>();
-    EXPECT_CALL(*inj.create<std::shared_ptr<VkApiM>>(), getRemoteFile(file)).WillOnce(testing::Return(rf));
+    EXPECT_CALL(*inj.create<std::shared_ptr<AudioFsM>>(), getRemoteFile(file)).WillOnce(testing::Return(rf));
     EXPECT_CALL(*inj.create<std::shared_ptr<FileCacheM>>(), getFilename(rf))
             .WillOnce(testing::Return(FNameCache{cachedFile, true}));
     EXPECT_CALL(*inj.create<std::shared_ptr<ReaderM>>(), read(10, 200)).WillOnce(testing::Return(fileContents));
@@ -153,7 +153,7 @@ TEST_F(FileManagerT, OpenFileCacheRead){ //NOLINT
 TEST_F(FileManagerT, OpenFileNoCacheRead){ //NOLINT
     createProcs();
     auto t = inj.create<std::shared_ptr<FileManager>>();
-    EXPECT_CALL(*inj.create<std::shared_ptr<VkApiM>>(), getRemoteFile(file)).WillOnce(testing::Return(rf));
+    EXPECT_CALL(*inj.create<std::shared_ptr<AudioFsM>>(), getRemoteFile(file)).WillOnce(testing::Return(rf));
     EXPECT_CALL(*inj.create<std::shared_ptr<FileCacheM>>(), getFilename(rf))
             .WillOnce(testing::Return(FNameCache{cachedFile, false}));
     EXPECT_CALL(*inj.create<std::shared_ptr<FileProcessorM>>(), read(10, 200)).WillOnce(testing::Return(fileContents));
@@ -166,8 +166,8 @@ TEST_F(FileManagerT, OpenFileNoCacheRead){ //NOLINT
 TEST_F(FileManagerT, OpenFileCacheRead2Times){ //NOLINT
     createReaders();
     auto t = inj.create<std::shared_ptr<FileManager>>();
-    EXPECT_CALL(*inj.create<std::shared_ptr<VkApiM>>(), getRemoteFile(file)).WillOnce(testing::Return(rf));
-    EXPECT_CALL(*inj.create<std::shared_ptr<VkApiM>>(), getRemoteFile(file2)).WillOnce(testing::Return(rf2));
+    EXPECT_CALL(*inj.create<std::shared_ptr<AudioFsM>>(), getRemoteFile(file)).WillOnce(testing::Return(rf));
+    EXPECT_CALL(*inj.create<std::shared_ptr<AudioFsM>>(), getRemoteFile(file2)).WillOnce(testing::Return(rf2));
     EXPECT_CALL(*inj.create<std::shared_ptr<FileCacheM>>(), getFilename(rf))
             .WillOnce(testing::Return(FNameCache{cachedFile, true}));
     EXPECT_CALL(*inj.create<std::shared_ptr<FileCacheM>>(), getFilename(rf2))
@@ -185,7 +185,7 @@ TEST_F(FileManagerT, OpenFileCacheRead2Times){ //NOLINT
 
 TEST_F(FileManagerT, GetSizes){ //NOLINT
     auto t = inj.create<std::shared_ptr<FileManager>>();
-    EXPECT_CALL(*inj.create<std::shared_ptr<VkApiM>>(), getRemoteFile(file)).WillOnce(testing::Return(rf));
+    EXPECT_CALL(*inj.create<std::shared_ptr<AudioFsM>>(), getRemoteFile(file)).WillOnce(testing::Return(rf));
     EXPECT_CALL(*inj.create<std::shared_ptr<FileCacheM>>(), getFileSize(rf)).WillOnce(testing::Return(1000));
     EXPECT_EQ(t->getFileSize(file), 1000);
 }

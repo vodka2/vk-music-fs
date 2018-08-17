@@ -16,9 +16,9 @@ using json = nlohmann::json;
 
 namespace vk_music_fs {
     template <typename TQueryMaker>
-    class VkApi {
+    class AudioFs {
     public:
-        VkApi(const std::shared_ptr<TQueryMaker> &queryMaker, const NumSearchFiles &numSearchFiles)
+        AudioFs(const std::shared_ptr<TQueryMaker> &queryMaker, const NumSearchFiles &numSearchFiles)
         : _queryMaker(queryMaker), _numSearchFiles(numSearchFiles),
           _rootDir(std::make_shared<Dir>("/", Dir::Type::ROOT_DIR, ContentsMap{}, DirWPtr{})){
             std::shared_ptr<Dir> searchDir = std::make_shared<Dir>("Search", Dir::Type::ROOT_SEARCH_DIR, ContentsMap{}, _rootDir);

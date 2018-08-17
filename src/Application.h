@@ -3,11 +3,11 @@
 #include <common.h>
 
 namespace vk_music_fs {
-    template <typename TFileManager, typename TVkApi>
+    template <typename TFileManager, typename TAudioFs>
     class Application {
     public:
-        Application(const std::shared_ptr<TVkApi> &api, const std::shared_ptr<TFileManager> &fileManager)
-        :_api(api), _fileManager(fileManager){
+        Application(const std::shared_ptr<TAudioFs> &api, const std::shared_ptr<TFileManager> &fileManager)
+        :_audioFs(api), _fileManager(fileManager){
         }
 
         int_fast32_t open(const std::string &filename){
@@ -23,30 +23,30 @@ namespace vk_music_fs {
         }
 
         std::vector<std::string> getEntries(const std::string &dirPath){
-            return _api->getEntries(dirPath);
+            return _audioFs->getEntries(dirPath);
         }
 
         FileOrDirType getType(const std::string &path){
-            return _api->getType(path);
+            return _audioFs->getType(path);
         }
 
         bool createDir(const std::string &dirPath){
-            return _api->createDir(dirPath);
+            return _audioFs->createDir(dirPath);
         }
 
         bool createDummyDir(const std::string &dirPath){
-            return _api->createDummyDir(dirPath);
+            return _audioFs->createDummyDir(dirPath);
         }
 
         bool renameDummyDir(const std::string &oldPath, const std::string &newPath){
-            return _api->renameDummyDir(oldPath, newPath);
+            return _audioFs->renameDummyDir(oldPath, newPath);
         }
 
         uint_fast32_t getFileSize(const std::string &path){
             return _fileManager->getFileSize(path);
         }
     private:
-        std::shared_ptr<TVkApi> _api;
+        std::shared_ptr<TAudioFs> _audioFs;
         std::shared_ptr<TFileManager> _fileManager;
     };
 }
