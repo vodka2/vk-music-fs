@@ -1,6 +1,7 @@
 #pragma once
 
 #include <common.h>
+#include <RemoteException.h>
 #include <memory>
 #include <boost/di.hpp>
 #include <unordered_set>
@@ -72,30 +73,48 @@ namespace vk_music_fs {
         }
         ByteVect read(uint_fast32_t id, uint_fast32_t offset, uint_fast32_t size) override{
             ByteVect ret;
-            std::variant<std::shared_ptr<TReader>, std::shared_ptr<TFileProcessor>> reader;
-            std::scoped_lock<std::mutex> _lock(_readersMutex);
-            reader = _readers[_idToRemFile.find(id)->second].ids.find(id)->second;
-            std::visit([id, offset, size, &ret](auto &&el) {
-                ret = std::move(el->read(offset, size));
-            }, reader);
-            return std::move(ret);
+            _readersMutex.lock();
+            if(_idToRemFile.find(id) != _idToRemFile.end()) {
+                try {
+                    std::variant < std::shared_ptr<TReader>, std::shared_ptr<TFileProcessor>>
+                    reader;
+                    reader = _readers[_idToRemFile.find(id)->second].ids.find(id)->second;
+                    std::visit([id, offset, size, &ret](auto &&el) {
+                        ret = std::move(el->read(offset, size));
+                    }, reader);
+                    _readersMutex.unlock();
+                    return std::move(ret);
+                } catch (const RemoteException &ex){
+                    _readersMutex.unlock();
+                    close(id);
+                    throw;
+                } catch (...){
+                    _readersMutex.unlock();
+                    throw;
+                }
+            }
+            _readersMutex.unlock();
+            return {};
         }
         void close(uint_fast32_t id) override{
             std::scoped_lock<std::mutex> procsLock(_procsMutex);
             std::scoped_lock<std::mutex> readersLock(_readersMutex);
-            auto remFile = _idToRemFile.find(id)->second;
-            if(_procs.find(remFile) != _procs.end()) {
-                _procs[remFile].ids.erase(id);
-                if(_procs[remFile].ids.size() == 0) {
-                    _procs[remFile].proc->close();
-                    _procs.erase(remFile);
+            if(_idToRemFile.find(id) != _idToRemFile.end()) {
+                auto remFile = _idToRemFile.find(id)->second;
+                if (_procs.find(remFile) != _procs.end()) {
+                    _procs[remFile].ids.erase(id);
+                    if (_procs[remFile].ids.size() == 0) {
+                        _procs[remFile].proc->close();
+                        _procs.erase(remFile);
+                    }
                 }
-            }
-            if(_readers.find(remFile) != _readers.end()) {
-                _readers[remFile].ids.erase(id);
-                if(_readers[remFile].ids.size() == 0) {
-                    _readers.erase(remFile);
+                if (_readers.find(remFile) != _readers.end()) {
+                    _readers[remFile].ids.erase(id);
+                    if (_readers[remFile].ids.size() == 0) {
+                        _readers.erase(remFile);
+                    }
                 }
+                _idToRemFile.erase(id);
             }
         }
         uint_fast32_t getFileSize(const std::string &filename) override{

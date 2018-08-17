@@ -32,6 +32,7 @@ namespace vk_music_fs {
         uint_fast32_t getSize();
 
     private:
+        bool _closed;
         std::string _name;
         RemoteFile _remFile;
         std::shared_ptr<FileCache> _cache;

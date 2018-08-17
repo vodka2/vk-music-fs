@@ -5,12 +5,14 @@ using namespace vk_music_fs;
 FileProcessorInt::FileProcessorInt()
 :
     _buffer(std::make_shared<BlockingBuffer>()),
-    _metadataWasRead(false), _bufferAppendStopped(false), _closed(false), _finished(false),
-    _opened(false),
+    _metadataWasRead(false), _closed(false), _finished(false),
+    _opened(false), _error(false),
     _openedPromise(std::make_shared<std::promise<void>>()),
     _threadPromise(std::make_shared<std::promise<void>>()),
+    _bufferAppendPromise(std::make_shared<std::promise<void>>()),
     _openFuture(std::move(_openedPromise->get_future())),
-    _threadFinishedFuture(std::move(_threadPromise->get_future())){
+    _threadFinishedFuture(std::move(_threadPromise->get_future())),
+    _bufferAppendFuture(std::move(_bufferAppendPromise->get_future())){
 };
 
 bool FileProcessorInt::addToBuffer(std::optional<ByteVect> vect) {
@@ -30,12 +32,9 @@ bool FileProcessorInt::addToBuffer(std::optional<ByteVect> vect) {
 void FileProcessorInt::waitForStopAppend() {
     _metadataWasRead = true;
     std::unique_lock<std::mutex> lock(_bufferAppendMutex);
-    while(!_bufferAppendStopped) {
-        _bufferAppendStoppedCond.wait(lock);
-    }
+    _bufferAppendFuture.get();
 }
 
 void FileProcessorInt::notifyAppendStopped() {
-    _bufferAppendStopped = true;
-    _bufferAppendStoppedCond.notify_one();
+    _bufferAppendPromise->set_value();
 }

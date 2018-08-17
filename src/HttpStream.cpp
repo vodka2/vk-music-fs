@@ -9,7 +9,7 @@ namespace ssl = boost::asio::ssl;
 
 std::optional<ByteVect> HttpStream::read() {
     try {
-        if (_parser.is_done()) {
+        if (_parser.is_done() || _closed) {
             return std::nullopt;
         }
         _returnBuffer.resize(BUFFER_SIZE);
@@ -32,7 +32,7 @@ std::optional<ByteVect> HttpStream::read() {
 
 ByteVect HttpStream::read(uint_fast32_t offset, uint_fast32_t length) {
     try {
-        if (offset >= _size) {
+        if (offset >= _size || _closed) {
             return {};
         }
 
@@ -68,7 +68,7 @@ ByteVect HttpStream::read(uint_fast32_t offset, uint_fast32_t length) {
 }
 
 HttpStream::HttpStream(const Mp3Uri &uri, const std::shared_ptr<HttpStreamCommon> &common, const UserAgent &userAgent)
-: _uri(uri.t), _userAgent(userAgent.t), _common(common), _hostPath(_common->getHostPath(uri)){
+: _closed(false), _uri(uri.t), _userAgent(userAgent.t), _common(common), _hostPath(_common->getHostPath(uri)){
     _parser.body_limit(std::numeric_limits<std::uint_fast32_t>::max());
 }
 
@@ -99,9 +99,12 @@ void HttpStream::open(uint_fast32_t offset, uint_fast32_t totalSize) {
 }
 
 void HttpStream::close() {
-    try{
-        _common->closeStream(_stream);
-    } catch (const boost::system::system_error &ex){
-        throw HttpException(std::string("Error closing stream ") + _uri);
+    if(!_closed) {
+        try {
+            _closed = true;
+            _common->closeStream(_stream);
+        } catch (const boost::system::system_error &ex) {
+            throw HttpException(std::string("Error closing stream ") + _uri);
+        }
     }
 }

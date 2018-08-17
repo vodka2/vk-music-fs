@@ -7,6 +7,8 @@
 #include <optional>
 #include <common.h>
 #include <BlockingBuffer.h>
+#include "HttpException.h"
+#include "RemoteException.h"
 
 namespace vk_music_fs {
     class FileProcessorInt{
@@ -18,16 +20,17 @@ namespace vk_music_fs {
         std::shared_ptr<BlockingBuffer> _buffer;
         std::atomic_bool _metadataWasRead;
         std::mutex _bufferAppendMutex;
-        std::condition_variable _bufferAppendStoppedCond;
-        std::atomic_bool _bufferAppendStopped;
         std::atomic_bool _closed;
         std::atomic_bool _finished;
         std::atomic_bool _opened;
+        std::atomic_bool _error;
         std::shared_ptr<std::promise<void>> _openedPromise;
         std::shared_ptr<std::promise<void>> _threadPromise;
+        std::shared_ptr<std::promise<void>> _bufferAppendPromise;
         uint_fast32_t _prependSize;
-        std::future<void> _openFuture;
-        std::future<void> _threadFinishedFuture;
+        std::shared_future<void> _openFuture;
+        std::shared_future<void> _threadFinishedFuture;
+        std::shared_future<void> _bufferAppendFuture;
     };
 
     template <typename TStream, typename TFile, typename TMp3Parser, typename TPool>
@@ -50,60 +53,83 @@ namespace vk_music_fs {
             bool exp = false;
             if(_opened.compare_exchange_strong(exp, true)){
                 _pool->post([this] {
-                    _stream->open(
-                            _file->getSize() - _file->getPrependSize(),
-                            _file->getTotalSize() - _file->getPrependSize()
-                    );
-                    _file->open();
-                    if(_file->getSize() == 0) {
-                        _buffer->setSize(_file->getTotalSize() - _file->getPrependSize());
-                        _pool->post([this] {
-                            while (!addToBuffer(_stream->read())) {
-                                std::this_thread::sleep_for(std::chrono::milliseconds(30));
+                    try {
+                        try {
+                            _stream->open(
+                                    _file->getSize() - _file->getPrependSize(),
+                                    _file->getTotalSize() - _file->getPrependSize()
+                            );
+                            _file->open();
+                            if (_file->getSize() == 0) {
+                                _buffer->setSize(_file->getTotalSize() - _file->getPrependSize());
+                                _pool->post([this] {
+                                    try {
+                                        while (!addToBuffer(_stream->read())) {
+                                            std::this_thread::sleep_for(std::chrono::milliseconds(30));
+                                        }
+                                    } catch (const HttpException &ex) {
+                                        _buffer->setEOF();
+                                        _bufferAppendPromise->set_exception(std::current_exception());
+                                    }
+                                });
+                                _parser->parse(_buffer);
+                                waitForStopAppend();
+                                _prependSize = _buffer->getPrependSize();
+                                _file->setPrependSize(_prependSize);
+                                _file->write(std::move(_buffer->clearStart()));
+                                _file->write(std::move(_buffer->clearMain()));
+                                _buffer.reset();
+                            } else {
+                                _prependSize = _file->getPrependSize();
                             }
-                        });
-                        _parser->parse(_buffer);
-                        waitForStopAppend();
-                        _prependSize = _buffer->getPrependSize();
-                        _file->setPrependSize(_prependSize);
-                        _file->write(std::move(_buffer->clearStart()));
-                        _file->write(std::move(_buffer->clearMain()));
-                        _buffer.reset();
-                    } else {
-                        _prependSize = _file->getPrependSize();
-                    }
-                    _openedPromise->set_value();
-                    while(true){
-                        if(_closed){
-                            _stream->close();
-                            break;
+                        } catch (const HttpException &ex) {
+                            _openedPromise->set_exception(std::current_exception());
+                            throw;
                         }
-                        auto buf = _stream->read();
-                        if(!buf){
-                            _finished = true;
-                            _file->finish();
-                            break;
+                        _openedPromise->set_value();
+                        while (true) {
+                            if (_closed) {
+                                _stream->close();
+                                break;
+                            }
+                            auto buf = _stream->read();
+                            if (!buf) {
+                                _finished = true;
+                                _file->finish();
+                                break;
+                            }
+                            _file->write(std::move(*buf));
                         }
-                        _file->write(std::move(*buf));
+                        _threadPromise->set_value();
+                    } catch (const HttpException &ex){
+                        _error = true;
+                        _threadPromise->set_exception(std::current_exception());
                     }
-                    _threadPromise->set_value();
                 });
             }
-
-            _openFuture.wait();
-            auto fileSize = _file->getSize();
-            if(start + size <= fileSize){
-                return _file->read(start, size);
-            } else {
-                if(start < fileSize){
-                    ByteVect res = std::move(_file->read(start, (fileSize - start)));
-                    res.reserve(size);
-                    ByteVect t = std::move(_stream->read(fileSize - _prependSize, size - (fileSize - start)));
-                    std::copy(t.cbegin(), t.cend(), std::back_inserter(res));
-                    return std::move(res);
-                } else {
-                    return _stream->read(start - _prependSize, size);
+            try {
+                _openFuture.get();
+                if (_error) {
+                    _threadFinishedFuture.get();
                 }
+                auto fileSize = _file->getSize();
+                if (start + size <= fileSize) {
+                    return _file->read(start, size);
+                } else {
+                    if (start < fileSize) {
+                        ByteVect res = std::move(_file->read(start, (fileSize - start)));
+                        res.reserve(size);
+                        ByteVect t = std::move(_stream->read(fileSize - _prependSize, size - (fileSize - start)));
+                        std::copy(t.cbegin(), t.cend(), std::back_inserter(res));
+                        return std::move(res);
+                    } else {
+                        return _stream->read(start - _prependSize, size);
+                    }
+                }
+            } catch (const HttpException &ex){
+                _stream->close();
+                close();
+                throw RemoteException(std::string("Error reading remote file. ") + ex.what());
             }
         }
 
@@ -117,7 +143,10 @@ namespace vk_music_fs {
                 close();
             }
             if (_opened) {
-                _threadFinishedFuture.wait();
+                try {
+                    _threadFinishedFuture.get();
+                } catch (const HttpException &ex){
+                }
             }
         }
     private:

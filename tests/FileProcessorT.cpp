@@ -8,6 +8,7 @@
 #include "data/Writer.h"
 #include <boost/di.hpp>
 #include <boost/di/extension/scopes/scoped.hpp>
+#include <HttpException.h>
 
 namespace di = boost::di;
 
@@ -47,7 +48,7 @@ public:
         data = std::make_shared<MusicData>(dataVect, 1);
         writer = std::make_shared<Writer>();
 
-        EXPECT_CALL(*inj.create<std::shared_ptr<StreamM>>(), read()).WillRepeatedly(testing::Invoke([&data = data] {
+        ON_CALL(*inj.create<std::shared_ptr<StreamM>>(), read()).WillByDefault(testing::Invoke([&data = data] {
             return data->readData();
         }));
         ON_CALL(*inj.create<std::shared_ptr<FileM>>(), write(testing::_)).WillByDefault(testing::Invoke([this] (auto data){
@@ -139,12 +140,13 @@ TEST_F(FileProcessorT, OnEOF){ //NOLINT
 }
 
 TEST_F(FileProcessorT, ReadBytesFromFile){ //NOLINT
-    EXPECT_CALL(*inj.create<std::shared_ptr<FileM>>(), read(1, 3)).WillOnce(testing::Return(ByteVect{1, 2, 3}));
+    EXPECT_CALL(*inj.create<std::shared_ptr<FileM>>(), read(1, 3)).WillRepeatedly(testing::Return(ByteVect{1, 2, 3}));
     expectFinish();
     init({});
     writer->write(ByteVect{0, 1, 2, 3});
 
     auto exp = ByteVect{1,2,3};
+    EXPECT_EQ(fp->read(1, 3), exp);
     EXPECT_EQ(fp->read(1, 3), exp);
 
     waitForFinish();
@@ -217,4 +219,64 @@ TEST_F(FileProcessorT, NonZeroPrependSize){ //NOLINT
 
     expectFinish();
     waitForFinish();
+}
+
+TEST_F(FileProcessorT, StreamOpenExc){ //NOLINT
+    using vk_music_fs::HttpException;
+    using vk_music_fs::RemoteException;
+    EXPECT_CALL(*inj.create<std::shared_ptr<StreamM>>(), open(testing::_, testing::_)).WillOnce(testing::Invoke(
+            [] (...) {
+                throw HttpException("test exc");
+            }
+            ));
+    EXPECT_CALL(*inj.create<std::shared_ptr<StreamM>>(), close());
+    EXPECT_CALL(*inj.create<std::shared_ptr<FileM>>(), close());
+    init({1,2,3,4,5});
+    try {
+        fp->read(0, 1);
+        FAIL();
+    } catch (const RemoteException &ex){
+    }
+}
+
+TEST_F(FileProcessorT, StreamReadFirstExc){ //NOLINT
+    using vk_music_fs::HttpException;
+    using vk_music_fs::RemoteException;
+    EXPECT_CALL(*inj.create<std::shared_ptr<StreamM>>(), read()).WillOnce(testing::Invoke(
+            [] (...) -> std::optional<ByteVect>{
+                throw HttpException("test exc");
+            }
+    ));
+    EXPECT_CALL(*inj.create<std::shared_ptr<StreamM>>(), close());
+    EXPECT_CALL(*inj.create<std::shared_ptr<FileM>>(), close());
+    init({1,2,3,4,5});
+    try {
+        fp->read(0, 1);
+        FAIL();
+    } catch (const RemoteException &ex){
+    }
+}
+
+TEST_F(FileProcessorT, StreamReadMiddleExc){ //NOLINT
+    using vk_music_fs::HttpException;
+    using vk_music_fs::RemoteException;
+    EXPECT_CALL(*inj.create<std::shared_ptr<ParserM>>(), parse(testing::_));
+    EXPECT_CALL(*inj.create<std::shared_ptr<StreamM>>(), read()).WillRepeatedly(testing::Invoke(
+            [] (...) -> std::optional<ByteVect>{
+                return ByteVect{};
+            }
+    ));
+    EXPECT_CALL(*inj.create<std::shared_ptr<StreamM>>(), read(testing::_, testing::_)).WillOnce(testing::Invoke(
+            [] (...) -> ByteVect{
+                throw HttpException("test exc");
+            }
+    ));
+    EXPECT_CALL(*inj.create<std::shared_ptr<StreamM>>(), close()).Times(testing::AtLeast(1));
+    EXPECT_CALL(*inj.create<std::shared_ptr<FileM>>(), close());
+    init({1,2,3,4,5});
+    try {
+        fp->read(0, 1);
+        FAIL();
+    } catch (const RemoteException &ex){
+    }
 }

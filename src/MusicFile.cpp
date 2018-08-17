@@ -5,7 +5,7 @@
 using namespace vk_music_fs;
 
 MusicFile::MusicFile(const CachedFilename &name, const RemoteFile &remFile, const std::shared_ptr<FileCache> &cache)
-: _name(name.t), _remFile(remFile), _cache(cache) {
+: _closed(false), _name(name.t), _remFile(remFile), _cache(cache) {
     auto t = _cache->getInitialSize(_remFile);
     _totalInitialSize = t.totalSize;
     _prepSize = t.prependSize;
@@ -14,7 +14,7 @@ MusicFile::MusicFile(const CachedFilename &name, const RemoteFile &remFile, cons
 
 void MusicFile::write(ByteVect vect) {
     std::scoped_lock <std::mutex> lock(_mutex);
-    if(!vect.empty()) {
+    if(!vect.empty() && !_closed) {
         _totalInitialSize += vect.size();
         _fs.seekp(0, std::ios::end);
         _fs.write(reinterpret_cast<const char *>(&vect[0]), vect.size());
@@ -24,16 +24,22 @@ void MusicFile::write(ByteVect vect) {
 
 ByteVect MusicFile::read(uint_fast32_t offset, uint_fast32_t size) {
     std::scoped_lock <std::mutex> lock(_mutex);
-    _fs.seekg(offset);
-    ByteVect res(size);
-    _fs.read(reinterpret_cast<char *>(&res[0]), size);
-    return res;
+    if(!_closed) {
+        _fs.seekg(offset);
+        ByteVect res(size);
+        _fs.read(reinterpret_cast<char *>(&res[0]), size);
+        return res;
+    }
+    return {};
 }
 
 void MusicFile::close() {
     std::scoped_lock <std::mutex> lock(_mutex);
-    _cache->fileClosed(_remFile, {_totalInitialSize, _prepSize});
-    _fs.close();
+    if(!_closed) {
+        _closed = true;
+        _cache->fileClosed(_remFile, {_totalInitialSize, _prepSize});
+        _fs.close();
+    }
 }
 
 void MusicFile::finish() {

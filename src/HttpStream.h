@@ -19,6 +19,7 @@ namespace vk_music_fs{
     private:
         const uint_fast32_t BUFFER_SIZE = 1024 * 64;
 
+        bool _closed;
         std::string _uri;
         std::string _userAgent;
         std::shared_ptr<HttpStreamCommon> _common;
