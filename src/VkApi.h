@@ -1,7 +1,6 @@
-#include <utility>
-
 #pragma once
 
+#include <utility>
 #include <common.h>
 #include <unordered_map>
 #include <unordered_set>
@@ -9,7 +8,8 @@
 #include <RemoteFile.h>
 #include <json.hpp>
 #include <boost/algorithm/string.hpp>
-#include <regex>
+#include <boost/range/algorithm_ext/erase.hpp>
+#include <algorithm>
 
 using json = nlohmann::json;
 
@@ -54,7 +54,13 @@ namespace vk_music_fs {
                 ));
                 auto curDir = std::get<DirPtr>(parentDir->contents[dirName]);
                 for (const auto &item: resp["items"]) {
-                    auto fileName = genFileName(item["artist"], item["title"]);
+                    auto initialFileName = genFileName(item["artist"], item["title"]);
+                    auto fileName = initialFileName + ".mp3";
+                    uint_fast32_t i = 0;
+                    while(curDir->contents.find(fileName) != curDir->contents.end()){
+                        fileName = initialFileName + std::to_string(i) + ".mp3";
+                        i++;
+                    }
                     curDir->contents.insert(
                             std::make_pair<>(
                                     fileName,
@@ -205,7 +211,16 @@ namespace vk_music_fs {
         }
 
         std::string genFileName(const std::string &artist, const std::string &title){
-            return artist + " - " + title + ".mp3";
+            return escapeName(artist + " - " + title);
+        }
+
+        std::string escapeName(std::string str){
+            boost::remove_erase_if(str, [] (auto ch0){
+                unsigned char ch = ch0;
+                return ch <= 31 || std::string("<>:/\\|?*").find(ch) != std::string::npos;
+            });
+            std::replace(str.begin(), str.end(), '"', '\"');
+            return str;
         }
 
         std::shared_ptr<Dir> _rootDir;
