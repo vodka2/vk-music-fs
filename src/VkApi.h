@@ -10,6 +10,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/range/algorithm_ext/erase.hpp>
 #include <algorithm>
+#include <mutex>
 
 using json = nlohmann::json;
 
@@ -25,6 +26,7 @@ namespace vk_music_fs {
         }
 
         bool renameDummyDir(const std::string &oldPath, const std::string &newPath){
+            std::scoped_lock<std::mutex> lock(_fsMutex);
             auto oldDirO = findPath(oldPath);
             auto newDirO = findPath(newPath, 1);
             if(
@@ -36,50 +38,18 @@ namespace vk_music_fs {
             ){
                 auto oldDir = std::get<DirPtr>(*oldDirO);
                 oldDir->parent.lock()->contents.erase(oldDir->name);
-                createDir(newPath);
+                return createDirNoLock(newPath);
             }
             return false;
         }
 
         bool createDir(const std::string &dirPath){
-            auto dirO = findPath(dirPath, 1);
-            if(isDir(dirO) && std::get<DirPtr>(*dirO)->type == Dir::Type::ROOT_SEARCH_DIR ) {
-                auto dirName = getLast(dirPath);
-                auto parentDir = std::get<DirPtr>(*dirO);
-                auto res = json::parse(_queryMaker->makeSearchQuery(dirName, _numSearchFiles));
-                auto resp = res["response"];
-                parentDir->contents.insert(std::make_pair(
-                        dirName,
-                        std::make_shared<Dir>(dirName, Dir::Type::SEARCH_DIR, ContentsMap{}, DirWPtr{parentDir})
-                ));
-                auto curDir = std::get<DirPtr>(parentDir->contents[dirName]);
-                for (const auto &item: resp["items"]) {
-                    auto initialFileName = genFileName(item["artist"], item["title"]);
-                    auto fileName = initialFileName + ".mp3";
-                    uint_fast32_t i = 0;
-                    while(curDir->contents.find(fileName) != curDir->contents.end()){
-                        fileName = initialFileName + std::to_string(i) + ".mp3";
-                        i++;
-                    }
-                    curDir->contents.insert(
-                            std::make_pair<>(
-                                    fileName,
-                                    std::make_shared<File>(
-                                            fileName,
-                                            File::Type::MUSIC_FILE,
-                                            RemoteFile{item["url"], item["owner_id"],
-                                                       item["id"], item["artist"], item["title"]},
-                                            curDir
-                                    )
-                            )
-                    );
-                }
-                return true;
-            }
-            return false;
+            std::scoped_lock<std::mutex> lock(_fsMutex);
+            return createDirNoLock(dirPath);
         }
 
         std::vector<std::string> getEntries(const std::string &dirPath){
+            std::scoped_lock<std::mutex> lock(_fsMutex);
             std::vector<std::string> ret;
             auto dirO = findPath(dirPath);
             if(!isDir(dirO)){
@@ -93,6 +63,7 @@ namespace vk_music_fs {
         }
 
         FileOrDirType getType(const std::string &path){
+            std::scoped_lock<std::mutex> lock(_fsMutex);
             auto pathO = findPath(path);
             if(pathO){
                 if(isDir(pathO)){
@@ -105,11 +76,13 @@ namespace vk_music_fs {
         }
 
         RemoteFile getRemoteFile(const std::string &path){
+            std::scoped_lock<std::mutex> lock(_fsMutex);
             auto pathO = findPath(path);
             return std::get<RemoteFile>(std::get<FilePtr>(*pathO)->contents);
         }
 
         bool createDummyDir(const std::string &path){
+            std::scoped_lock<std::mutex> lock(_fsMutex);
             auto pathO = findPath(path, 1);
             if(isDir(pathO)){
                 auto dirName = getLast(path);
@@ -223,6 +196,45 @@ namespace vk_music_fs {
             return str;
         }
 
+        bool createDirNoLock(const std::string &dirPath){
+            auto dirO = findPath(dirPath, 1);
+            if(isDir(dirO) && std::get<DirPtr>(*dirO)->type == Dir::Type::ROOT_SEARCH_DIR ) {
+                auto dirName = getLast(dirPath);
+                auto parentDir = std::get<DirPtr>(*dirO);
+                auto res = json::parse(_queryMaker->makeSearchQuery(dirName, _numSearchFiles));
+                auto resp = res["response"];
+                parentDir->contents.insert(std::make_pair(
+                        dirName,
+                        std::make_shared<Dir>(dirName, Dir::Type::SEARCH_DIR, ContentsMap{}, DirWPtr{parentDir})
+                ));
+                auto curDir = std::get<DirPtr>(parentDir->contents[dirName]);
+                for (const auto &item: resp["items"]) {
+                    auto initialFileName = genFileName(item["artist"], item["title"]);
+                    auto fileName = initialFileName + ".mp3";
+                    uint_fast32_t i = 0;
+                    while(curDir->contents.find(fileName) != curDir->contents.end()){
+                        fileName = initialFileName + std::to_string(i) + ".mp3";
+                        i++;
+                    }
+                    curDir->contents.insert(
+                            std::make_pair<>(
+                                    fileName,
+                                    std::make_shared<File>(
+                                            fileName,
+                                            File::Type::MUSIC_FILE,
+                                            RemoteFile{item["url"], item["owner_id"],
+                                                       item["id"], item["artist"], item["title"]},
+                                            curDir
+                                    )
+                            )
+                    );
+                }
+                return true;
+            }
+            return false;
+        }
+
+        std::mutex _fsMutex;
         std::shared_ptr<Dir> _rootDir;
         std::shared_ptr<TQueryMaker> _queryMaker;
         uint_fast32_t _numSearchFiles;
