@@ -1,6 +1,6 @@
 #pragma once
 
-#include <iostream>
+#include <regex>
 #include <utility>
 #include <common.h>
 #include <unordered_map>
@@ -215,10 +215,26 @@ namespace vk_music_fs {
                     insertMp3sInDir(parentDir, dirName, dirName, 0, _numSearchFiles);
                     return true;
                 } else if ((*dirO).dir()->getType() == Dir::Type::SEARCH_DIR) {
-                    auto cnt = std::stoul(dirName);
                     auto parentDir = (*dirO).dir();
-                    auto offset = parentDir->getOffsetName().getOffset();
-                    auto searchName = parentDir->getOffsetName().getName();
+                    std::regex offsetRegex("^([0-9]{1,6})(?:-([0-9]{1,6}))?$");
+                    std::smatch mtc;
+                    std::string searchName;
+                    uint_fast32_t offset;
+                    uint_fast32_t cnt;
+                    if(std::regex_search(dirName, mtc, offsetRegex)){
+                        searchName = parentDir->getOffsetName().getName();
+                        if(mtc[2].matched) {
+                            offset = std::stoul(mtc[1].str());
+                            cnt = std::stoul(mtc[2].str());
+                        } else {
+                            offset = parentDir->getOffsetName().getOffset();
+                            cnt = std::stoul(mtc[1].str());
+                        }
+                    } else {
+                        offset = 0;
+                        cnt = _numSearchFiles;
+                        searchName = parentDir->getOffsetName().getName() + " " + dirName;
+                    }
                     parentDir->addItem(
                             std::make_shared<Dir>(
                                     dirName, Dir::Type::SEARCH_DIR, ContentsMap{},

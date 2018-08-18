@@ -27,8 +27,7 @@ public:
             ))
     );
     void initSongNameQuery(){
-        EXPECT_CALL(*inj.create<std::shared_ptr<QueryMakerM>>(), makeSearchQuery("SongName", 0, 3))
-                .WillOnce(testing::Return(
+        ON_CALL(*inj.create<std::shared_ptr<QueryMakerM>>(), makeSearchQuery("SongName", 0, 3)).WillByDefault(testing::Return(
                         R"(
                         {"response": {"count":3, "items": [
                             {"id": 1, "owner_id": 2, "artist":"Artist1", "title":"Song1", "url":"https:\/\/uri1"},
@@ -39,8 +38,8 @@ public:
                 ));
     }
     void initSongName2Query(){
-        EXPECT_CALL(*inj.create<std::shared_ptr<QueryMakerM>>(), makeSearchQuery("SongName2", 0, 3))
-                .WillOnce(testing::Return(
+        ON_CALL(*inj.create<std::shared_ptr<QueryMakerM>>(), makeSearchQuery("SongName2", 0, 3))
+                .WillByDefault(testing::Return(
                         R"(
                         {"response": {"count":3, "items": [
                             {"id": 1, "owner_id": 22, "artist":"Artist21", "title":"Song21", "url":"https:\/\/uri21"},
@@ -51,14 +50,23 @@ public:
                 ));
     }
     void initSongNameSecondQuery(){
-        EXPECT_CALL(*inj.create<std::shared_ptr<QueryMakerM>>(), makeSearchQuery("SongName", 3, 1))
-                .WillOnce(testing::Return(
+        ON_CALL(*inj.create<std::shared_ptr<QueryMakerM>>(), makeSearchQuery("SongName", 3, 1))
+                .WillByDefault(testing::Return(
                         R"(
-                        {"response": {"count":3, "items": [
+                        {"response": {"count":1, "items": [
                             {"id": 1, "owner_id": 5, "artist":"Artist4", "title":"Song4", "url":"https:\/\/uri4"}
                         ] }}
                         )"
                 ));
+    }
+    void initSongNameNameQuery(){
+        ON_CALL(*inj.create<std::shared_ptr<QueryMakerM>>(), makeSearchQuery("SongName Name", 0, 3)).WillByDefault(testing::Return(
+                R"(
+                        {"response": {"count":1, "items": [
+                            {"id": 9, "owner_id": 2, "artist":"Artist1", "title":"SongName Name", "url":"https:\/\/uri5"}
+                        ] }}
+                        )"
+        ));
     }
 };
 
@@ -105,20 +113,51 @@ TEST_F(AudioFsT, CreateDummyDir){ //NOLINT
     EXPECT_EQ(files, expFiles);
 }
 
-TEST_F(AudioFsT, CreateMoreDir){ //NOLINT
+TEST_F(AudioFsT, CreateMoreDirOneNum){ //NOLINT
     auto api = inj.create<std::shared_ptr<AudioFs>>();
     initSongNameQuery();
     initSongNameSecondQuery();
     api->createDir("/Search/SongName");
     api->createDir("/Search/SongName/1");
-    std::vector<std::string> expDirs = {"1", "Artist1 - Song1.mp3", "Artist2 - Song2.mp3", "Artist3 - Song3.mp3"};
+    std::vector<std::string> expData = {"1", "Artist1 - Song1.mp3", "Artist2 - Song2.mp3", "Artist3 - Song3.mp3"};
     auto dirs = api->getEntries("/Search/SongName");
     std::sort(dirs.begin(), dirs.end());
-    EXPECT_EQ(dirs, expDirs);
+    EXPECT_EQ(dirs, expData);
     std::vector<std::string> expFiles = {"Artist4 - Song4.mp3"};
     auto files = api->getEntries("/Search/SongName/1");
     EXPECT_EQ(files, expFiles);
     EXPECT_EQ(api->getRemoteFile("/Search/SongName/1/Artist4 - Song4.mp3").getUri(), "https://uri4");
+}
+
+TEST_F(AudioFsT, CreateMoreDirTwoNum){ //NOLINT
+    auto api = inj.create<std::shared_ptr<AudioFs>>();
+    initSongNameQuery();
+    initSongNameSecondQuery();
+    api->createDir("/Search/SongName");
+    api->createDir("/Search/SongName/0-3");
+    std::vector<std::string> expData = {"0-3", "Artist1 - Song1.mp3", "Artist2 - Song2.mp3", "Artist3 - Song3.mp3"};
+    auto data = api->getEntries("/Search/SongName");
+    std::sort(data.begin(), data.end());
+    EXPECT_EQ(data, expData);
+    std::vector<std::string> expFiles = {"Artist1 - Song1.mp3", "Artist2 - Song2.mp3", "Artist3 - Song3.mp3"};
+    auto files = api->getEntries("/Search/SongName/0-3");
+    std::sort(files.begin(), files.end());
+    EXPECT_EQ(files, expFiles);
+}
+
+TEST_F(AudioFsT, CreateMoreDirNested){ //NOLINT
+    auto api = inj.create<std::shared_ptr<AudioFs>>();
+    initSongNameQuery();
+    initSongNameNameQuery();
+    api->createDir("/Search/SongName");
+    api->createDir("/Search/SongName/Name");
+    std::vector<std::string> expData = {"Artist1 - Song1.mp3", "Artist2 - Song2.mp3", "Artist3 - Song3.mp3", "Name"};
+    auto data = api->getEntries("/Search/SongName");
+    std::sort(data.begin(), data.end());
+    EXPECT_EQ(data, expData);
+    std::vector<std::string> expFiles = {"Artist1 - SongName Name.mp3"};
+    auto files = api->getEntries("/Search/SongName/Name");
+    EXPECT_EQ(files, expFiles);
 }
 
 TEST_F(AudioFsT, DeleteDir){ //NOLINT
