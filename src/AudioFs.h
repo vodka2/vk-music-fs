@@ -103,6 +103,36 @@ namespace vk_music_fs {
             return false;
         }
 
+        bool deleteDir(const std::string &path){
+            std::scoped_lock<std::mutex> lock(_fsMutex);
+            auto pathO = findPath(path);
+            if(isDir(pathO)
+                &&
+                    (
+                            std::get<DirPtr>(*pathO)->type == Dir::Type::SEARCH_DIR ||
+                            std::get<DirPtr>(*pathO)->type == Dir::Type::DUMMY_DIR
+                    )
+            ){
+                auto dirName = getLast(path);
+                auto parentDir = std::get<DirPtr>(*pathO)->parent.lock();
+                parentDir->contents.erase(dirName);
+                return true;
+            }
+            return false;
+        }
+
+        bool deleteFile(const std::string &path){
+            std::scoped_lock<std::mutex> lock(_fsMutex);
+            auto pathO = findPath(path);
+            if(isFile(pathO) && std::get<FilePtr>(*pathO)->type == File::Type::MUSIC_FILE){
+                auto fileName = getLast(path);
+                auto parentDir = std::get<FilePtr>(*pathO)->parent.lock();
+                parentDir->contents.erase(fileName);
+                return true;
+            }
+            return false;
+        }
+
     private:
         struct Dir;
         struct File;
@@ -171,6 +201,10 @@ namespace vk_music_fs {
 
         bool isDir(const std::optional<std::variant<DirPtr, FilePtr>> &var){
             return var && std::holds_alternative<DirPtr>(*var);
+        }
+
+        bool isFile(const std::optional<std::variant<DirPtr, FilePtr>> &var){
+            return var && std::holds_alternative<FilePtr>(*var);
         }
 
         std::optional<std::variant<DirPtr, FilePtr>>

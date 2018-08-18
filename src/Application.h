@@ -45,6 +45,14 @@ namespace vk_music_fs {
         uint_fast32_t getFileSize(const std::string &path){
             return _fileManager->getFileSize(path);
         }
+
+        bool deleteDir(const std::string &path){
+            return _audioFs->deleteDir(path);
+        }
+
+        bool deleteFile(const std::string &path){
+            return _audioFs->deleteFile(path);
+        }
     private:
         std::shared_ptr<TAudioFs> _audioFs;
         std::shared_ptr<TFileManager> _fileManager;

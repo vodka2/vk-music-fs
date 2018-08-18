@@ -38,6 +38,18 @@ public:
                         )"
                 ));
     }
+    void initSongName2Query(){
+        EXPECT_CALL(*inj.create<std::shared_ptr<QueryMakerM>>(), makeSearchQuery("SongName2", 0, 3))
+                .WillOnce(testing::Return(
+                        R"(
+                        {"response": {"count":3, "items": [
+                            {"id": 1, "owner_id": 22, "artist":"Artist21", "title":"Song21", "url":"https:\/\/uri21"},
+                            {"id": 2, "owner_id": 23, "artist":"Artist22", "title":"Song22", "url":"https:\/\/uri22"},
+                            {"id": -1, "owner_id": 22, "artist":"Artist23", "title":"Song23", "url":"https:\/\/uri23"}
+                        ] }}
+                        )"
+                ));
+    }
     void initSongNameSecondQuery(){
         EXPECT_CALL(*inj.create<std::shared_ptr<QueryMakerM>>(), makeSearchQuery("SongName", 3, 1))
                 .WillOnce(testing::Return(
@@ -107,4 +119,31 @@ TEST_F(AudioFsT, CreateMoreDir){ //NOLINT
     auto files = api->getEntries("/Search/SongName/1");
     EXPECT_EQ(files, expFiles);
     EXPECT_EQ(api->getRemoteFile("/Search/SongName/1/Artist4 - Song4.mp3").getUri(), "https://uri4");
+}
+
+TEST_F(AudioFsT, DeleteDir){ //NOLINT
+    auto api = inj.create<std::shared_ptr<AudioFs>>();
+    EXPECT_EQ(api->getType("/"), FileOrDirType::DIR_ENTRY);
+    EXPECT_EQ(api->getType("/Search"), FileOrDirType::DIR_ENTRY);
+    initSongNameQuery();
+    initSongName2Query();
+    api->createDir("/Search/SongName");
+    api->createDir("/Search/SongName2");
+    api->deleteDir("/Search/SongName2");
+    EXPECT_EQ(api->getEntries("/Search").size(), 1);
+    api->deleteDir("/Search/SongName");
+    EXPECT_EQ(api->getEntries("/Search").size(), 0);
+}
+
+TEST_F(AudioFsT, DeleteFile){ //NOLINT
+    auto api = inj.create<std::shared_ptr<AudioFs>>();
+    EXPECT_EQ(api->getType("/"), FileOrDirType::DIR_ENTRY);
+    EXPECT_EQ(api->getType("/Search"), FileOrDirType::DIR_ENTRY);
+    initSongNameQuery();
+    api->createDir("/Search/SongName");
+    api->deleteFile("/Search/SongName/Artist2 - Song2.mp3");
+    std::vector<std::string> expFiles = {"Artist1 - Song1.mp3", "Artist3 - Song3.mp3"};
+    auto files = api->getEntries("/Search/SongName");
+    std::sort(files.begin(), files.end());
+    EXPECT_EQ(files, expFiles);
 }
