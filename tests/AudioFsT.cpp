@@ -23,6 +23,7 @@ public:
     auto_init(inj, (di::make_injector(
             di::bind<AudioFs>.in(di::extension::scoped),
             di::bind<QueryMakerM>.in(di::extension::scoped),
+            di::bind<vk_music_fs::Mp3Extension>.to(vk_music_fs::Mp3Extension{".mp3"}),
             di::bind<vk_music_fs::NumSearchFiles>.to(vk_music_fs::NumSearchFiles{numSearchFiles})
             ))
     );

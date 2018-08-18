@@ -23,8 +23,9 @@ namespace vk_music_fs {
         template<typename TQueryMaker>
         class AudioFs {
         public:
-            AudioFs(const std::shared_ptr<TQueryMaker> &queryMaker, const NumSearchFiles &numSearchFiles)
-                    : _queryMaker(queryMaker), _numSearchFiles(numSearchFiles),
+            AudioFs(const std::shared_ptr<TQueryMaker> &queryMaker, const NumSearchFiles &numSearchFiles,
+                    const Mp3Extension &ext)
+                    : _ext(ext.t), _queryMaker(queryMaker), _numSearchFiles(numSearchFiles),
                       _rootDir(
                               std::make_shared<Dir>("/", Dir::Type::ROOT_DIR, ContentsMap{}, std::nullopt, DirWPtr{})) {
                 auto searchDir = std::make_shared<Dir>(
@@ -256,10 +257,10 @@ namespace vk_music_fs {
                 auto curDir = parentDir->getItem(dirName).dir();
                 for (const auto &item: resp["items"]) {
                     auto initialFileName = genFileName(item["artist"], item["title"]);
-                    auto fileName = initialFileName + ".mp3";
+                    auto fileName = initialFileName + _ext;
                     uint_fast32_t i = 2;
                     while (curDir->hasItem("fileName")) {
-                        fileName = initialFileName + "_" + std::to_string(i) + ".mp3";
+                        fileName = initialFileName + "_" + std::to_string(i) + _ext;
                         i++;
                     }
                     curDir->addItem(
@@ -276,6 +277,7 @@ namespace vk_music_fs {
 
             std::mutex _fsMutex;
             std::shared_ptr<Dir> _rootDir;
+            std::string _ext;
             std::shared_ptr<TQueryMaker> _queryMaker;
             uint_fast32_t _numSearchFiles;
         };
