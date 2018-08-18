@@ -10,6 +10,8 @@ namespace vk_music_fs {
         class Dir {
         public:
             enum class Type {
+                ROOT_MY_AUDIOS_DIR,
+                MY_AUDIOS_DIR,
                 SEARCH_DIR,
                 DUMMY_DIR,
                 ROOT_DIR,
@@ -19,7 +21,7 @@ namespace vk_music_fs {
                     std::string name,
                     Type type,
                     ContentsMap contents,
-                    std::optional<std::variant<OffsetName>> extra,
+                    std::optional<std::variant<OffsetName, uint_fast32_t>> extra,
                     const DirWPtr &parent
             );
             const std::string getName() const;
@@ -33,11 +35,12 @@ namespace vk_music_fs {
             const DirOrFile getItem(const std::string &str) const;
             ContentsMap &getContents();
             OffsetName getOffsetName() const;
+            uint_fast32_t getNumber() const;
         private:
             std::string _name;
             Type _type;
             ContentsMap _contents;
-            std::optional<std::variant<OffsetName>> _extra;
+            std::optional<std::variant<OffsetName, uint_fast32_t>> _extra;
             DirWPtr _parent;
         };
     }

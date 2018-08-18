@@ -32,6 +32,10 @@ namespace vk_music_fs {
                         "Search", Dir::Type::ROOT_SEARCH_DIR, ContentsMap{}, std::nullopt, _rootDir
                 );
                 _rootDir->addItem(searchDir);
+                auto myAudiosDir = std::make_shared<Dir>(
+                        "My audios", Dir::Type::ROOT_MY_AUDIOS_DIR, ContentsMap{}, 0, _rootDir
+                );
+                _rootDir->addItem(myAudiosDir);
             }
 
             bool renameDummyDir(const std::string &oldPath, const std::string &newPath) {
@@ -39,12 +43,7 @@ namespace vk_music_fs {
                 auto oldDirO = findPath(oldPath);
                 auto newDirO = findPath(newPath, 1);
                 if (
-                        isDir(oldDirO) &&
-                        (
-                                (*oldDirO).dir()->getParent()->getType() == Dir::Type::ROOT_SEARCH_DIR ||
-                                (*oldDirO).dir()->getParent()->getType() == Dir::Type::SEARCH_DIR
-                        )
-                        &&
+                        isDir(oldDirO) && isDummyDirParent((*oldDirO).dir()->getParent()) &&
                         (*oldDirO).dir()->getType() == Dir::Type::DUMMY_DIR &&
                         isDir(newDirO) &&
                         (*oldDirO).dir()->getParent() == (*newDirO).dir()
@@ -97,7 +96,7 @@ namespace vk_music_fs {
             bool createDummyDir(const std::string &path) {
                 std::scoped_lock<std::mutex> lock(_fsMutex);
                 auto pathO = findPath(path, 1);
-                if (isDir(pathO)) {
+                if (isDir(pathO) && isDummyDirParent((*pathO).dir())) {
                     auto dirName = getLast(path);
                     auto parentDir = (*pathO).dir();
                     parentDir->addItem(
@@ -118,7 +117,8 @@ namespace vk_music_fs {
                     &&
                     (
                             (*pathO).dir()->getType() == Dir::Type::SEARCH_DIR ||
-                            (*pathO).dir()->getType() == Dir::Type::DUMMY_DIR
+                            (*pathO).dir()->getType() == Dir::Type::DUMMY_DIR ||
+                            (*pathO).dir()->getType() == Dir::Type::MY_AUDIOS_DIR
                     )
                         ) {
                     (*pathO).dir()->getParent()->removeItem(getLast(path));
@@ -138,6 +138,14 @@ namespace vk_music_fs {
             }
 
         private:
+            bool isDummyDirParent(const DirPtr &ptr){
+                return
+                    ptr->getType() == Dir::Type::ROOT_SEARCH_DIR ||
+                    ptr->getType() == Dir::Type::SEARCH_DIR ||
+                    ptr->getType() == Dir::Type::ROOT_MY_AUDIOS_DIR ||
+                    ptr->getType() == Dir::Type::MY_AUDIOS_DIR
+                ;
+            }
             bool isDir(const std::optional<DirOrFile> &opt){
                 return opt && (*opt).isDir();
             }
@@ -205,7 +213,8 @@ namespace vk_music_fs {
                     return false;
                 }
                 auto dirName = getLast(dirPath);
-                if ((*dirO).dir()->getType() == Dir::Type::ROOT_SEARCH_DIR) {
+                auto type = (*dirO).dir()->getType();
+                if (type == Dir::Type::ROOT_SEARCH_DIR) {
                     auto parentDir = (*dirO).dir();
                     parentDir->addItem(
                             std::make_shared<Dir>(
@@ -213,23 +222,22 @@ namespace vk_music_fs {
                                     OffsetName{_numSearchFiles, dirName}, DirWPtr{parentDir}
                             )
                     );
-                    insertMp3sInDir(parentDir, dirName, dirName, 0, _numSearchFiles);
+                    insertMp3sInDir(parentDir, dirName, makeSearchQuery(dirName, 0, _numSearchFiles));
                     return true;
-                } else if ((*dirO).dir()->getType() == Dir::Type::SEARCH_DIR) {
+                } else if (type == Dir::Type::SEARCH_DIR) {
                     auto parentDir = (*dirO).dir();
-                    std::regex offsetRegex("^([0-9]{1,6})(?:-([0-9]{1,6}))?$");
-                    std::smatch mtc;
                     std::string searchName;
                     uint_fast32_t offset;
                     uint_fast32_t cnt;
-                    if(std::regex_search(dirName, mtc, offsetRegex)){
+                    auto queryParams = parseQuery(dirName);
+                    if(queryParams.type != QueryParams::Type::STRING){
                         searchName = parentDir->getOffsetName().getName();
-                        if(mtc[2].matched) {
-                            offset = std::stoul(mtc[1].str());
-                            cnt = std::stoul(mtc[2].str());
+                        if(queryParams.type == QueryParams::Type::TWO_NUMBERS) {
+                            offset = queryParams.first;
+                            cnt = queryParams.second;
                         } else {
                             offset = parentDir->getOffsetName().getOffset();
-                            cnt = std::stoul(mtc[1].str());
+                            cnt =  queryParams.first;
                         }
                     } else {
                         offset = 0;
@@ -242,18 +250,88 @@ namespace vk_music_fs {
                                     OffsetName{offset + cnt, searchName}, DirWPtr{parentDir}
                             )
                     );
-                    insertMp3sInDir(parentDir, dirName, searchName, offset, cnt);
+                    insertMp3sInDir(parentDir, dirName, makeSearchQuery(searchName, offset, cnt));
+                    return true;
+                } else if(type == Dir::Type::ROOT_MY_AUDIOS_DIR || type == Dir::Type::MY_AUDIOS_DIR){
+                    auto parentDir = (*dirO).dir();
+                    std::smatch mtc;
+                    uint_fast32_t offset;
+                    uint_fast32_t cnt;
+                    auto queryParams = parseQuery(dirName);
+                    if(queryParams.type != QueryParams::Type::STRING){
+                        if(queryParams.type == QueryParams::Type::TWO_NUMBERS) {
+                            offset = queryParams.first;
+                            cnt = queryParams.second;
+                        } else {
+                            offset = parentDir->getNumber();
+                            cnt =  queryParams.first;
+                        }
+                        parentDir->addItem(
+                                std::make_shared<Dir>(
+                                        dirName, Dir::Type::MY_AUDIOS_DIR, ContentsMap{},
+                                        offset + cnt, DirWPtr{parentDir}
+                                )
+                        );
+                        insertMp3sInDir(parentDir, dirName, makeMyAudiosQuery(offset, cnt));
+                        return true;
+                    } else {
+                        return false;
+                    }
                 }
                 return false;
             }
 
-            void insertMp3sInDir(
-                    const DirPtr &parentDir, const std::string &dirName,
+            struct QueryParams{
+                enum class Type{
+                    TWO_NUMBERS,
+                    ONE_NUMBER,
+                    STRING
+                } type;
+                uint_fast32_t first;
+                uint_fast32_t second;
+                QueryParams(
+                        Type type,
+                        uint_fast32_t first,
+                        uint_fast32_t second
+                ): type(type), first(first), second(second){
+                }
+            };
+
+            QueryParams parseQuery(const std::string &dirName){
+                std::regex offsetRegex("^([0-9]{1,6})(?:-([0-9]{1,6}))?$");
+                std::smatch mtc;
+                if(std::regex_search(dirName, mtc, offsetRegex)){
+                    if(mtc[2].matched) {
+                        return QueryParams(
+                                QueryParams::Type::TWO_NUMBERS, std::stoul(mtc[1].str()), std::stoul(mtc[2].str())
+                        );
+                    } else {
+                        return QueryParams(QueryParams::Type::ONE_NUMBER, std::stoul(mtc[1].str()), 0);
+                    }
+                } else {
+                    return QueryParams(QueryParams::Type::STRING, 0, 0);
+                }
+            }
+
+            json makeSearchQuery(
                     const std::string &searchName,
                     uint_fast32_t offset, uint_fast32_t count
-            ) {
+            ){
                 auto res = json::parse(_queryMaker->makeSearchQuery(searchName, offset, count));
-                auto resp = res["response"];
+                return std::move(res);
+            }
+
+            json makeMyAudiosQuery(
+                    uint_fast32_t offset, uint_fast32_t count
+            ){
+                auto res = json::parse(_queryMaker->makeMyAudiosQuery(offset, count));
+                return std::move(res);
+            }
+
+            void insertMp3sInDir(
+                    const DirPtr &parentDir, const std::string &dirName, json returnedJson
+            ) {
+                auto resp = returnedJson["response"];
                 auto curDir = parentDir->getItem(dirName).dir();
                 for (const auto &item: resp["items"]) {
                     auto initialFileName = genFileName(item["artist"], item["title"]);

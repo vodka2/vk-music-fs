@@ -12,11 +12,11 @@ class QueryMakerM{
 public:
     QueryMakerM(){}//NOLINT
     MOCK_CONST_METHOD3(makeSearchQuery, std::string(const std::string&, uint_fast32_t, uint_fast32_t));
+    MOCK_CONST_METHOD2(makeMyAudiosQuery, std::string(uint_fast32_t, uint_fast32_t));
 };
 
 class AudioFsT: public ::testing::Test {
 public:
-
     uint_fast32_t numSearchFiles = 3;
 
     typedef vk_music_fs::AudioFs<QueryMakerM> AudioFs;
@@ -27,6 +27,30 @@ public:
             di::bind<vk_music_fs::NumSearchFiles>.to(vk_music_fs::NumSearchFiles{numSearchFiles})
             ))
     );
+
+    void initMyAudiosQuery(){
+        ON_CALL(*inj.create<std::shared_ptr<QueryMakerM>>(), makeMyAudiosQuery(0, 3)).WillByDefault(testing::Return(
+                R"(
+                        {"response": {"count":3, "items": [
+                            {"id": 1, "owner_id": 2, "artist":"Artist1", "title":"Song1", "url":"https:\/\/uri1"},
+                            {"id": 2, "owner_id": 3, "artist":"Artist2", "title":"Song2", "url":"https:\/\/uri2"},
+                            {"id": -1, "owner_id": 2, "artist":"Artist3", "title":"Song3", "url":"https:\/\/uri3"}
+                        ] }}
+                        )"
+        ));
+    }
+
+    void initMyAudiosIntervalQuery(){
+        ON_CALL(*inj.create<std::shared_ptr<QueryMakerM>>(), makeMyAudiosQuery(1, 2)).WillByDefault(testing::Return(
+                R"(
+                        {"response": {"count":2, "items": [
+                            {"id": 2, "owner_id": 3, "artist":"Artist2", "title":"Song2", "url":"https:\/\/uri2"},
+                            {"id": -1, "owner_id": 2, "artist":"Artist3", "title":"Song3", "url":"https:\/\/uri3"}
+                        ] }}
+                        )"
+        ));
+    }
+
     void initSongNameQuery(){
         ON_CALL(*inj.create<std::shared_ptr<QueryMakerM>>(), makeSearchQuery("SongName", 0, 3)).WillByDefault(testing::Return(
                         R"(
@@ -73,7 +97,7 @@ public:
 
 TEST_F(AudioFsT, Empty){ //NOLINT
     auto api = inj.create<std::shared_ptr<AudioFs>>();
-    EXPECT_EQ(api->getEntries("/").size(), 1);
+    EXPECT_EQ(api->getEntries("/").size(), 2);
     EXPECT_EQ(api->getEntries("/Search").size(), 0);
 }
 
@@ -184,6 +208,30 @@ TEST_F(AudioFsT, DeleteFile){ //NOLINT
     api->deleteFile("/Search/SongName/Artist2 - Song2.mp3");
     std::vector<std::string> expFiles = {"Artist1 - Song1.mp3", "Artist3 - Song3.mp3"};
     auto files = api->getEntries("/Search/SongName");
+    std::sort(files.begin(), files.end());
+    EXPECT_EQ(files, expFiles);
+}
+
+TEST_F(AudioFsT, CreateMyAudiosDirOneNum){ //NOLINT
+    auto api = inj.create<std::shared_ptr<AudioFs>>();
+    initMyAudiosQuery();
+    api->createDir("/My audios/3");
+    std::vector<std::string> expDirs = {"3"};
+    EXPECT_EQ(api->getEntries("/My audios"), expDirs);
+    std::vector<std::string> expFiles = {"Artist1 - Song1.mp3", "Artist2 - Song2.mp3", "Artist3 - Song3.mp3"};
+    auto files = api->getEntries("/My audios/3");
+    std::sort(files.begin(), files.end());
+    EXPECT_EQ(files, expFiles);
+}
+
+TEST_F(AudioFsT, CreateMyAudiosDirTwoNum){ //NOLINT
+    auto api = inj.create<std::shared_ptr<AudioFs>>();
+    initMyAudiosIntervalQuery();
+    api->createDir("/My audios/1-2");
+    std::vector<std::string> expDirs = {"1-2"};
+    EXPECT_EQ(api->getEntries("/My audios"), expDirs);
+    std::vector<std::string> expFiles = {"Artist2 - Song2.mp3", "Artist3 - Song3.mp3"};
+    auto files = api->getEntries("/My audios/1-2");
     std::sort(files.begin(), files.end());
     EXPECT_EQ(files, expFiles);
 }

@@ -4,8 +4,11 @@
 using namespace vk_music_fs;
 using namespace vk_music_fs::fs;
 
-Dir::Dir(std::string name, Dir::Type type, ContentsMap contents, std::optional<std::variant<OffsetName>> extra,
-         const DirWPtr &parent) :
+Dir::Dir(
+        std::string name, Dir::Type type, ContentsMap contents,
+        std::optional<std::variant<OffsetName, uint_fast32_t>> extra,
+        const DirWPtr &parent
+) :
         _name(std::move(name)), _type(type),
         _contents(std::move(contents)), _extra(std::move(extra)), _parent(parent) {
 
@@ -45,4 +48,8 @@ bool Dir::hasItem(const std::string &name) const {
 
 OffsetName Dir::getOffsetName() const {
     return std::get<OffsetName>(*_extra);
+}
+
+uint_fast32_t Dir::getNumber() const {
+    return std::get<uint_fast32_t>(*_extra);
 }
