@@ -1,6 +1,6 @@
 project(vk_music_fs_lib)
 
-add_library(vk_music_fs_lib FileProcessor.cpp FileProcessor.h common.h Mp3Parser.cpp Mp3Parser.h BlockingBuffer.cpp BlockingBuffer.h HttpStream.h HttpStream.cpp HttpException.cpp HttpException.h HttpStreamCommon.cpp HttpStreamCommon.h MusicFile.cpp MusicFile.h ThreadPool.cpp ThreadPool.h SizeObtainer.cpp SizeObtainer.h RemoteFile.cpp RemoteFile.h FileManager.cpp FileManager.h Reader.cpp Reader.h FileCache.cpp FileCache.h IFileManager.h ext_factory.hpp VkApiQueryMaker.cpp VkApiQueryMaker.h AudioFs.cpp AudioFs.h Application.cpp Application.h RemoteException.cpp RemoteException.h)
+add_library(vk_music_fs_lib FileProcessor.cpp FileProcessor.h common.h Mp3Parser.cpp Mp3Parser.h BlockingBuffer.cpp BlockingBuffer.h HttpStream.h HttpStream.cpp HttpException.cpp HttpException.h HttpStreamCommon.cpp HttpStreamCommon.h MusicFile.cpp MusicFile.h ThreadPool.cpp ThreadPool.h SizeObtainer.cpp SizeObtainer.h RemoteFile.cpp RemoteFile.h FileManager.cpp FileManager.h Reader.cpp Reader.h FileCache.cpp FileCache.h IFileManager.h ext_factory.hpp VkApiQueryMaker.cpp VkApiQueryMaker.h fs/AudioFs.cpp fs/AudioFs.h Application.cpp Application.h RemoteException.cpp RemoteException.h fs/Dir.cpp fs/Dir.h fs/common_fs.h fs/File.cpp fs/File.h fs/DirOrFile.cpp fs/DirOrFile.h fs/OffsetName.cpp fs/OffsetName.h)
 
 target_include_directories(vk_music_fs_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/di/include ${CMAKE_SOURCE_DIR}/json)
 
