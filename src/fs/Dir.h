@@ -2,7 +2,8 @@
 
 #include "common_fs.h"
 #include "DirOrFile.h"
-#include "OffsetName.h"
+#include "OffsetCntName.h"
+#include "OffsetCnt.h"
 
 namespace vk_music_fs {
     namespace fs {
@@ -11,7 +12,7 @@ namespace vk_music_fs {
         public:
             enum class Type {
                 ROOT_MY_AUDIOS_DIR,
-                MY_AUDIOS_DIR,
+                COUNTER_DIR,
                 SEARCH_DIR,
                 DUMMY_DIR,
                 ROOT_DIR,
@@ -20,7 +21,7 @@ namespace vk_music_fs {
             Dir(
                     std::string name,
                     Type type,
-                    std::optional<std::variant<OffsetName, uint_fast32_t>> extra,
+                    std::optional<std::variant<OffsetCntName, OffsetCnt>> extra,
                     const DirWPtr &parent
             );
             const std::string getName() const;
@@ -33,14 +34,20 @@ namespace vk_music_fs {
             void removeItem(const std::string &name);
             const DirOrFile getItem(const std::string &str) const;
             ContentsMap &getContents();
-            OffsetName getOffsetName() const;
-            uint_fast32_t getNumber() const;
-            uint_fast32_t getMaxFileNum();
+            OffsetCntName& getOffsetCntName();
+            OffsetCnt& getOffsetCnt();
+            uint_fast32_t getMaxFileNum() const;
+            DirPtr getCounterDir() const;
+            bool haveCounterDir() const;
+            void removeCounter();
+            void clearContents();
+            void clearContentsExceptNested();
         private:
             std::string _name;
             Type _type;
             ContentsMap _contents;
-            std::optional<std::variant<OffsetName, uint_fast32_t>> _extra;
+            std::optional<std::variant<OffsetCntName, OffsetCnt>> _extra;
+            std::optional<DirPtr> _counterDir;
             DirWPtr _parent;
             uint_fast32_t _maxFileNum;
         };

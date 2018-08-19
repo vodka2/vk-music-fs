@@ -1,22 +1,16 @@
 #pragma once
 
-#include <regex>
 #include <utility>
 #include <common.h>
 #include <unordered_map>
 #include <unordered_set>
 #include <variant>
 #include <RemoteFile.h>
-#include <json.hpp>
-#include <boost/algorithm/string.hpp>
-#include <boost/range/algorithm_ext/erase.hpp>
-#include <algorithm>
 #include <mutex>
 #include "Dir.h"
 #include "File.h"
 #include "DirOrFile.h"
-
-using json = nlohmann::json;
+#include "SearchDirMaker.h"
 
 namespace vk_music_fs {
     namespace fs {
@@ -25,15 +19,14 @@ namespace vk_music_fs {
         public:
             AudioFs(const std::shared_ptr<TQueryMaker> &queryMaker, const NumSearchFiles &numSearchFiles,
                     const Mp3Extension &ext)
-                    : _ext(ext.t), _queryMaker(queryMaker), _numSearchFiles(numSearchFiles),
-                      _rootDir(
-                              std::make_shared<Dir>("/", Dir::Type::ROOT_DIR, std::nullopt, DirWPtr{})) {
+                    : _searchDirMaker(queryMaker, numSearchFiles, ext),
+                      _rootDir(std::make_shared<Dir>("/", Dir::Type::ROOT_DIR, std::nullopt, DirWPtr{})) {
                 auto searchDir = std::make_shared<Dir>(
                         "Search", Dir::Type::ROOT_SEARCH_DIR, std::nullopt, _rootDir
                 );
                 _rootDir->addItem(searchDir);
                 auto myAudiosDir = std::make_shared<Dir>(
-                        "My audios", Dir::Type::ROOT_MY_AUDIOS_DIR, 0, _rootDir
+                        "My audios", Dir::Type::ROOT_MY_AUDIOS_DIR, OffsetCnt{0, 0}, _rootDir
                 );
                 _rootDir->addItem(myAudiosDir);
             }
@@ -113,15 +106,19 @@ namespace vk_music_fs {
             bool deleteDir(const std::string &path) {
                 std::scoped_lock<std::mutex> lock(_fsMutex);
                 auto pathO = findPath(path);
-                if (isDir(pathO)
-                    &&
-                    (
-                            (*pathO).dir()->getType() == Dir::Type::SEARCH_DIR ||
-                            (*pathO).dir()->getType() == Dir::Type::DUMMY_DIR ||
-                            (*pathO).dir()->getType() == Dir::Type::MY_AUDIOS_DIR
-                    )
-                        ) {
-                    (*pathO).dir()->getParent()->removeItem(getLast(path));
+                if(!isDir(pathO)){
+                    return false;
+                }
+                if (
+                        (*pathO).dir()->getType() == Dir::Type::SEARCH_DIR ||
+                        (*pathO).dir()->getType() == Dir::Type::DUMMY_DIR ||
+                        (*pathO).dir()->getType() == Dir::Type::COUNTER_DIR
+                ) {
+                    if((*pathO).dir()->getType() == Dir::Type::COUNTER_DIR) {
+                        (*pathO).dir()->getParent()->clearContentsExceptNested();
+                    } else {
+                        (*pathO).dir()->getParent()->removeItem(getLast(path));
+                    }
                     return true;
                 }
                 return false;
@@ -138,12 +135,31 @@ namespace vk_music_fs {
             }
 
         private:
+            bool createDirNoLock(const std::string &dirPath) {
+                auto dirO = findPath(dirPath, 1);
+                if (!isDir(dirO)) {
+                    return false;
+                }
+                auto dirName = getLast(dirPath);
+                auto type = (*dirO).dir()->getType();
+                if (type == Dir::Type::ROOT_SEARCH_DIR) {
+                    auto parentDir = (*dirO).dir();
+                    return _searchDirMaker.createSearchDirInRoot(parentDir, dirName);
+                } else if (type == Dir::Type::SEARCH_DIR) {
+                    auto parentDir = (*dirO).dir();
+                    return _searchDirMaker.createSearchDir(parentDir, dirName);
+                } else if(type == Dir::Type::ROOT_MY_AUDIOS_DIR){
+                    auto parentDir = (*dirO).dir();
+                    return _searchDirMaker.createMyAudiosDir(parentDir, dirName);
+                }
+                return false;
+            }
+
             bool isDummyDirParent(const DirPtr &ptr){
                 return
                     ptr->getType() == Dir::Type::ROOT_SEARCH_DIR ||
                     ptr->getType() == Dir::Type::SEARCH_DIR ||
-                    ptr->getType() == Dir::Type::ROOT_MY_AUDIOS_DIR ||
-                    ptr->getType() == Dir::Type::MY_AUDIOS_DIR
+                    ptr->getType() == Dir::Type::ROOT_MY_AUDIOS_DIR
                 ;
             }
             bool isDir(const std::optional<DirOrFile> &opt){
@@ -194,171 +210,9 @@ namespace vk_music_fs {
                 return curDir;
             }
 
-            std::string genFileName(const std::string &artist, const std::string &title) {
-                return escapeName(artist + " - " + title);
-            }
-
-            std::string escapeName(std::string str) {
-                boost::remove_erase_if(str, [](auto ch0) {
-                    unsigned char ch = ch0;
-                    return ch <= 31 || std::string("<>:/\\|?*").find(ch) != std::string::npos;
-                });
-                std::replace(str.begin(), str.end(), '"', '\"');
-                return str;
-            }
-
-            bool createDirNoLock(const std::string &dirPath) {
-                auto dirO = findPath(dirPath, 1);
-                if (!isDir(dirO)) {
-                    return false;
-                }
-                auto dirName = getLast(dirPath);
-                auto type = (*dirO).dir()->getType();
-                if (type == Dir::Type::ROOT_SEARCH_DIR) {
-                    auto parentDir = (*dirO).dir();
-                    parentDir->addItem(
-                            std::make_shared<Dir>(
-                                    dirName, Dir::Type::SEARCH_DIR,
-                                    OffsetName{_numSearchFiles, dirName}, DirWPtr{parentDir}
-                            )
-                    );
-                    insertMp3sInDir(parentDir, dirName, makeSearchQuery(dirName, 0, _numSearchFiles));
-                    return true;
-                } else if (type == Dir::Type::SEARCH_DIR) {
-                    auto parentDir = (*dirO).dir();
-                    std::string searchName;
-                    uint_fast32_t offset;
-                    uint_fast32_t cnt;
-                    auto queryParams = parseQuery(dirName);
-                    if(queryParams.type != QueryParams::Type::STRING){
-                        searchName = parentDir->getOffsetName().getName();
-                        if(queryParams.type == QueryParams::Type::TWO_NUMBERS) {
-                            offset = queryParams.first;
-                            cnt = queryParams.second;
-                        } else {
-                            offset = parentDir->getOffsetName().getOffset();
-                            cnt =  queryParams.first;
-                        }
-                    } else {
-                        offset = 0;
-                        cnt = _numSearchFiles;
-                        searchName = parentDir->getOffsetName().getName() + " " + dirName;
-                    }
-                    parentDir->addItem(
-                            std::make_shared<Dir>(
-                                    dirName, Dir::Type::SEARCH_DIR,
-                                    OffsetName{offset + cnt, searchName}, DirWPtr{parentDir}
-                            )
-                    );
-                    insertMp3sInDir(parentDir, dirName, makeSearchQuery(searchName, offset, cnt));
-                    return true;
-                } else if(type == Dir::Type::ROOT_MY_AUDIOS_DIR || type == Dir::Type::MY_AUDIOS_DIR){
-                    auto parentDir = (*dirO).dir();
-                    std::smatch mtc;
-                    uint_fast32_t offset;
-                    uint_fast32_t cnt;
-                    auto queryParams = parseQuery(dirName);
-                    if(queryParams.type != QueryParams::Type::STRING){
-                        if(queryParams.type == QueryParams::Type::TWO_NUMBERS) {
-                            offset = queryParams.first;
-                            cnt = queryParams.second;
-                        } else {
-                            offset = parentDir->getNumber();
-                            cnt =  queryParams.first;
-                        }
-                        parentDir->addItem(
-                                std::make_shared<Dir>(
-                                        dirName, Dir::Type::MY_AUDIOS_DIR,
-                                        offset + cnt, DirWPtr{parentDir}
-                                )
-                        );
-                        insertMp3sInDir(parentDir, dirName, makeMyAudiosQuery(offset, cnt));
-                        return true;
-                    } else {
-                        return false;
-                    }
-                }
-                return false;
-            }
-
-            struct QueryParams{
-                enum class Type{
-                    TWO_NUMBERS,
-                    ONE_NUMBER,
-                    STRING
-                } type;
-                uint_fast32_t first;
-                uint_fast32_t second;
-                QueryParams(
-                        Type type,
-                        uint_fast32_t first,
-                        uint_fast32_t second
-                ): type(type), first(first), second(second){
-                }
-            };
-
-            QueryParams parseQuery(const std::string &dirName){
-                std::regex offsetRegex("^([0-9]{1,6})(?:-([0-9]{1,6}))?$");
-                std::smatch mtc;
-                if(std::regex_search(dirName, mtc, offsetRegex)){
-                    if(mtc[2].matched) {
-                        return QueryParams(
-                                QueryParams::Type::TWO_NUMBERS, std::stoul(mtc[1].str()), std::stoul(mtc[2].str())
-                        );
-                    } else {
-                        return QueryParams(QueryParams::Type::ONE_NUMBER, std::stoul(mtc[1].str()), 0);
-                    }
-                } else {
-                    return QueryParams(QueryParams::Type::STRING, 0, 0);
-                }
-            }
-
-            json makeSearchQuery(
-                    const std::string &searchName,
-                    uint_fast32_t offset, uint_fast32_t count
-            ){
-                auto res = json::parse(_queryMaker->makeSearchQuery(searchName, offset, count));
-                return std::move(res);
-            }
-
-            json makeMyAudiosQuery(
-                    uint_fast32_t offset, uint_fast32_t count
-            ){
-                auto res = json::parse(_queryMaker->makeMyAudiosQuery(offset, count));
-                return std::move(res);
-            }
-
-            void insertMp3sInDir(
-                    const DirPtr &parentDir, const std::string &dirName, json returnedJson
-            ) {
-                auto resp = returnedJson["response"];
-                auto curDir = parentDir->getItem(dirName).dir();
-                for (const auto &item: resp["items"]) {
-                    auto initialFileName = genFileName(item["artist"], item["title"]);
-                    auto fileName = initialFileName + _ext;
-                    uint_fast32_t i = 2;
-                    while (curDir->hasItem("fileName")) {
-                        fileName = initialFileName + "_" + std::to_string(i) + _ext;
-                        i++;
-                    }
-                    curDir->addItem(
-                        std::make_shared<File>(
-                                fileName,
-                                File::Type::MUSIC_FILE,
-                                RemoteFile{item["url"], item["owner_id"],
-                                           item["id"], item["artist"], item["title"]},
-                                curDir->getMaxFileNum(),
-                                curDir
-                        )
-                    );
-                }
-            }
-
             std::mutex _fsMutex;
             std::shared_ptr<Dir> _rootDir;
-            std::string _ext;
-            std::shared_ptr<TQueryMaker> _queryMaker;
-            uint_fast32_t _numSearchFiles;
+            SearchDirMaker<TQueryMaker> _searchDirMaker;
         };
     }
     template <typename T>
