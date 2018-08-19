@@ -6,7 +6,7 @@
 
 namespace di = boost::di;
 
-using vk_music_fs::FileOrDirType;
+using vk_music_fs::FileOrDirMeta;
 
 class QueryMakerM{
 public:
@@ -117,13 +117,13 @@ TEST_F(AudioFsT, CreateDir){ //NOLINT
 
 TEST_F(AudioFsT, GetType){ //NOLINT
     auto api = inj.create<std::shared_ptr<AudioFs>>();
-    EXPECT_EQ(api->getType("/"), FileOrDirType::DIR_ENTRY);
-    EXPECT_EQ(api->getType("/Search"), FileOrDirType::DIR_ENTRY);
+    EXPECT_EQ(api->getMeta("/").type, FileOrDirMeta::Type::DIR_ENTRY);
+    EXPECT_EQ(api->getMeta("/Search").type, FileOrDirMeta::Type::DIR_ENTRY);
     initSongNameQuery();
     api->createDir("/Search/SongName");
-    EXPECT_EQ(api->getType("/Search/SongName"), FileOrDirType::DIR_ENTRY);
-    EXPECT_EQ(api->getType("/Search/SongName/Artist2 - Song2.mp3"), FileOrDirType::FILE_ENTRY);
-    EXPECT_EQ(api->getType("/Search/song"), FileOrDirType::NOT_EXISTS);
+    EXPECT_EQ(api->getMeta("/Search/SongName").type, FileOrDirMeta::Type::DIR_ENTRY);
+    EXPECT_EQ(api->getMeta("/Search/SongName/Artist2 - Song2.mp3").type, FileOrDirMeta::Type::FILE_ENTRY);
+    EXPECT_EQ(api->getMeta("/Search/song").type, FileOrDirMeta::Type::NOT_EXISTS);
 }
 
 TEST_F(AudioFsT, CreateDummyDir){ //NOLINT
@@ -187,8 +187,6 @@ TEST_F(AudioFsT, CreateMoreDirNested){ //NOLINT
 
 TEST_F(AudioFsT, DeleteDir){ //NOLINT
     auto api = inj.create<std::shared_ptr<AudioFs>>();
-    EXPECT_EQ(api->getType("/"), FileOrDirType::DIR_ENTRY);
-    EXPECT_EQ(api->getType("/Search"), FileOrDirType::DIR_ENTRY);
     initSongNameQuery();
     initSongName2Query();
     api->createDir("/Search/SongName");
@@ -201,8 +199,6 @@ TEST_F(AudioFsT, DeleteDir){ //NOLINT
 
 TEST_F(AudioFsT, DeleteFile){ //NOLINT
     auto api = inj.create<std::shared_ptr<AudioFs>>();
-    EXPECT_EQ(api->getType("/"), FileOrDirType::DIR_ENTRY);
-    EXPECT_EQ(api->getType("/Search"), FileOrDirType::DIR_ENTRY);
     initSongNameQuery();
     api->createDir("/Search/SongName");
     api->deleteFile("/Search/SongName/Artist2 - Song2.mp3");

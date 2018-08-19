@@ -14,10 +14,13 @@ namespace vk_music_fs{
         uint_fast32_t tagSize;
     };
 
-    enum class  FileOrDirType{
-        FILE_ENTRY,
-        DIR_ENTRY,
-        NOT_EXISTS
+    struct FileOrDirMeta{
+        enum class Type{
+            FILE_ENTRY,
+            DIR_ENTRY,
+            NOT_EXISTS
+        } type;
+        uint_fast32_t time;
     };
 
     struct FNameCache{

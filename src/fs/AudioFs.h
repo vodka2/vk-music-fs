@@ -27,13 +27,13 @@ namespace vk_music_fs {
                     const Mp3Extension &ext)
                     : _ext(ext.t), _queryMaker(queryMaker), _numSearchFiles(numSearchFiles),
                       _rootDir(
-                              std::make_shared<Dir>("/", Dir::Type::ROOT_DIR, ContentsMap{}, std::nullopt, DirWPtr{})) {
+                              std::make_shared<Dir>("/", Dir::Type::ROOT_DIR, std::nullopt, DirWPtr{})) {
                 auto searchDir = std::make_shared<Dir>(
-                        "Search", Dir::Type::ROOT_SEARCH_DIR, ContentsMap{}, std::nullopt, _rootDir
+                        "Search", Dir::Type::ROOT_SEARCH_DIR, std::nullopt, _rootDir
                 );
                 _rootDir->addItem(searchDir);
                 auto myAudiosDir = std::make_shared<Dir>(
-                        "My audios", Dir::Type::ROOT_MY_AUDIOS_DIR, ContentsMap{}, 0, _rootDir
+                        "My audios", Dir::Type::ROOT_MY_AUDIOS_DIR, 0, _rootDir
                 );
                 _rootDir->addItem(myAudiosDir);
             }
@@ -74,17 +74,17 @@ namespace vk_music_fs {
                 return ret;
             }
 
-            FileOrDirType getType(const std::string &path) {
+            FileOrDirMeta getMeta(const std::string &path) {
                 std::scoped_lock<std::mutex> lock(_fsMutex);
                 auto pathO = findPath(path);
                 if (pathO) {
                     if (isDir(pathO)) {
-                        return FileOrDirType::DIR_ENTRY;
+                        return {FileOrDirMeta::Type::DIR_ENTRY, 0};
                     } else {
-                        return FileOrDirType::FILE_ENTRY;
+                        return {FileOrDirMeta::Type::FILE_ENTRY, (*pathO).file()->getTime()};
                     }
                 }
-                return FileOrDirType::NOT_EXISTS;
+                return {FileOrDirMeta::Type::NOT_EXISTS, 0};
             }
 
             RemoteFile getRemoteFile(const std::string &path) {
@@ -101,7 +101,7 @@ namespace vk_music_fs {
                     auto parentDir = (*pathO).dir();
                     parentDir->addItem(
                             std::make_shared<Dir>(
-                                    dirName, Dir::Type::DUMMY_DIR, ContentsMap{}, std::nullopt,
+                                    dirName, Dir::Type::DUMMY_DIR, std::nullopt,
                                     DirWPtr{parentDir}
                             )
                  );
@@ -218,7 +218,7 @@ namespace vk_music_fs {
                     auto parentDir = (*dirO).dir();
                     parentDir->addItem(
                             std::make_shared<Dir>(
-                                    dirName, Dir::Type::SEARCH_DIR, ContentsMap{},
+                                    dirName, Dir::Type::SEARCH_DIR,
                                     OffsetName{_numSearchFiles, dirName}, DirWPtr{parentDir}
                             )
                     );
@@ -246,7 +246,7 @@ namespace vk_music_fs {
                     }
                     parentDir->addItem(
                             std::make_shared<Dir>(
-                                    dirName, Dir::Type::SEARCH_DIR, ContentsMap{},
+                                    dirName, Dir::Type::SEARCH_DIR,
                                     OffsetName{offset + cnt, searchName}, DirWPtr{parentDir}
                             )
                     );
@@ -268,7 +268,7 @@ namespace vk_music_fs {
                         }
                         parentDir->addItem(
                                 std::make_shared<Dir>(
-                                        dirName, Dir::Type::MY_AUDIOS_DIR, ContentsMap{},
+                                        dirName, Dir::Type::MY_AUDIOS_DIR,
                                         offset + cnt, DirWPtr{parentDir}
                                 )
                         );
@@ -347,6 +347,7 @@ namespace vk_music_fs {
                                 File::Type::MUSIC_FILE,
                                 RemoteFile{item["url"], item["owner_id"],
                                            item["id"], item["artist"], item["title"]},
+                                curDir->getMaxFileNum(),
                                 curDir
                         )
                     );

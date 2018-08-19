@@ -26,8 +26,8 @@ namespace vk_music_fs {
             return _audioFs->getEntries(dirPath);
         }
 
-        FileOrDirType getType(const std::string &path){
-            return _audioFs->getType(path);
+        FileOrDirMeta getMeta(const std::string &path){
+            return _audioFs->getMeta(path);
         }
 
         bool createDir(const std::string &dirPath){

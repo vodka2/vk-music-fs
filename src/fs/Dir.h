@@ -20,7 +20,6 @@ namespace vk_music_fs {
             Dir(
                     std::string name,
                     Type type,
-                    ContentsMap contents,
                     std::optional<std::variant<OffsetName, uint_fast32_t>> extra,
                     const DirWPtr &parent
             );
@@ -36,12 +35,14 @@ namespace vk_music_fs {
             ContentsMap &getContents();
             OffsetName getOffsetName() const;
             uint_fast32_t getNumber() const;
+            uint_fast32_t getMaxFileNum();
         private:
             std::string _name;
             Type _type;
             ContentsMap _contents;
             std::optional<std::variant<OffsetName, uint_fast32_t>> _extra;
             DirWPtr _parent;
+            uint_fast32_t _maxFileNum;
         };
     }
 }

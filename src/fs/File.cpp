@@ -4,8 +4,12 @@
 using namespace vk_music_fs;
 using namespace vk_music_fs::fs;
 
-File::File(std::string name, File::Type type, std::variant<RemoteFile> contents, const DirWPtr &parent)
-        : _name(std::move(name)), _type(type), _contents(std::move(contents)), _parent(parent) {
+File::File(
+        std::string name, File::Type type, std::variant<RemoteFile> contents,
+        uint_fast32_t time, const DirWPtr &parent
+)
+        : _name(std::move(name)), _type(type), _contents(std::move(contents)),
+        _time(time), _parent(parent) {
 }
 
 const std::string File::getName() const {
@@ -22,4 +26,8 @@ RemoteFile File::getRemFile() {
 
 DirPtr File::getParent() {
     return _parent.lock();
+}
+
+uint_fast32_t File::getTime() const {
+    return _time;
 }

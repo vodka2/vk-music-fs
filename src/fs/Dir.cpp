@@ -5,12 +5,11 @@ using namespace vk_music_fs;
 using namespace vk_music_fs::fs;
 
 Dir::Dir(
-        std::string name, Dir::Type type, ContentsMap contents,
+        std::string name, Dir::Type type,
         std::optional<std::variant<OffsetName, uint_fast32_t>> extra,
         const DirWPtr &parent
 ) :
-        _name(std::move(name)), _type(type),
-        _contents(std::move(contents)), _extra(std::move(extra)), _parent(parent) {
+        _name(std::move(name)), _type(type), _maxFileNum(0), _extra(std::move(extra)), _parent(parent) {
 
 }
 
@@ -23,7 +22,10 @@ const DirOrFile Dir::getItem(const std::string &item) const {
 }
 
 void Dir::addItem(DirOrFile item) {
-    _contents.insert(std::make_pair<>(item.getName(), item));
+    if(item.isFile()){
+        _maxFileNum++;
+    }
+    _contents.insert(std::make_pair<>(item.getName(), std::move(item)));
 }
 
 Dir::Type Dir::getType() const {
@@ -52,4 +54,8 @@ OffsetName Dir::getOffsetName() const {
 
 uint_fast32_t Dir::getNumber() const {
     return std::get<uint_fast32_t>(*_extra);
+}
+
+uint_fast32_t Dir::getMaxFileNum() {
+    return _maxFileNum;
 }
