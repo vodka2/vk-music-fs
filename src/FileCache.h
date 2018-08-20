@@ -13,7 +13,12 @@ namespace vk_music_fs{
     };
     class FileCache {
     public:
-        FileCache(const std::shared_ptr<SizeObtainer> &sizeObtainer, SizesCacheSize sizesCacheSize, FilesCacheSize filesCacheSize);
+        FileCache(
+                const std::shared_ptr<SizeObtainer> &sizeObtainer,
+                SizesCacheSize sizesCacheSize,
+                FilesCacheSize filesCacheSize,
+                CacheDir cacheDir
+        );
         FNameCache getFilename(const RemoteFile &file);
         uint_fast32_t getTagSize(const RemoteFile &file);
         uint_fast32_t getFileSize(const RemoteFile &file);
@@ -26,5 +31,6 @@ namespace vk_music_fs{
         std::shared_ptr<SizeObtainer> _sizeObtainer;
         cache::lru_cache<RemoteFile, uint_fast32_t, RemoteFileHasher> _sizesCache;
         cache::lru_cache<RemoteFile, TotalPrepSizes, RemoteFileHasher> _initialSizesCache;
+        std::string _cacheDir;
     };
 }

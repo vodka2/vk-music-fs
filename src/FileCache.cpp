@@ -1,18 +1,21 @@
 #include <boost/beast/http.hpp>
 #include <boost/asio/ip/tcp.hpp>
+#include <boost/filesystem.hpp>
 #include "FileCache.h"
 
+namespace bfs = boost::filesystem;
 using namespace vk_music_fs;
 
 FileCache::FileCache(
         const std::shared_ptr<SizeObtainer> &sizeObtainer,
         SizesCacheSize sizesCacheSize,
-        FilesCacheSize filesCacheSize
+        FilesCacheSize filesCacheSize,
+        CacheDir cacheDir
 ): _sizeObtainer(sizeObtainer),
 _sizesCache(sizesCacheSize, [](...){}),
 _initialSizesCache(filesCacheSize, [this](auto file){
     std::remove(constructFilename(file).c_str());
-}) {
+}), _cacheDir(cacheDir.t) {
 
 }
 
@@ -53,7 +56,7 @@ void FileCache::fileClosed(const RemoteFile &file, const TotalPrepSizes &sizes) 
 }
 
 std::string FileCache::constructFilename(const RemoteFile &file) {
-    return std::to_string(file.getOwnerId()) + "_" + std::to_string(file.getFileId()) + ".mp3";
+    return (bfs::path(_cacheDir) / (std::to_string(file.getOwnerId()) + "_" + std::to_string(file.getFileId()) + ".mp3")).string();
 }
 
 TotalPrepSizes FileCache::getInitialSize(const RemoteFile &file) {
