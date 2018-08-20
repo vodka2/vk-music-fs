@@ -5,10 +5,8 @@ set(OLD_CXX_FLAGS ${CMAKE_CXX_FLAGS})
 set(CMAKE_VERBOSE_MAKEFILE 1)
 
 add_subdirectory(taglib_mod)
-
-include_directories(di/extension/include)
-
-add_subdirectory(boost-nowide)
+add_subdirectory(cfgpath)
+add_subdirectory(json)
 add_subdirectory(cpp-lru-cache-mod)
 add_subdirectory(googletest)
 

@@ -5,6 +5,9 @@
 #include <boost/program_options/parsers.hpp>
 #include <boost/filesystem.hpp>
 #include <cfgpath.h>
+#include <codecvt>
+#include <boost/nowide/iostream.hpp>
+#include <boost/nowide/fstream.hpp>
 
 using namespace vk_music_fs;
 
@@ -12,10 +15,6 @@ namespace po = boost::program_options;
 namespace bfs = boost::filesystem;
 
 ProgramOptions::ProgramOptions(uint_fast32_t argc, char **argv, const std::string &configName, const std::string &appName) {
-    char path[MAX_PATH];
-    get_user_cache_folder(path, MAX_PATH, appName.c_str());
-    std::string cacheDir(path);
-
     po::options_description desc("VK Music FS options");
 
     desc.add_options()
@@ -29,7 +28,8 @@ ProgramOptions::ProgramOptions(uint_fast32_t argc, char **argv, const std::strin
             ("mp3_ext", po::value<std::string>()->default_value(".mp3"), "set mp3 files extension")
             ("num_search_files", po::value<uint_fast32_t>()->default_value(10),
                     "set initial number of files in the search directory")
-            ("cache_dir", po::value<std::string>()->default_value(cacheDir), "set cache dir")
+            ("cache_dir", po::value<std::string>()->default_value(getUserCacheDir(appName)), "set cache dir")
+            ("create_dummy_dirs", po::value<bool>()->default_value(createDummyDirsDefault()), "create dummy dirs")
     ;
 
     po::variables_map vm;
@@ -62,9 +62,8 @@ ProgramOptions::ProgramOptions(uint_fast32_t argc, char **argv, const std::strin
     }
 
     auto curPath = bfs::system_complete(bfs::path(argv[0])).parent_path();
-    get_user_config_folder(path, MAX_PATH, appName.c_str());
 
-    std::vector<bfs::path> paths = {bfs::path(path) / configName, curPath / configName};
+    std::vector<bfs::path> paths = {bfs::path(getUserConfigDir(appName)) / configName, curPath / configName};
 
 #ifdef __linux__
     paths.push_back(bfs::path("/etc") / configName);
@@ -72,7 +71,8 @@ ProgramOptions::ProgramOptions(uint_fast32_t argc, char **argv, const std::strin
 
     for(const auto &p: paths){
         if(bfs::exists(p)){
-            po::store(po::parse_config_file<char>(p.string().c_str(), desc), vm);
+            boost::nowide::ifstream strm(p.string().c_str());
+            po::store(po::parse_config_file<char>(strm, desc), vm);
             notify(vm);
         }
     }
@@ -132,8 +132,35 @@ void ProgramOptions::parseOptions(boost::program_options::variables_map &vm) {
     _mp3Ext = vm["mp3_ext"].as<std::string>();
     _numSearchFiles = vm["num_search_files"].as<uint_fast32_t>();
     _cacheDir = vm["cache_dir"].as<std::string>();
+    _createDummyDirs = vm["create_dummy_dirs"].as<bool>();
 }
 
 std::string ProgramOptions::getCacheDir() {
     return _cacheDir;
+}
+
+bool ProgramOptions::createDummyDirs() {
+    return _createDummyDirs;
+}
+
+std::string ProgramOptions::getUserConfigDir(const std::string &appName) {
+    char path[MAX_PATH];
+    get_user_config_folder(path, MAX_PATH, appName.c_str());
+    return std::string(path);
+}
+
+std::string ProgramOptions::getUserCacheDir(const std::string &appName) {
+    char path[MAX_PATH];
+    get_user_cache_folder(path, MAX_PATH, appName.c_str());
+    return std::string(path);
+}
+
+bool ProgramOptions::createDummyDirsDefault() {
+    return
+#ifdef WIN32
+            true
+#else
+            false
+#endif
+    ;
 }

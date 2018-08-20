@@ -20,16 +20,34 @@ public:
     uint_fast32_t numSearchFiles = 3;
 
     typedef vk_music_fs::AudioFs<QueryMakerM> AudioFs;
-    auto_init(inj, (di::make_injector(
-            di::bind<AudioFs>.in(di::extension::scoped),
-            di::bind<QueryMakerM>.in(di::extension::scoped),
-            di::bind<vk_music_fs::Mp3Extension>.to(vk_music_fs::Mp3Extension{".mp3"}),
-            di::bind<vk_music_fs::NumSearchFiles>.to(vk_music_fs::NumSearchFiles{numSearchFiles})
-            ))
-    );
+
+    auto makeInj(bool createDummyDirs){
+        return di::make_injector(
+                di::bind<AudioFs>.in(di::extension::scoped),
+                di::bind<QueryMakerM>.in(di::extension::scoped),
+                di::bind<vk_music_fs::Mp3Extension>.to(vk_music_fs::Mp3Extension{".mp3"}),
+                di::bind<vk_music_fs::NumSearchFiles>.to(vk_music_fs::NumSearchFiles{numSearchFiles}),
+                di::bind<vk_music_fs::CreateDummyDirs>.to(vk_music_fs::CreateDummyDirs{createDummyDirs})
+                );
+    }
+
+    di::injector<std::shared_ptr<AudioFs>, std::shared_ptr<QueryMakerM>> inj;
+    di::injector<std::shared_ptr<AudioFs>, std::shared_ptr<QueryMakerM>> dummyInj;
+    AudioFsT(): inj(makeInj(false)), dummyInj(makeInj(true)){
+        setCreateDummyDirs(false);
+    }
+
+    std::shared_ptr<QueryMakerM> queryMakerM;
+    void setCreateDummyDirs(bool createDummyDirs){
+        if(createDummyDirs){
+            queryMakerM = dummyInj.create<std::shared_ptr<QueryMakerM>>();
+        } else {
+            queryMakerM = inj.create<std::shared_ptr<QueryMakerM>>();
+        }
+    }
 
     void initMyAudiosQuery(){
-        ON_CALL(*inj.create<std::shared_ptr<QueryMakerM>>(), makeMyAudiosQuery(0, 3)).WillByDefault(testing::Return(
+        ON_CALL(*queryMakerM, makeMyAudiosQuery(0, 3)).WillByDefault(testing::Return(
                 R"(
                         {"response": {"count":3, "items": [
                             {"id": 1, "owner_id": 2, "artist":"Artist1", "title":"Song1", "url":"https:\/\/uri1"},
@@ -41,7 +59,7 @@ public:
     }
 
     void initMyAudiosIntervalQuery(){
-        ON_CALL(*inj.create<std::shared_ptr<QueryMakerM>>(), makeMyAudiosQuery(1, 2)).WillByDefault(testing::Return(
+        ON_CALL(*queryMakerM, makeMyAudiosQuery(1, 2)).WillByDefault(testing::Return(
                 R"(
                         {"response": {"count":2, "items": [
                             {"id": 2, "owner_id": 3, "artist":"Artist2", "title":"Song2", "url":"https:\/\/uri2"},
@@ -52,7 +70,7 @@ public:
     }
 
     void initMyAudiosAfterIntervalQuery(){
-        ON_CALL(*inj.create<std::shared_ptr<QueryMakerM>>(), makeMyAudiosQuery(3, 1)).WillByDefault(testing::Return(
+        ON_CALL(*queryMakerM, makeMyAudiosQuery(3, 1)).WillByDefault(testing::Return(
                 R"(
                         {"response": {"count":2, "items": [
                             {"id": -1, "owner_id": 2, "artist":"Artist4", "title":"Song4", "url":"https:\/\/uri3"}
@@ -62,7 +80,7 @@ public:
     }
 
     void initSongNameQuery(){
-        ON_CALL(*inj.create<std::shared_ptr<QueryMakerM>>(), makeSearchQuery("SongName", 0, 3)).WillByDefault(testing::Return(
+        ON_CALL(*queryMakerM, makeSearchQuery("SongName", 0, 3)).WillByDefault(testing::Return(
                         R"(
                         {"response": {"count":3, "items": [
                             {"id": 1, "owner_id": 2, "artist":"Artist1", "title":"Song1", "url":"https:\/\/uri1"},
@@ -73,7 +91,7 @@ public:
                 ));
     }
     void initSmallerSongNameQuery(){
-        ON_CALL(*inj.create<std::shared_ptr<QueryMakerM>>(), makeSearchQuery("SongName", 0, 2)).WillByDefault(testing::Return(
+        ON_CALL(*queryMakerM, makeSearchQuery("SongName", 0, 2)).WillByDefault(testing::Return(
                 R"(
                         {"response": {"count":3, "items": [
                             {"id": 1, "owner_id": 2, "artist":"Artist1", "title":"Song1", "url":"https:\/\/uri1"},
@@ -83,7 +101,7 @@ public:
         ));
     }
     void initSongName2Query(){
-        ON_CALL(*inj.create<std::shared_ptr<QueryMakerM>>(), makeSearchQuery("SongName2", 0, 3))
+        ON_CALL(*queryMakerM, makeSearchQuery("SongName2", 0, 3))
                 .WillByDefault(testing::Return(
                         R"(
                         {"response": {"count":3, "items": [
@@ -95,7 +113,7 @@ public:
                 ));
     }
     void initSongNameSecondQuery(){
-        ON_CALL(*inj.create<std::shared_ptr<QueryMakerM>>(), makeSearchQuery("SongName", 3, 1))
+        ON_CALL(*queryMakerM, makeSearchQuery("SongName", 3, 1))
                 .WillByDefault(testing::Return(
                         R"(
                         {"response": {"count":1, "items": [
@@ -105,7 +123,7 @@ public:
                 ));
     }
     void initSongNameNameQuery(){
-        ON_CALL(*inj.create<std::shared_ptr<QueryMakerM>>(), makeSearchQuery("SongName Name", 0, 3)).WillByDefault(testing::Return(
+        ON_CALL(*queryMakerM, makeSearchQuery("SongName Name", 0, 3)).WillByDefault(testing::Return(
                 R"(
                         {"response": {"count":1, "items": [
                             {"id": 9, "owner_id": 2, "artist":"Artist1", "title":"SongName Name", "url":"https:\/\/uri5"}
@@ -147,11 +165,12 @@ TEST_F(AudioFsT, GetType){ //NOLINT
 }
 
 TEST_F(AudioFsT, CreateDummyDir){ //NOLINT
-    auto api = inj.create<std::shared_ptr<AudioFs>>();
+    setCreateDummyDirs(true);
+    auto api = dummyInj.create<std::shared_ptr<AudioFs>>();
     initSongNameQuery();
-    api->createDummyDir("/Search/New Folder");
+    api->createDir("/Search/New Folder");
     EXPECT_EQ(api->getEntries("/Search/New Folder").size(), 0);
-    api->renameDummyDir("/Search/New Folder", "/Search/SongName");
+    api->renameDir("/Search/New Folder", "/Search/SongName");
     std::vector<std::string> expFiles = {"Artist1 - Song1.mp3", "Artist2 - Song2.mp3", "Artist3 - Song3.mp3"};
     auto files = api->getEntries("/Search/SongName");
     std::sort(files.begin(), files.end());

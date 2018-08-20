@@ -18,8 +18,8 @@ namespace vk_music_fs {
         class AudioFs {
         public:
             AudioFs(const std::shared_ptr<TQueryMaker> &queryMaker, const NumSearchFiles &numSearchFiles,
-                    const Mp3Extension &ext)
-                    : _searchDirMaker(queryMaker, numSearchFiles, ext),
+                    const Mp3Extension &ext, const CreateDummyDirs &createDummyDirs)
+                    : _searchDirMaker(queryMaker, numSearchFiles, ext), _createDummyDirs(createDummyDirs.t),
                       _rootDir(std::make_shared<Dir>("/", Dir::Type::ROOT_DIR, std::nullopt, DirWPtr{})) {
                 auto searchDir = std::make_shared<Dir>(
                         "Search", Dir::Type::ROOT_SEARCH_DIR, std::nullopt, _rootDir
@@ -31,26 +31,21 @@ namespace vk_music_fs {
                 _rootDir->addItem(myAudiosDir);
             }
 
-            bool renameDummyDir(const std::string &oldPath, const std::string &newPath) {
-                std::scoped_lock<std::mutex> lock(_fsMutex);
-                auto oldDirO = findPath(oldPath);
-                auto newDirO = findPath(newPath, 1);
-                if (
-                        isDir(oldDirO) && isDummyDirParent((*oldDirO).dir()->getParent()) &&
-                        (*oldDirO).dir()->getType() == Dir::Type::DUMMY_DIR &&
-                        isDir(newDirO) &&
-                        (*oldDirO).dir()->getParent() == (*newDirO).dir()
-                        ) {
-                    auto oldDir = (*oldDirO).dir();
-                    oldDir->getParent()->removeItem(oldDir->getName());
-                    return createDirNoLock(newPath);
-                }
-                return false;
-            }
-
             bool createDir(const std::string &dirPath) {
                 std::scoped_lock<std::mutex> lock(_fsMutex);
-                return createDirNoLock(dirPath);
+                if(_createDummyDirs){
+                    return createDummyDir(dirPath);
+                } else {
+                    return createDirNoLock(dirPath);
+                }
+            }
+
+            bool renameDir(const std::string &oldPath, const std::string &newPath){
+                std::scoped_lock<std::mutex> lock(_fsMutex);
+                if(_createDummyDirs){
+                    return renameDummyDir(oldPath, newPath);
+                }
+                return false;
             }
 
             std::vector<std::string> getEntries(const std::string &dirPath) {
@@ -86,23 +81,6 @@ namespace vk_music_fs {
                 return (*pathO).file()->getRemFile();
             }
 
-            bool createDummyDir(const std::string &path) {
-                std::scoped_lock<std::mutex> lock(_fsMutex);
-                auto pathO = findPath(path, 1);
-                if (isDir(pathO) && isDummyDirParent((*pathO).dir())) {
-                    auto dirName = getLast(path);
-                    auto parentDir = (*pathO).dir();
-                    parentDir->addItem(
-                            std::make_shared<Dir>(
-                                    dirName, Dir::Type::DUMMY_DIR, std::nullopt,
-                                    DirWPtr{parentDir}
-                            )
-                 );
-                    return true;
-                }
-                return false;
-            }
-
             bool deleteDir(const std::string &path) {
                 std::scoped_lock<std::mutex> lock(_fsMutex);
                 auto pathO = findPath(path);
@@ -135,6 +113,38 @@ namespace vk_music_fs {
             }
 
         private:
+            bool createDummyDir(const std::string &path) {
+                auto pathO = findPath(path, 1);
+                if (isDir(pathO) && isDummyDirParent((*pathO).dir())) {
+                    auto dirName = getLast(path);
+                    auto parentDir = (*pathO).dir();
+                    parentDir->addItem(
+                            std::make_shared<Dir>(
+                                    dirName, Dir::Type::DUMMY_DIR, std::nullopt,
+                                    DirWPtr{parentDir}
+                            )
+                    );
+                    return true;
+                }
+                return false;
+            }
+
+            bool renameDummyDir(const std::string &oldPath, const std::string &newPath) {
+                auto oldDirO = findPath(oldPath);
+                auto newDirO = findPath(newPath, 1);
+                if (
+                        isDir(oldDirO) && isDummyDirParent((*oldDirO).dir()->getParent()) &&
+                        (*oldDirO).dir()->getType() == Dir::Type::DUMMY_DIR &&
+                        isDir(newDirO) &&
+                        (*oldDirO).dir()->getParent() == (*newDirO).dir()
+                        ) {
+                    auto oldDir = (*oldDirO).dir();
+                    oldDir->getParent()->removeItem(oldDir->getName());
+                    return createDirNoLock(newPath);
+                }
+                return false;
+            }
+
             bool createDirNoLock(const std::string &dirPath) {
                 auto dirO = findPath(dirPath, 1);
                 if (!isDir(dirO)) {
@@ -210,6 +220,7 @@ namespace vk_music_fs {
                 return curDir;
             }
 
+            bool _createDummyDirs;
             std::mutex _fsMutex;
             std::shared_ptr<Dir> _rootDir;
             SearchDirMaker<TQueryMaker> _searchDirMaker;

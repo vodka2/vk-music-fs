@@ -3,6 +3,7 @@
 #include <common.h>
 #include <fstream>
 #include <mutex>
+#include <boost/nowide/fstream.hpp>
 
 namespace vk_music_fs {
     class Reader {
@@ -12,7 +13,7 @@ namespace vk_music_fs {
         ~Reader();
     private:
         uint_fast32_t _size;
-        std::ifstream _strm;
+        boost::nowide::ifstream _strm;
         bool _isOpened;
         std::string _fname;
         std::mutex _readMutex;

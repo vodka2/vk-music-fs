@@ -51,9 +51,9 @@ uint_fast32_t MusicFile::getSize() {
 
 void MusicFile::open() {
     if(_totalInitialSize == 0) {
-        std::ofstream{_name};
+        boost::nowide::ofstream{_name.c_str()};
     }
-    _fs.open(_name, std::ios::binary | std::ios::in | std::ios::out);
+    _fs.open(_name.c_str(), std::ios::binary | std::ios::in | std::ios::out);
 }
 
 uint_fast32_t MusicFile::getTotalSize() {

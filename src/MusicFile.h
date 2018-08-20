@@ -7,6 +7,7 @@
 #include <mutex>
 #include <atomic>
 #include "RemoteFile.h"
+#include <boost/nowide/fstream.hpp>
 
 namespace vk_music_fs {
     class MusicFile {
@@ -37,7 +38,7 @@ namespace vk_music_fs {
         RemoteFile _remFile;
         std::shared_ptr<FileCache> _cache;
         std::mutex _mutex;
-        std::fstream _fs;
+        boost::nowide::fstream _fs;
         std::atomic_uint_fast32_t _totalInitialSize;
         std::atomic_uint_fast32_t _totalUriSize;
         std::atomic_uint_fast32_t _prepSize;

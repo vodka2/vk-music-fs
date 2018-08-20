@@ -10,7 +10,7 @@ ByteVect Reader::read(uint_fast32_t offset, uint_fast32_t size) {
     std::scoped_lock<std::mutex> _lock(_readMutex);
     if(!_isOpened){
         _isOpened = true;
-        _strm.open(_fname, std::ios::binary | std::ios::in);
+        _strm.open(_fname.c_str(), std::ios::binary | std::ios::in);
     }
     if(offset >= _size){
         return ByteVect{};

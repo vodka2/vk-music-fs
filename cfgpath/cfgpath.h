@@ -33,6 +33,8 @@
 #ifndef CFGPATH_H_
 #define CFGPATH_H_
 
+#include <boost/nowide/convert.hpp>
+
 #ifdef _MSC_VER
 #define inline __inline
 #include <direct.h>
@@ -241,10 +243,12 @@ static inline void get_user_config_folder(char *out, unsigned int maxlen, const 
 		out[0] = 0;
 		return;
 	}
-	if (!SUCCEEDED(SHGetFolderPath(NULL, CSIDL_APPDATA, NULL, 0, out))) {
+    wchar_t temp[maxlen];
+	if (!SUCCEEDED(SHGetFolderPathW(NULL, CSIDL_APPDATA, NULL, 0, temp))) {
 		out[0] = 0;
 		return;
 	}
+    boost::nowide::narrow(out, maxlen, temp);
 	/* We don't try to create the AppData folder as it always exists already */
 	unsigned int appname_len = strlen(appname);
 	if (strlen(out) + 1 + appname_len + 1 + 1 > maxlen) {
@@ -254,7 +258,8 @@ static inline void get_user_config_folder(char *out, unsigned int maxlen, const 
 	strcat(out, "\\");
 	strcat(out, appname);
 	/* Make the AppData\appname folder if it doesn't already exist */
-	mkdir(out);
+    boost::nowide::widen(temp, maxlen, out);
+	CreateDirectoryW(temp, NULL);
 	strcat(out, "\\");
 #elif defined(__APPLE__)
 	FSRef ref;
@@ -443,10 +448,12 @@ static inline void get_user_cache_folder(char *out, unsigned int maxlen, const c
 		out[0] = 0;
 		return;
 	}
-	if (!SUCCEEDED(SHGetFolderPath(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, out))) {
+	wchar_t temp[maxlen];
+	if (!SUCCEEDED(SHGetFolderPathW(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, temp))) {
 		out[0] = 0;
 		return;
 	}
+	boost::nowide::narrow(out, maxlen, temp);
 	/* We don't try to create the AppData folder as it always exists already */
 	unsigned int appname_len = strlen(appname);
 	if (strlen(out) + 1 + appname_len + 1 + 1 > maxlen) {
@@ -456,7 +463,8 @@ static inline void get_user_cache_folder(char *out, unsigned int maxlen, const c
 	strcat(out, "\\");
 	strcat(out, appname);
 	/* Make the AppData\appname folder if it doesn't already exist */
-	mkdir(out);
+    boost::nowide::widen(temp, maxlen, out);
+    CreateDirectoryW(temp, NULL);
 	strcat(out, "\\");
 #elif defined(__APPLE__)
 	/* No distinction under OS X */

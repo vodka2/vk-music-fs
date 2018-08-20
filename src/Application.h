@@ -34,12 +34,8 @@ namespace vk_music_fs {
             return _audioFs->createDir(dirPath);
         }
 
-        bool createDummyDir(const std::string &dirPath){
-            return _audioFs->createDummyDir(dirPath);
-        }
-
-        bool renameDummyDir(const std::string &oldPath, const std::string &newPath){
-            return _audioFs->renameDummyDir(oldPath, newPath);
+        bool renameDir(const std::string &oldPath, const std::string &newPath){
+            return _audioFs->renameDir(oldPath, newPath);
         }
 
         uint_fast32_t getFileSize(const std::string &path){
