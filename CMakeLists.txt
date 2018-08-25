@@ -21,7 +21,7 @@ endif()
 add_subdirectory(src)
 add_subdirectory(tests)
 
-add_executable(vk_music_fs main.cpp)
+add_executable(vk_music_fs main.cpp fuse_wrap.h)
 target_compile_definitions(vk_music_fs PUBLIC -D_FILE_OFFSET_BITS=64)
 
 if(DEFINED MINGW_W64)
