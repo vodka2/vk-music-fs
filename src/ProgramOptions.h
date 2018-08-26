@@ -7,6 +7,9 @@ namespace vk_music_fs {
     class ProgramOptions {
     public:
         ProgramOptions(uint_fast32_t argc, char **argv, const std::string &configName, const std::string &appName);
+
+        virtual ~ProgramOptions();
+
         std::string getUseragent();
         bool needHelp();
         std::string getHelpString();

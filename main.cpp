@@ -61,6 +61,7 @@ int main(int argc, char* argv[]) {
             di::bind<NumSearchFiles>.to(NumSearchFiles{conf->getNumSearchFiles()}),
             di::bind<CreateDummyDirs>.to(CreateDummyDirs{conf->createDummyDirs()}),
             di::bind<NumSizeRetries>.to(NumSizeRetries{conf->getNumSizeRetries()}),
+            di::bind<ProgramOptions>.to(std::shared_ptr<ProgramOptions>{conf}),
             di::bind<di::extension::iextfactory<FileProcessorD,
                     Artist,
                     Title,
@@ -75,8 +76,11 @@ int main(int argc, char* argv[]) {
             >>.to(di::extension::extfactory<Reader>{})
         );
         auto ptr = (void*)inj.create<ApplicationD*>();
-        delete conf;
         return ptr;
+    };
+    operations.destroy = [] (void *data){
+        auto app = reinterpret_cast<ApplicationD*>(data);
+        delete app;
     };
     operations.readdir = [](const char *path, void *buf, fuse_fill_dir_t filler, fuse_off_t offset,
                             struct fuse_file_info *fi){

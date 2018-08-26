@@ -171,3 +171,10 @@ bool ProgramOptions::createDummyDirsDefault() {
 uint_fast32_t ProgramOptions::getNumSizeRetries() {
     return _numSizeRetries;
 }
+
+ProgramOptions::~ProgramOptions() {
+    for(uint_fast32_t i = 1; i < _fuseArgc; i++){
+        free(_fuseArgv[i]);
+    }
+    delete [] _fuseArgv;
+}

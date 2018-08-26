@@ -1,13 +1,17 @@
 #pragma once
 
 #include <common.h>
+#include "ProgramOptions.h"
 
 namespace vk_music_fs {
     template <typename TFileManager, typename TAudioFs>
     class Application {
     public:
-        Application(const std::shared_ptr<TAudioFs> &api, const std::shared_ptr<TFileManager> &fileManager)
-        :_audioFs(api), _fileManager(fileManager){
+        Application(
+                const std::shared_ptr<TAudioFs> &api, const std::shared_ptr<TFileManager> &fileManager,
+                std::shared_ptr<ProgramOptions> options
+        )
+        :_options(options), _audioFs(api), _fileManager(fileManager){
         }
 
         int_fast32_t open(const std::string &filename){
@@ -50,6 +54,7 @@ namespace vk_music_fs {
             return _audioFs->deleteFile(path);
         }
     private:
+        std::shared_ptr<ProgramOptions> _options;
         std::shared_ptr<TAudioFs> _audioFs;
         std::shared_ptr<TFileManager> _fileManager;
     };
