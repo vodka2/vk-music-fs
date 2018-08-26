@@ -5,6 +5,7 @@
 #include <RemoteFile.h>
 #include <lrucache.hpp>
 #include <mutex>
+#include <unordered_set>
 
 namespace vk_music_fs{
     struct TotalPrepSizes{
@@ -31,6 +32,7 @@ namespace vk_music_fs{
         std::shared_ptr<SizeObtainer> _sizeObtainer;
         cache::lru_cache<RemoteFile, uint_fast32_t, RemoteFileHasher> _sizesCache;
         cache::lru_cache<RemoteFile, TotalPrepSizes, RemoteFileHasher> _initialSizesCache;
+        std::unordered_set<RemoteFile, RemoteFileHasher> _openedFiles;
         std::string _cacheDir;
     };
 }

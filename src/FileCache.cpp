@@ -12,15 +12,21 @@ FileCache::FileCache(
         FilesCacheSize filesCacheSize,
         CacheDir cacheDir
 ): _sizeObtainer(sizeObtainer),
-_sizesCache(sizesCacheSize, [](...){}),
-_initialSizesCache(filesCacheSize, [this](auto file){
-    std::remove(constructFilename(file).c_str());
+_sizesCache(sizesCacheSize, [](...) -> bool{return true;}),
+_initialSizesCache(filesCacheSize, [this](auto file) -> bool{
+    if(_openedFiles.find(file) == _openedFiles.end()) {
+        bfs::remove(constructFilename(file));
+        return true;
+    } else {
+        return false;
+    }
 }), _cacheDir(cacheDir.t) {
 
 }
 
 FNameCache FileCache::getFilename(const RemoteFile &file) {
     std::scoped_lock<std::mutex> lock(_initialSizesMutex);
+    _openedFiles.insert(file);
     if(_initialSizesCache.exists(file)){
         if(_initialSizesCache.get(file).totalSize == getFileSize(file)){
             return {constructFilename(file), true};
@@ -52,6 +58,7 @@ uint_fast32_t FileCache::getFileSize(const RemoteFile &file) {
 
 void FileCache::fileClosed(const RemoteFile &file, const TotalPrepSizes &sizes) {
     std::scoped_lock<std::mutex> lock(_initialSizesMutex);
+    _openedFiles.erase(file);
     _initialSizesCache.put(file, sizes);
 }
 

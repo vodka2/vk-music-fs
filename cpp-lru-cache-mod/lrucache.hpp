@@ -26,7 +26,7 @@ namespace cache {
         typedef typename std::pair<key_t, value_t> key_value_pair_t;
         typedef typename std::list<key_value_pair_t>::iterator list_iterator_t;
 
-        lru_cache(size_t max_size, std::function<void(key_t)> del_func) :
+        lru_cache(size_t max_size, std::function<bool(key_t)> del_func) :
                 _del_func(std::move(del_func)),
                 _max_size(max_size) {
         }
@@ -41,11 +41,16 @@ namespace cache {
             _cache_items_map[key] = _cache_items_list.begin();
 
             if (_cache_items_map.size() > _max_size) {
+                uint_fast32_t diff = _cache_items_map.size() - _max_size;
                 auto last = _cache_items_list.end();
-                _del_func(last->first);
-                last--;
-                _cache_items_map.erase(last->first);
-                _cache_items_list.pop_back();
+                for(uint_fast32_t i = 0; i < diff; i++){
+                    last--;
+                    if(_del_func(last->first)) {
+                        _cache_items_map.erase(last->first);
+                        _cache_items_list.pop_back();
+                    }
+                }
+                
             }
         }
 
@@ -75,7 +80,7 @@ namespace cache {
         }
 
     private:
-        std::function<void(key_t)> _del_func;
+        std::function<bool(key_t)> _del_func;
         std::list<key_value_pair_t> _cache_items_list;
         std::unordered_map<key_t, list_iterator_t, hasher_t> _cache_items_map;
         size_t _max_size;
