@@ -23,21 +23,23 @@ std::optional<ByteVect> HttpStream::read() {
         }
         _returnBuffer.resize(size);
         if (_parser.is_done()) {
-            _common->closeStream(_stream);
+            close();
         }
         return _returnBuffer;
     } catch (const boost::system::system_error &ex){
+        close();
         throw HttpException(std::string("Error reading uri ") + _uri + ". " + ex.what());
     }
 }
 
 ByteVect HttpStream::read(uint_fast32_t offset, uint_fast32_t length) {
+    std::shared_ptr<HttpStreamCommon::Stream> stream;
     try {
         if (offset >= _size || _closed) {
             return {};
         }
 
-        auto stream = _common->connect(_hostPath);
+        stream = _common->connect(_hostPath);
         auto maxReadByte = std::min(offset + length - 1, _size - 1);
         auto readSize = maxReadByte + 1 - offset;
         _common->sendPartialGetReq(stream, _hostPath, _userAgent, offset, maxReadByte);
@@ -64,6 +66,7 @@ ByteVect HttpStream::read(uint_fast32_t offset, uint_fast32_t length) {
         _common->closeStream(stream);
         return buf;
     } catch (const boost::system::system_error &ex){
+        _common->closeStream(stream);
         throw HttpException(std::string("Error reading part of uri ") + _uri + ". " + ex.what());
     }
 }
@@ -92,20 +95,17 @@ void HttpStream::open(uint_fast32_t offset, uint_fast32_t totalSize) {
                     " when opening " + _uri + " when reading");
         }
         if(offset == 0){
-            _size = *_parser.content_length();
+            _size = static_cast<uint_fast32_t>(*_parser.content_length());
         }
     } catch (const boost::system::system_error &ex){
+        close();
         throw HttpException(std::string("Error opening uri ")  + _uri + ". " + ex.what());
     }
 }
 
 void HttpStream::close() {
     if(!_closed) {
-        try {
-            _closed = true;
-            _common->closeStream(_stream);
-        } catch (const boost::system::system_error &ex) {
-            throw HttpException(std::string("Error closing stream ") + _uri);
-        }
+        _closed = true;
+        _common->closeStream(_stream);
     }
 }

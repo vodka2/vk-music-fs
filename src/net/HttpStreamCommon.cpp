@@ -76,10 +76,9 @@ std::string HttpStreamCommon::uriEncode(const std::string &str) {
 }
 
 void HttpStreamCommon::closeStream(const std::shared_ptr<HttpStreamCommon::Stream> &stream) {
-    boost::beast::error_code ec;
-    stream->shutdown(ec);
-    if (ec && ec != boost::asio::ssl::error::stream_truncated) {
-        throw boost::system::system_error{ec};
+    if(stream != nullptr) {
+        boost::beast::error_code ec;
+        stream->shutdown(ec);
     }
 }
 

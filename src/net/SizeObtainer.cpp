@@ -14,18 +14,21 @@ namespace ssl = boost::asio::ssl;
 
 Mp3FileSize SizeObtainer::getSize(const std::string &uri, const std::string &artist, const std::string &title) {
     uint_fast32_t size = 0;
+    std::shared_ptr<HttpStreamCommon::Stream> stream;
     for(uint_fast32_t i = 0; ; i++) {
         try {
             auto hostPath = _common->getHostPath(uri);
-            auto stream = _common->connect(hostPath);
+            stream = _common->connect(hostPath);
             _common->sendHeadReq(stream, hostPath, _userAgent);
             http::response_parser<http::empty_body> parser;
             boost::beast::basic_flat_buffer<std::allocator<uint8_t>> readBuffer;
             parser.skip(true);
             read(*stream, readBuffer, parser);
             size = static_cast<uint_fast32_t>(*parser.content_length());
+            _common->closeStream(stream);
             break;
         } catch (const boost::system::system_error &ex) {
+            _common->closeStream(stream);
             if(i == _numSizeRetries){
                 throw net::HttpException(std::string("Error obtaining size of uri ") + uri + ". " + ex.what());
             }
