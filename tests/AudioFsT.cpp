@@ -3,6 +3,7 @@
 #include <boost/di.hpp>
 #include <boost/di/extension/scopes/scoped.hpp>
 #include <fs/AudioFs.h>
+#include <net/HttpException.h>
 
 namespace di = boost::di;
 
@@ -90,6 +91,23 @@ public:
                         )"
                 ));
     }
+
+    void initSongNameQueryVkErr(){
+        ON_CALL(*queryMakerM, makeSearchQuery("SongName", 0, 3)).WillByDefault(testing::Return(
+                R"(
+                        {"error":{"error_code":134, "error_msg":"Some message"}}
+                        )"
+        ));
+    }
+
+    void initSongNameQueryHttpErr(){
+        ON_CALL(*queryMakerM, makeSearchQuery("SongName", 0, 3)).WillByDefault(testing::Invoke(
+                [] (...) -> std::string{
+                    throw vk_music_fs::net::HttpException("Test error");
+                })
+        );
+    }
+
     void initSmallerSongNameQuery(){
         ON_CALL(*queryMakerM, makeSearchQuery("SongName", 0, 2)).WillByDefault(testing::Return(
                 R"(
@@ -162,6 +180,26 @@ TEST_F(AudioFsT, GetType){ //NOLINT
     EXPECT_EQ(api->getMeta("/Search/SongName").type, FileOrDirMeta::Type::DIR_ENTRY);
     EXPECT_EQ(api->getMeta("/Search/SongName/Artist2 - Song2.mp3").type, FileOrDirMeta::Type::FILE_ENTRY);
     EXPECT_EQ(api->getMeta("/Search/song").type, FileOrDirMeta::Type::NOT_EXISTS);
+}
+
+TEST_F(AudioFsT, CreateDirVkErr){ //NOLINT
+    auto api = inj.create<std::shared_ptr<AudioFs>>();
+    initSongNameQueryVkErr();
+    try {
+        api->createDir("/Search/SongName");
+        FAIL();
+    } catch (const vk_music_fs::fs::FsException &ex){
+    }
+}
+
+TEST_F(AudioFsT, CreateDirHttpErr){ //NOLINT
+    auto api = inj.create<std::shared_ptr<AudioFs>>();
+    initSongNameQueryHttpErr();
+    try {
+        api->createDir("/Search/SongName");
+        FAIL();
+    } catch (const vk_music_fs::fs::FsException &ex){
+    }
 }
 
 TEST_F(AudioFsT, CreateDummyDir){ //NOLINT

@@ -122,8 +122,12 @@ int main(int argc, char* argv[]) {
         }
     };
     operations.rename = [](const char *oldPath, const char *newPath){
-        auto app = reinterpret_cast<ApplicationD*>(fuse_get_context()->private_data);
-        app->renameDir(oldPath, newPath);
+        try {
+            auto app = reinterpret_cast<ApplicationD *>(fuse_get_context()->private_data);
+            app->renameDir(oldPath, newPath);
+        } catch (...){
+            return -EACCES;
+        }
         return 0;
     };
     operations.read = [](const char *path, char *buf, size_t size, fuse_off_t off, struct fuse_file_info *fi) {
@@ -145,9 +149,13 @@ int main(int argc, char* argv[]) {
         return 0;
     };
     operations.mkdir = [](const char *path, fuse_mode_t){
-        auto app = reinterpret_cast<ApplicationD*>(fuse_get_context()->private_data);
-        app->createDir(path);
-        return 0;
+        try {
+            auto app = reinterpret_cast<ApplicationD *>(fuse_get_context()->private_data);
+            app->createDir(path);
+            return 0;
+        } catch (...){
+            return -EACCES;
+        }
     };
     operations.rmdir = [](const char *path){
         auto app = reinterpret_cast<ApplicationD*>(fuse_get_context()->private_data);

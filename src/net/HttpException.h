@@ -1,12 +1,12 @@
 #pragma once
 
-#include <stdexcept>
+#include "MusicFsException.h"
 
 namespace vk_music_fs {
     namespace net {
-        class HttpException : public std::runtime_error {
+        class HttpException : public MusicFsException {
         public:
-            explicit HttpException(std::string str);
+            explicit HttpException(const std::string &arg);
         };
     }
 }

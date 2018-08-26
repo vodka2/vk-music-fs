@@ -1,10 +1,10 @@
 #pragma once
 
-#include <stdexcept>
+#include "MusicFsException.h"
 
 namespace vk_music_fs {
-    class RemoteException : public std::runtime_error{
+    class RemoteException : public MusicFsException{
     public:
-        explicit RemoteException(std::string str);
+        explicit RemoteException(const std::string &arg);
     };
 }

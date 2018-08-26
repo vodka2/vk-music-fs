@@ -7,10 +7,12 @@
 #include <variant>
 #include <RemoteFile.h>
 #include <mutex>
+#include <net/HttpException.h>
 #include "Dir.h"
 #include "File.h"
 #include "DirOrFile.h"
 #include "SearchDirMaker.h"
+#include "FsException.h"
 
 namespace vk_music_fs {
     namespace fs {
@@ -153,14 +155,26 @@ namespace vk_music_fs {
                 auto dirName = getLast(dirPath);
                 auto type = (*dirO).dir()->getType();
                 if (type == Dir::Type::ROOT_SEARCH_DIR) {
-                    auto parentDir = (*dirO).dir();
-                    return _searchDirMaker.createSearchDirInRoot(parentDir, dirName);
+                    try {
+                        auto parentDir = (*dirO).dir();
+                        return _searchDirMaker.createSearchDirInRoot(parentDir, dirName);
+                    } catch (const MusicFsException &ex){
+                        throw FsException("Error creating search directory "+ dirName + " in root. " + ex.what());
+                    }
                 } else if (type == Dir::Type::SEARCH_DIR) {
-                    auto parentDir = (*dirO).dir();
-                    return _searchDirMaker.createSearchDir(parentDir, dirName);
+                    try{
+                        auto parentDir = (*dirO).dir();
+                        return _searchDirMaker.createSearchDir(parentDir, dirName);
+                    } catch (const MusicFsException &ex){
+                        throw FsException("Error creating search directory "+ dirName + ". " + ex.what());
+                    }
                 } else if(type == Dir::Type::ROOT_MY_AUDIOS_DIR){
-                    auto parentDir = (*dirO).dir();
-                    return _searchDirMaker.createMyAudiosDir(parentDir, dirName);
+                    try {
+                        auto parentDir = (*dirO).dir();
+                        return _searchDirMaker.createMyAudiosDir(parentDir, dirName);
+                    } catch (const MusicFsException &ex){
+                        throw FsException("Error creating my audios directory "+ dirName + ". " + ex.what());
+                    }
                 }
                 return false;
             }
