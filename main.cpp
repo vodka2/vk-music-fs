@@ -60,6 +60,7 @@ int main(int argc, char* argv[]) {
             di::bind<Mp3Extension>.to(Mp3Extension{conf->getMp3Extension()}),
             di::bind<NumSearchFiles>.to(NumSearchFiles{conf->getNumSearchFiles()}),
             di::bind<CreateDummyDirs>.to(CreateDummyDirs{conf->createDummyDirs()}),
+            di::bind<NumSizeRetries>.to(NumSizeRetries{conf->getNumSizeRetries()}),
             di::bind<di::extension::iextfactory<FileProcessorD,
                     Artist,
                     Title,
@@ -88,30 +89,32 @@ int main(int argc, char* argv[]) {
     operations.getattr = [](const char *path, struct fuse_stat *stbuf){
         auto app = reinterpret_cast<ApplicationD*>(fuse_get_context()->private_data);
         std::fill(reinterpret_cast<uint8_t*>(stbuf), reinterpret_cast<uint8_t*>(stbuf) + sizeof(struct stat), 0);
-        auto meta = app->getMeta(path);
-        stbuf->st_nlink = 1;
-        stbuf->st_mtim.tv_sec = curTime + meta.time;
-        stbuf->st_ctim.tv_sec = curTime + meta.time;
-        stbuf->st_atim.tv_sec = curTime + meta.time;
-        if (meta.type == FileOrDirMeta::Type::DIR_ENTRY) {
-            stbuf->st_mode = S_IFDIR | 0777u;
-            return 0;
-        } else if(meta.type == FileOrDirMeta::Type::FILE_ENTRY){
-            stbuf->st_mode = S_IFREG | 0777u;
-            stbuf->st_size = app->getFileSize(path);
-            return 0;
+        try {
+            auto meta = app->getMeta(path);
+            stbuf->st_nlink = 1;
+            stbuf->st_mtim.tv_sec = curTime + meta.time;
+            stbuf->st_ctim.tv_sec = curTime + meta.time;
+            stbuf->st_atim.tv_sec = curTime + meta.time;
+            if (meta.type == FileOrDirMeta::Type::DIR_ENTRY) {
+                stbuf->st_mode = S_IFDIR | 0777u;
+                return 0;
+            } else if (meta.type == FileOrDirMeta::Type::FILE_ENTRY) {
+                stbuf->st_mode = S_IFREG | 0777u;
+                stbuf->st_size = app->getFileSize(path);
+                return 0;
+            }
+        } catch (...){
+            return -EACCES;
         }
         return -ENOENT;
     };
     operations.open = [](const char *path, fuse_file_info *fi) {
-        auto fname = std::string(path).substr(1);
-        auto app = reinterpret_cast<ApplicationD*>(fuse_get_context()->private_data);
-        auto ret = app->open(fname);
-        if(ret > 0) {
-            fi->fh = static_cast<unsigned>(ret);
+        try {
+            auto app = reinterpret_cast<ApplicationD *>(fuse_get_context()->private_data);
+            fi->fh = static_cast<unsigned>(app->open(path));
             return 0;
-        } else {
-            return (int)ret;
+        } catch (...){
+            return -EACCES;
         }
     };
     operations.rename = [](const char *oldPath, const char *newPath){

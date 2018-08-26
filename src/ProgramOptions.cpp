@@ -30,6 +30,8 @@ ProgramOptions::ProgramOptions(uint_fast32_t argc, char **argv, const std::strin
                     "set initial number of files in the search directory")
             ("cache_dir", po::value<std::string>()->default_value(getUserCacheDir(appName)), "set cache dir")
             ("create_dummy_dirs", po::value<bool>()->default_value(createDummyDirsDefault()), "create dummy dirs")
+            ("num_size_retries", po::value<uint_fast32_t>()->default_value(3),
+                    "set max number of HEAD request when retrieving size")
     ;
 
     po::variables_map vm;
@@ -133,6 +135,7 @@ void ProgramOptions::parseOptions(boost::program_options::variables_map &vm) {
     _numSearchFiles = vm["num_search_files"].as<uint_fast32_t>();
     _cacheDir = vm["cache_dir"].as<std::string>();
     _createDummyDirs = vm["create_dummy_dirs"].as<bool>();
+    _numSizeRetries = vm["num_size_retries"].as<uint_fast32_t>();
 }
 
 std::string ProgramOptions::getCacheDir() {
@@ -163,4 +166,8 @@ bool ProgramOptions::createDummyDirsDefault() {
             false
 #endif
     ;
+}
+
+uint_fast32_t ProgramOptions::getNumSizeRetries() {
+    return _numSizeRetries;
 }

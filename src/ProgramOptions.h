@@ -17,6 +17,7 @@ namespace vk_music_fs {
         uint_fast32_t getFilesCacheSize();
         uint_fast32_t getSizesCacheSize();
         uint_fast32_t getNumSearchFiles();
+        uint_fast32_t getNumSizeRetries();
 
         char **getFuseArgv();
         uint_fast32_t getFuseArgc();
@@ -37,5 +38,6 @@ namespace vk_music_fs {
         uint_fast32_t _filesCacheSize;
         uint_fast32_t _sizesCacheSize;
         uint_fast32_t _numSearchFiles;
+        uint_fast32_t _numSizeRetries;
     };
 }
