@@ -10,6 +10,7 @@
 #include <ext_factory.hpp>
 #include "RemoteFile.h"
 #include "IFileManager.h"
+#include "net/HttpException.h"
 #include <mutex>
 
 namespace vk_music_fs {
@@ -40,86 +41,77 @@ namespace vk_music_fs {
 
         int_fast32_t open(const std::string &filename) override{
             namespace di = boost::di;
-            RemoteFile remFile = _audioFs->getRemoteFile(filename);
-            std::scoped_lock<std::mutex> procsLock(_procsMutex);
             std::scoped_lock<std::mutex> readersLock(_readersMutex);
+            std::scoped_lock<std::mutex> procsLock(_procsMutex);
             uint_fast32_t retId = _idToRemFile.size() + 1;
-            _idToRemFile.insert(std::make_pair<>(retId, remFile));
-            if(_procs.find(remFile) != _procs.end()){
-                _procs[remFile].ids.insert(retId);
-                _readers[remFile].ids.insert(std::make_pair<>(retId, _procs[remFile].proc));
-            } else {
-                auto fname = _fileCache->getFilename(remFile);
-                if(fname.inCache){
-                    std::shared_ptr<TReader> reader = _readersFact->createShared(
-                            CachedFilename{fname.data}, FileSize{_fileCache->getFileSize(remFile)}
-                    );
-                    _readers[remFile].ids.insert(std::make_pair<>(retId, reader));
-                } else {
-                    _procs[remFile].proc = _procsFact->createShared(
-                            Artist{remFile.getArtist()},
-                            Title{remFile.getTitle()},
-                            Mp3Uri{remFile.getUri()},
-                            TagSize{_fileCache->getTagSize(remFile)},
-                            RemoteFile(remFile),
-                            CachedFilename{fname.data}
-                    );
-                    _readers[remFile].ids.insert(std::make_pair<>(retId, _procs[remFile].proc));
+            try{
+                RemoteFile remFile = _audioFs->getRemoteFile(filename);
+                _idToRemFile.insert(std::make_pair<>(retId, remFile));
+                if(_procs.find(remFile) != _procs.end()){
                     _procs[remFile].ids.insert(retId);
+                    _readers[remFile].ids.insert(std::make_pair<>(retId, _procs[remFile].proc));
+                } else {
+                    auto fname = _fileCache->getFilename(remFile);
+                    if(fname.inCache){
+                        std::shared_ptr<TReader> reader = _readersFact->createShared(
+                                CachedFilename{fname.data}, FileSize{_fileCache->getFileSize(remFile)}
+                        );
+                        _readers[remFile].ids.insert(std::make_pair<>(retId, reader));
+                    } else {
+                        _procs[remFile].proc = _procsFact->createShared(
+                                Artist{remFile.getArtist()},
+                                Title{remFile.getTitle()},
+                                Mp3Uri{remFile.getUri()},
+                                TagSize{_fileCache->getTagSize(remFile)},
+                                RemoteFile(remFile),
+                                CachedFilename{fname.data}
+                        );
+                        _readers[remFile].ids.insert(std::make_pair<>(retId, _procs[remFile].proc));
+                        _procs[remFile].ids.insert(retId);
+                    }
+                    _readers[remFile].fname = fname.data;
                 }
-                _readers[remFile].fname = fname.data;
+            } catch (const net::HttpException &ex){
+                closeNoLock(retId);
+                throw RemoteException("Error opening file " + filename + ". " + ex.what());
             }
             return retId;
         }
         ByteVect read(uint_fast32_t id, uint_fast32_t offset, uint_fast32_t size) override{
             ByteVect ret;
-            _readersMutex.lock();
+            std::scoped_lock<std::mutex> readersLock(_readersMutex);
             if(_idToRemFile.find(id) != _idToRemFile.end()) {
                 try {
-                    std::variant < std::shared_ptr<TReader>, std::shared_ptr<TFileProcessor>>
-                    reader;
-                    reader = _readers[_idToRemFile.find(id)->second].ids.find(id)->second;
+                    auto reader = _readers[_idToRemFile.find(id)->second].ids.find(id)->second;
                     std::visit([id, offset, size, &ret](auto &&el) {
                         ret = std::move(el->read(offset, size));
                     }, reader);
                     _readersMutex.unlock();
                     return std::move(ret);
+                } catch (const net::HttpException &ex){
+                    auto fname = _readers[_idToRemFile.find(id)->second].fname;
+                    closeNoLock(id);
+                    throw RemoteException("Error reading from " + fname + ". " + ex.what());
                 } catch (const RemoteException &ex){
-                    _readersMutex.unlock();
-                    close(id);
-                    throw;
-                } catch (...){
-                    _readersMutex.unlock();
+                    closeNoLock(id);
                     throw;
                 }
             }
-            _readersMutex.unlock();
             return {};
         }
         void close(uint_fast32_t id) override{
-            std::scoped_lock<std::mutex> procsLock(_procsMutex);
             std::scoped_lock<std::mutex> readersLock(_readersMutex);
-            if(_idToRemFile.find(id) != _idToRemFile.end()) {
-                auto remFile = _idToRemFile.find(id)->second;
-                if (_procs.find(remFile) != _procs.end()) {
-                    _procs[remFile].ids.erase(id);
-                    if (_procs[remFile].ids.size() == 0) {
-                        _procs[remFile].proc->close();
-                        _procs.erase(remFile);
-                    }
-                }
-                if (_readers.find(remFile) != _readers.end()) {
-                    _readers[remFile].ids.erase(id);
-                    if (_readers[remFile].ids.size() == 0) {
-                        _readers.erase(remFile);
-                    }
-                }
-                _idToRemFile.erase(id);
-            }
+            std::scoped_lock<std::mutex> procsLock(_procsMutex);
+            closeNoLock(id);
         }
+
         uint_fast32_t getFileSize(const std::string &filename) override{
             RemoteFile remFile = _audioFs->getRemoteFile(filename);
-            return _fileCache->getFileSize(remFile);
+            try {
+                return _fileCache->getFileSize(remFile);
+            } catch (const net::HttpException &ex){
+                throw RemoteException("Error getting file size " + filename + ". " + ex.what());
+            }
         }
     private:
         std::shared_ptr<TAudioFs> _audioFs;
@@ -139,6 +131,26 @@ namespace vk_music_fs {
                 CachedFilename,
                 FileSize
         >> _readersFact;
+
+        void closeNoLock(uint_fast32_t id){
+            if(_idToRemFile.find(id) != _idToRemFile.end()) {
+                auto remFile = _idToRemFile.find(id)->second;
+                if (_procs.find(remFile) != _procs.end()) {
+                    _procs[remFile].ids.erase(id);
+                    if (_procs[remFile].ids.size() == 0) {
+                        _procs[remFile].proc->close();
+                        _procs.erase(remFile);
+                    }
+                }
+                if (_readers.find(remFile) != _readers.end()) {
+                    _readers[remFile].ids.erase(id);
+                    if (_readers[remFile].ids.size() == 0) {
+                        _readers.erase(remFile);
+                    }
+                }
+                _idToRemFile.erase(id);
+            }
+        }
 
         struct ProcMapEntry{
             std::shared_ptr<TFileProcessor> proc;

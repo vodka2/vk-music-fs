@@ -43,6 +43,7 @@ namespace vk_music_fs{
     BOOST_STRONG_TYPEDEF(bool, CreateDummyDirs); //NOLINT
     BOOST_STRONG_TYPEDEF(uint_fast32_t, VkUserId); //NOLINT
     BOOST_STRONG_TYPEDEF(uint_fast32_t, FilesCacheSize); //NOLINT
+    BOOST_STRONG_TYPEDEF(uint_fast32_t, NumSizeRetries); //NOLINT
     template <typename T>
     class InjPtr: public std::shared_ptr<T>{
     public:

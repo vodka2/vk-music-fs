@@ -189,3 +189,58 @@ TEST_F(FileManagerT, GetSizes){ //NOLINT
     EXPECT_CALL(*inj.create<std::shared_ptr<FileCacheM>>(), getFileSize(rf)).WillOnce(testing::Return(1000));
     EXPECT_EQ(t->getFileSize(file), 1000);
 }
+
+TEST_F(FileManagerT, GetSizesExc){ //NOLINT
+    auto t = inj.create<std::shared_ptr<FileManager>>();
+    EXPECT_CALL(*inj.create<std::shared_ptr<AudioFsM>>(), getRemoteFile(file)).WillRepeatedly(testing::Return(rf));
+    EXPECT_CALL(*inj.create<std::shared_ptr<FileCacheM>>(), getFileSize(rf)).WillOnce(testing::Invoke(
+            [](...) -> uint_fast32_t {
+                throw vk_music_fs::net::HttpException("Test error");
+            }
+    )).WillOnce(testing::Return(500));
+    try{
+        t->getFileSize(file);
+        FAIL();
+    } catch (const vk_music_fs::RemoteException &ex){
+    }
+    EXPECT_EQ(t->getFileSize(file), 500);
+}
+
+TEST_F(FileManagerT, OpenFileExc){ //NOLINT
+    createReaders();
+    auto t = inj.create<std::shared_ptr<FileManager>>();
+    EXPECT_CALL(*inj.create<std::shared_ptr<AudioFsM>>(), getRemoteFile(file)).WillRepeatedly(testing::Return(rf));
+    EXPECT_CALL(*inj.create<std::shared_ptr<FileCacheM>>(), getFilename(rf))
+            .WillRepeatedly(testing::Invoke([] (...) -> FNameCache {
+                throw vk_music_fs::net::HttpException("Test error");
+            }));
+    try {
+        t->close(static_cast<uint_fast32_t>(t->open(file)));
+        FAIL();
+    } catch (const vk_music_fs::RemoteException &ex){
+    }
+    try {
+        t->close(static_cast<uint_fast32_t>(t->open(file)));
+        FAIL();
+    } catch (const vk_music_fs::RemoteException &ex){
+    }
+}
+
+TEST_F(FileManagerT, OpenFileNoCacheReadExc){ //NOLINT
+    createProcs();
+    auto t = inj.create<std::shared_ptr<FileManager>>();
+    EXPECT_CALL(*inj.create<std::shared_ptr<AudioFsM>>(), getRemoteFile(file)).WillOnce(testing::Return(rf));
+    EXPECT_CALL(*inj.create<std::shared_ptr<FileCacheM>>(), getFilename(rf))
+            .WillOnce(testing::Return(FNameCache{cachedFile, false}));
+    EXPECT_CALL(*inj.create<std::shared_ptr<FileProcessorM>>(), read(10, 200)).WillOnce(testing::Invoke(
+            [] (...) -> ByteVect{
+                throw vk_music_fs::net::HttpException("Test error");
+            }));
+    EXPECT_CALL(*inj.create<std::shared_ptr<FileProcessorM>>(), close());
+    auto id = static_cast<uint_fast32_t>(t->open(file));
+    try{
+        t->read(id, 10, 200);
+        FAIL();
+    } catch (const vk_music_fs::RemoteException &ex) {
+    }
+}
