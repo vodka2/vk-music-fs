@@ -9,14 +9,13 @@
 #include <variant>
 #include <ext_factory.hpp>
 #include "RemoteFile.h"
-#include "IFileManager.h"
 #include "net/HttpException.h"
 #include <mutex>
 
 namespace vk_music_fs {
 
     template <typename TAudioFs, typename TFileCache, typename TFileProcessor, typename TReader>
-    class FileManager: public IFileManager {
+    class FileManager{
     public:
         FileManager(
                 const std::shared_ptr<TAudioFs> &audioFs,
@@ -39,7 +38,7 @@ namespace vk_music_fs {
         _procsFact(procsFact), _readersFact(readersFact){
         }
 
-        int_fast32_t open(const std::string &filename) override{
+        int_fast32_t open(const std::string &filename){
             namespace di = boost::di;
             std::scoped_lock<std::mutex> readersLock(_readersMutex);
             std::scoped_lock<std::mutex> procsLock(_procsMutex);
@@ -77,7 +76,7 @@ namespace vk_music_fs {
             }
             return retId;
         }
-        ByteVect read(uint_fast32_t id, uint_fast32_t offset, uint_fast32_t size) override{
+        ByteVect read(uint_fast32_t id, uint_fast32_t offset, uint_fast32_t size){
             ByteVect ret;
             std::scoped_lock<std::mutex> readersLock(_readersMutex);
             if(_idToRemFile.find(id) != _idToRemFile.end()) {
@@ -99,13 +98,13 @@ namespace vk_music_fs {
             }
             return {};
         }
-        void close(uint_fast32_t id) override{
+        void close(uint_fast32_t id){
             std::scoped_lock<std::mutex> readersLock(_readersMutex);
             std::scoped_lock<std::mutex> procsLock(_procsMutex);
             closeNoLock(id);
         }
 
-        uint_fast32_t getFileSize(const std::string &filename) override{
+        uint_fast32_t getFileSize(const std::string &filename){
             RemoteFile remFile = _audioFs->getRemoteFile(filename);
             try {
                 return _fileCache->getFileSize(remFile);
