@@ -7,7 +7,7 @@ namespace bfs = boost::filesystem;
 using namespace vk_music_fs;
 
 FileCache::FileCache(
-        const std::shared_ptr<SizeObtainer> &sizeObtainer,
+        const std::shared_ptr<net::SizeObtainer> &sizeObtainer,
         SizesCacheSize sizesCacheSize,
         FilesCacheSize filesCacheSize,
         CacheDir cacheDir

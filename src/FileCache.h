@@ -1,6 +1,6 @@
 #pragma once
 
-#include <SizeObtainer.h>
+#include "net/SizeObtainer.h"
 #include <common.h>
 #include <RemoteFile.h>
 #include <lrucache.hpp>
@@ -15,7 +15,7 @@ namespace vk_music_fs{
     class FileCache {
     public:
         FileCache(
-                const std::shared_ptr<SizeObtainer> &sizeObtainer,
+                const std::shared_ptr<net::SizeObtainer> &sizeObtainer,
                 SizesCacheSize sizesCacheSize,
                 FilesCacheSize filesCacheSize,
                 CacheDir cacheDir
@@ -29,7 +29,7 @@ namespace vk_music_fs{
         std::string constructFilename(const RemoteFile &file);
         std::mutex _initialSizesMutex;
         std::mutex _sizesMutex;
-        std::shared_ptr<SizeObtainer> _sizeObtainer;
+        std::shared_ptr<net::SizeObtainer> _sizeObtainer;
         cache::lru_cache<RemoteFile, uint_fast32_t, RemoteFileHasher> _sizesCache;
         cache::lru_cache<RemoteFile, TotalPrepSizes, RemoteFileHasher> _initialSizesCache;
         std::unordered_set<RemoteFile, RemoteFileHasher> _openedFiles;

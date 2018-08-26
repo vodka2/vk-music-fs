@@ -6,6 +6,8 @@
 #include "HttpException.h"
 
 using namespace vk_music_fs;
+using namespace net;
+
 using tcp = boost::asio::ip::tcp;
 namespace http = boost::beast::http;
 namespace ssl = boost::asio::ssl;

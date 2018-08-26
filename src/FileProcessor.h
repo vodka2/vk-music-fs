@@ -7,7 +7,7 @@
 #include <optional>
 #include <common.h>
 #include <BlockingBuffer.h>
-#include "HttpException.h"
+#include "net/HttpException.h"
 #include "RemoteException.h"
 
 namespace vk_music_fs {
@@ -67,7 +67,7 @@ namespace vk_music_fs {
                                         while (!addToBuffer(_stream->read())) {
                                             std::this_thread::sleep_for(std::chrono::milliseconds(30));
                                         }
-                                    } catch (const HttpException &ex) {
+                                    } catch (const net::HttpException &ex) {
                                         _buffer->setEOF();
                                         _bufferAppendPromise->set_exception(std::current_exception());
                                     }
@@ -82,7 +82,7 @@ namespace vk_music_fs {
                             } else {
                                 _prependSize = _file->getPrependSize();
                             }
-                        } catch (const HttpException &ex) {
+                        } catch (const net::HttpException &ex) {
                             _openedPromise->set_exception(std::current_exception());
                             throw;
                         }
@@ -101,7 +101,7 @@ namespace vk_music_fs {
                             _file->write(std::move(*buf));
                         }
                         _threadPromise->set_value();
-                    } catch (const HttpException &ex){
+                    } catch (const net::HttpException &ex){
                         _error = true;
                         _threadPromise->set_exception(std::current_exception());
                     }
@@ -126,7 +126,7 @@ namespace vk_music_fs {
                         return _stream->read(start - _prependSize, size);
                     }
                 }
-            } catch (const HttpException &ex){
+            } catch (const net::HttpException &ex){
                 _stream->close();
                 close();
                 throw RemoteException(std::string("Error reading remote file. ") + ex.what());
@@ -145,7 +145,7 @@ namespace vk_music_fs {
             if (_opened) {
                 try {
                     _threadFinishedFuture.get();
-                } catch (const HttpException &ex){
+                } catch (const net::HttpException &ex){
                 }
             }
         }

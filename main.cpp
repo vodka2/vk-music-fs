@@ -1,4 +1,4 @@
-#include <HttpStream.h>
+#include <net/HttpStream.h>
 #include <FileProcessor.h>
 #include <boost/di/extension/scopes/scoped.hpp>
 #include <Mp3Parser.h>
@@ -9,9 +9,9 @@
 #include <Reader.h>
 #include <Application.h>
 #include <fs/AudioFs.h>
-#include <SizeObtainer.h>
+#include <net/SizeObtainer.h>
 #include <RemoteFile.h>
-#include <VkApiQueryMaker.h>
+#include <net/VkApiQueryMaker.h>
 #include <ProgramOptions.h>
 #include <boost/nowide/iostream.hpp>
 #include <boost/nowide/args.hpp>
@@ -23,8 +23,8 @@ using namespace vk_music_fs;
 
 fuse_operations operations = {};
 
-typedef FileProcessor<HttpStream, MusicFile, Mp3Parser, ThreadPool> FileProcessorD;
-typedef AudioFs<VkApiQueryMaker> AudioFsD;
+typedef FileProcessor<net::HttpStream, MusicFile, Mp3Parser, ThreadPool> FileProcessorD;
+typedef AudioFs<net::VkApiQueryMaker> AudioFsD;
 typedef FileManager<AudioFsD, FileCache, FileProcessorD, Reader> FileManagerD;
 typedef Application<FileManagerD, AudioFsD> ApplicationD;
 
@@ -40,18 +40,18 @@ int main(int argc, char* argv[]) {
         auto conf = reinterpret_cast<ProgramOptions*>(fuse_get_context()->private_data);
 
         static auto inj = di::make_injector(
-            di::bind<HttpStream>.in(di::unique),
+            di::bind<net::HttpStream>.in(di::unique),
             di::bind<MusicFile>.in(di::unique),
             di::bind<Mp3Parser>.in(di::unique),
             di::bind<FileProcessorD>.in(di::unique),
             di::bind<Reader>.in(di::unique),
-            di::bind<SizeObtainer>.in(di::extension::scoped),
-            di::bind<HttpStreamCommon>.in(di::extension::scoped),
+            di::bind<net::SizeObtainer>.in(di::extension::scoped),
+            di::bind<net::HttpStreamCommon>.in(di::extension::scoped),
             di::bind<ThreadPool>.in(di::extension::scoped),
             di::bind<FileCache>.in(di::extension::scoped),
             di::bind<AudioFsD>.in(di::extension::scoped),
             di::bind<FileManagerD>.in(di::extension::scoped),
-            di::bind<VkApiQueryMaker>.in(di::extension::scoped),
+            di::bind<net::VkApiQueryMaker>.in(di::extension::scoped),
             di::bind<SizesCacheSize>.to(SizesCacheSize{conf->getSizesCacheSize()}),
             di::bind<FilesCacheSize>.to(FilesCacheSize{conf->getFilesCacheSize()}),
             di::bind<UserAgent>.to(UserAgent{conf->getUseragent()}),
