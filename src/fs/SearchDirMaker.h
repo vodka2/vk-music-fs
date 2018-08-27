@@ -47,10 +47,10 @@ namespace vk_music_fs {
                     if(queryParams.type == QueryParams::Type::TWO_NUMBERS){
                         parentDir->getOffsetCntName().setCnt(cnt);
                         parentDir->getOffsetCntName().setOffset(offset);
-                        parentDir->clearContents();
+                        parentDir->clearContentsExceptNested();
                     } else {
                         if(needClear){
-                            parentDir->clearContents();
+                            parentDir->clearContentsExceptNested();
                         }
                         parentDir->getOffsetCntName().setCnt(queryParams.first);
                     }
