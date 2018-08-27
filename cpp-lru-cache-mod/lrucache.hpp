@@ -79,6 +79,10 @@ namespace cache {
             _del_func(key);
         }
 
+        auto& getList(){
+            return _cache_items_list;
+        }
+
     private:
         std::function<bool(key_t)> _del_func;
         std::list<key_value_pair_t> _cache_items_list;

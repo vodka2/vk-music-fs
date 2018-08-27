@@ -34,6 +34,8 @@ namespace vk_music_fs {
     public:
         friend class RemoteFileIdHasher;
         explicit RemoteFileId(const RemoteFile &file);
+        RemoteFileId(int_fast32_t ownerId, uint_fast32_t fileId) : _ownerId(ownerId), _fileId(fileId){}
+
         int_fast32_t getOwnerId() const;
         uint_fast32_t getFileId() const;
         bool operator ==(const RemoteFileId &other) const{

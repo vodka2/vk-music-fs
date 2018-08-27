@@ -20,12 +20,20 @@ namespace vk_music_fs{
                 FilesCacheSize filesCacheSize,
                 CacheDir cacheDir
         );
+        ~FileCache();
         FNameCache getFilename(const RemoteFile &file);
         uint_fast32_t getTagSize(const RemoteFile &file);
         uint_fast32_t getFileSize(const RemoteFile &file);
         TotalPrepSizes getInitialSize(const RemoteFileId &file);
         void fileClosed(const RemoteFile &file, const TotalPrepSizes &sizes);
     private:
+        constexpr static std::string_view SIZES_CACHE_FNAME = "head_cache.json";
+        constexpr static std::string_view INITIAL_SIZES_CACHE_FNAME = "files_cache.json";
+        std::string idToStr(const RemoteFileId &file);
+        void loadSizesFromFile();
+        void saveSizesToFile();
+        void loadInitialSizesFromFile();
+        void saveInitialSizesToFile();
         std::string constructFilename(const RemoteFileId &file);
         std::mutex _initialSizesMutex;
         std::mutex _sizesMutex;
