@@ -1,0 +1,23 @@
+#include <gtest/gtest.h>
+#include <gmock/gmock.h>
+#include <fs/FileName.h>
+
+using vk_music_fs::fs::FileName;
+
+class FileNameT: public ::testing::Test {
+public:
+};
+
+TEST_F(FileNameT, Simple){ //NOLINT
+    FileName fname("Artist", "Title", ".mp3");
+    EXPECT_EQ(fname.getFilename(), "Artist - Title.mp3");
+}
+
+TEST_F(FileNameT, IncreaseNumbers){ //NOLINT
+    FileName fname("Artist", "Title", ".mp3");
+    fname.increaseNumberSuffix();
+    EXPECT_EQ(fname.getFilename(), "Artist - Title_2.mp3");
+    fname.increaseNumberSuffix();
+    fname.increaseNumberSuffix();
+    EXPECT_EQ(fname.getFilename(), "Artist - Title_4.mp3");
+}

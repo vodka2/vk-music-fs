@@ -9,6 +9,7 @@
 #include "OffsetCnt.h"
 #include "File.h"
 #include "VkException.h"
+#include "FileName.h"
 #include <boost/algorithm/string.hpp>
 #include <boost/range/algorithm_ext/erase.hpp>
 #include <algorithm>
@@ -157,16 +158,13 @@ namespace vk_music_fs {
             ) {
                 auto resp = returnedJson["response"];
                 for (const auto &item: resp["items"]) {
-                    auto initialFileName = genFileName(item["artist"], item["title"]);
-                    auto fileName = initialFileName + _ext;
-                    uint_fast32_t i = 2;
-                    while (curDir->hasItem("fileName")) {
-                        fileName = initialFileName + "_" + std::to_string(i) + _ext;
-                        i++;
+                    FileName fname(item["artist"], item["title"], _ext);
+                    while (curDir->hasItem(fname.getFilename())) {
+                        fname.increaseNumberSuffix();
                     }
                     curDir->addItem(
                             std::make_shared<File>(
-                                    fileName,
+                                    fname.getFilename(),
                                     File::Type::MUSIC_FILE,
                                     RemoteFile{item["url"], item["owner_id"],
                                                item["id"], item["artist"], item["title"]},
@@ -242,18 +240,6 @@ namespace vk_music_fs {
                 return std::move(res);
             }
 
-            std::string genFileName(const std::string &artist, const std::string &title) {
-                return escapeName(artist + " - " + title);
-            }
-
-            std::string escapeName(std::string str) {
-                boost::remove_erase_if(str, [](auto ch0) {
-                    unsigned char ch = ch0;
-                    return ch <= 31 || std::string("<>:/\\|?*").find(ch) != std::string::npos;
-                });
-                std::replace(str.begin(), str.end(), '"', '\'');
-                return str;
-            }
             std::string _ext;
             std::shared_ptr<TQueryMaker> _queryMaker;
             uint_fast32_t _numSearchFiles;
