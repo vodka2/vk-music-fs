@@ -6,7 +6,7 @@ using namespace vk_music_fs;
 
 MusicFile::MusicFile(const CachedFilename &name, const RemoteFile &remFile, const std::shared_ptr<FileCache> &cache)
 : _closed(false), _name(name.t), _remFile(remFile), _cache(cache) {
-    auto t = _cache->getInitialSize(_remFile);
+    auto t = _cache->getInitialSize(_remFile.getId());
     _totalInitialSize = t.totalSize;
     _prepSize = t.prependSize;
     _totalUriSize = _cache->getFileSize(_remFile);

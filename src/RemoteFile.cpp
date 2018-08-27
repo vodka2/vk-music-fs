@@ -26,3 +26,18 @@ int_fast32_t RemoteFile::getOwnerId() const{
 uint_fast32_t RemoteFile::getFileId() const{
     return _fileId;
 }
+
+RemoteFileId RemoteFile::getId() const{
+    return RemoteFileId(*this);
+}
+
+RemoteFileId::RemoteFileId(const RemoteFile &file): _ownerId(file.getOwnerId()), _fileId(file.getFileId()) {
+}
+
+int_fast32_t RemoteFileId::getOwnerId() const {
+    return _ownerId;
+}
+
+uint_fast32_t RemoteFileId::getFileId() const {
+    return _fileId;
+}

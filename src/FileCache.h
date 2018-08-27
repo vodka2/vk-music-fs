@@ -23,16 +23,16 @@ namespace vk_music_fs{
         FNameCache getFilename(const RemoteFile &file);
         uint_fast32_t getTagSize(const RemoteFile &file);
         uint_fast32_t getFileSize(const RemoteFile &file);
-        TotalPrepSizes getInitialSize(const RemoteFile &file);
+        TotalPrepSizes getInitialSize(const RemoteFileId &file);
         void fileClosed(const RemoteFile &file, const TotalPrepSizes &sizes);
     private:
-        std::string constructFilename(const RemoteFile &file);
+        std::string constructFilename(const RemoteFileId &file);
         std::mutex _initialSizesMutex;
         std::mutex _sizesMutex;
         std::shared_ptr<net::SizeObtainer> _sizeObtainer;
-        cache::lru_cache<RemoteFile, uint_fast32_t, RemoteFileHasher> _sizesCache;
-        cache::lru_cache<RemoteFile, TotalPrepSizes, RemoteFileHasher> _initialSizesCache;
-        std::unordered_set<RemoteFile, RemoteFileHasher> _openedFiles;
+        cache::lru_cache<RemoteFileId, uint_fast32_t, RemoteFileIdHasher> _sizesCache;
+        cache::lru_cache<RemoteFileId, TotalPrepSizes, RemoteFileIdHasher> _initialSizesCache;
+        std::unordered_set<RemoteFileId, RemoteFileIdHasher> _openedFiles;
         std::string _cacheDir;
     };
 }

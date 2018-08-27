@@ -26,16 +26,17 @@ _initialSizesCache(filesCacheSize, [this](auto file) -> bool{
 
 FNameCache FileCache::getFilename(const RemoteFile &file) {
     std::scoped_lock<std::mutex> lock(_initialSizesMutex);
-    _openedFiles.insert(file);
-    if(_initialSizesCache.exists(file)){
-        if(_initialSizesCache.get(file).totalSize == getFileSize(file)){
-            return {constructFilename(file), true};
+    auto id = RemoteFileId{file};
+    _openedFiles.insert(id);
+    if(_initialSizesCache.exists(id)){
+        if(_initialSizesCache.get(id).totalSize == getFileSize(file)){
+            return {constructFilename(id), true};
         } else {
-            return {constructFilename(file), false};
+            return {constructFilename(id), false};
         }
     } else {
-        std::string name = constructFilename(file);
-        _initialSizesCache.put(file, {0, 0});
+        std::string name = constructFilename(id);
+        _initialSizesCache.put(id, {0, 0});
         return {name, false};
     }
 }
@@ -46,27 +47,27 @@ uint_fast32_t FileCache::getTagSize(const RemoteFile &file) {
 
 uint_fast32_t FileCache::getFileSize(const RemoteFile &file) {
     std::scoped_lock<std::mutex> lock(_sizesMutex);
-    if(_sizesCache.exists(file)){
-        return _sizesCache.get(file);
+    if(_sizesCache.exists(file.getId())){
+        return _sizesCache.get(file.getId());
     } else {
         auto sizeStruct = _sizeObtainer->getSize(file.getUri(), file.getArtist(), file.getTitle());
         uint_fast32_t size = sizeStruct.uriSize + sizeStruct.tagSize;
-        _sizesCache.put(file, size);
+        _sizesCache.put(file.getId(), size);
         return size;
     }
 }
 
 void FileCache::fileClosed(const RemoteFile &file, const TotalPrepSizes &sizes) {
     std::scoped_lock<std::mutex> lock(_initialSizesMutex);
-    _openedFiles.erase(file);
-    _initialSizesCache.put(file, sizes);
+    _openedFiles.erase(file.getId());
+    _initialSizesCache.put(file.getId(), sizes);
 }
 
-std::string FileCache::constructFilename(const RemoteFile &file) {
+std::string FileCache::constructFilename(const RemoteFileId &file) {
     return (bfs::path(_cacheDir) / (std::to_string(file.getOwnerId()) + "_" + std::to_string(file.getFileId()) + ".mp3")).string();
 }
 
-TotalPrepSizes FileCache::getInitialSize(const RemoteFile &file) {
+TotalPrepSizes FileCache::getInitialSize(const RemoteFileId &file) {
     std::scoped_lock<std::mutex> lock(_initialSizesMutex);
     return _initialSizesCache.get(file);
 }
