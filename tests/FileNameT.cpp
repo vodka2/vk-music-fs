@@ -21,3 +21,8 @@ TEST_F(FileNameT, IncreaseNumbers){ //NOLINT
     fname.increaseNumberSuffix();
     EXPECT_EQ(fname.getFilename(), "Artist - Title_4.mp3");
 }
+
+TEST_F(FileNameT, ReplaceBrackets){ //NOLINT
+    FileName fname("Artist", "Title (Album version) (Album version)", ".mp3");
+    EXPECT_EQ(fname.getFilename(), "Artist - Title (Album version).mp3");
+}

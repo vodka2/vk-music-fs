@@ -167,7 +167,7 @@ namespace vk_music_fs {
                                     fname.getFilename(),
                                     File::Type::MUSIC_FILE,
                                     RemoteFile{item["url"], item["owner_id"],
-                                               item["id"], item["artist"], item["title"]},
+                                               item["id"], fname.getArtist(), fname.getTitle()},
                                     curDir->getMaxFileNum(),
                                     curDir
                             )

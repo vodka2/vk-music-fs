@@ -13,6 +13,7 @@ namespace vk_music_fs {
             void increaseNumberSuffix();
 
         private:
+            std::string replaceDoubleBrackets(std::string str);
             std::string escapeName(std::string str);
             std::string _artist;
             std::string _title;
