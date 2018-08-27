@@ -39,8 +39,10 @@ namespace vk_music_fs{
     BOOST_STRONG_TYPEDEF(std::string, CacheDir); //NOLINT
     BOOST_STRONG_TYPEDEF(std::string, CachedFilename); //NOLINT
     BOOST_STRONG_TYPEDEF(std::string, Mp3CacheSize); //NOLINT
+    BOOST_STRONG_TYPEDEF(std::string, ErrLogFile); //NOLINT
     BOOST_STRONG_TYPEDEF(uint_fast32_t, SizesCacheSize); //NOLINT
     BOOST_STRONG_TYPEDEF(bool, CreateDummyDirs); //NOLINT
+    BOOST_STRONG_TYPEDEF(bool, LogErrorsToFile); //NOLINT
     BOOST_STRONG_TYPEDEF(uint_fast32_t, VkUserId); //NOLINT
     BOOST_STRONG_TYPEDEF(uint_fast32_t, FilesCacheSize); //NOLINT
     BOOST_STRONG_TYPEDEF(uint_fast32_t, NumSizeRetries); //NOLINT

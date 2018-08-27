@@ -16,6 +16,7 @@
 #include <boost/nowide/iostream.hpp>
 #include <boost/nowide/args.hpp>
 #include <boost/filesystem.hpp>
+#include <ErrLogger.h>
 #include <codecvt>
 #include "fuse_wrap.h"
 
@@ -26,7 +27,7 @@ fuse_operations operations = {};
 typedef FileProcessor<net::HttpStream, MusicFile, Mp3Parser, ThreadPool> FileProcessorD;
 typedef AudioFs<net::VkApiQueryMaker> AudioFsD;
 typedef FileManager<AudioFsD, FileCache, FileProcessorD, Reader> FileManagerD;
-typedef Application<FileManagerD, AudioFsD> ApplicationD;
+typedef Application<FileManagerD, AudioFsD, ErrLogger> ApplicationD;
 
 auto curTime = static_cast<uint_fast32_t>(time(nullptr)); //NOLINT
 
@@ -62,6 +63,8 @@ int main(int argc, char* argv[]) {
             di::bind<CreateDummyDirs>.to(CreateDummyDirs{conf->createDummyDirs()}),
             di::bind<NumSizeRetries>.to(NumSizeRetries{conf->getNumSizeRetries()}),
             di::bind<ProgramOptions>.to(std::shared_ptr<ProgramOptions>{conf}),
+            di::bind<LogErrorsToFile>.to(LogErrorsToFile{conf->logErrorsToFile()}),
+            di::bind<ErrLogFile>.to(ErrLogFile{conf->getErrLogFile()}),
             di::bind<di::extension::iextfactory<FileProcessorD,
                     Artist,
                     Title,
