@@ -158,20 +158,22 @@ namespace vk_music_fs {
             ) {
                 auto resp = returnedJson["response"];
                 for (const auto &item: resp["items"]) {
-                    FileName fname(item["artist"], item["title"], _ext);
-                    while (curDir->hasItem(fname.getFilename())) {
-                        fname.increaseNumberSuffix();
+                    if(!static_cast<std::string>(item["url"]).empty()) {
+                        FileName fname(item["artist"], item["title"], _ext);
+                        while (curDir->hasItem(fname.getFilename())) {
+                            fname.increaseNumberSuffix();
+                        }
+                        curDir->addItem(
+                                std::make_shared<File>(
+                                        fname.getFilename(),
+                                        File::Type::MUSIC_FILE,
+                                        RemoteFile{item["url"], item["owner_id"],
+                                                   item["id"], fname.getArtist(), fname.getTitle()},
+                                        curDir->getMaxFileNum(),
+                                        curDir
+                                )
+                        );
                     }
-                    curDir->addItem(
-                            std::make_shared<File>(
-                                    fname.getFilename(),
-                                    File::Type::MUSIC_FILE,
-                                    RemoteFile{item["url"], item["owner_id"],
-                                               item["id"], fname.getArtist(), fname.getTitle()},
-                                    curDir->getMaxFileNum(),
-                                    curDir
-                            )
-                    );
                 }
             }
 
