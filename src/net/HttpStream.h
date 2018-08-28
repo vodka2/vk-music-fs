@@ -12,7 +12,7 @@ namespace vk_music_fs{
         class HttpStream {
         public:
             HttpStream(const Mp3Uri &uri, const std::shared_ptr<HttpStreamCommon> &common,
-                       const UserAgent &userAgent);
+                       const UserAgent &userAgent, const HttpTimeout &timeout);
 
             void open(uint_fast32_t offset, uint_fast32_t totalSize);
 
@@ -26,6 +26,7 @@ namespace vk_music_fs{
             const uint_fast32_t BUFFER_SIZE = 1024 * 64;
 
             bool _closed;
+            uint_fast32_t _timeout;
             std::string _uri;
             std::string _userAgent;
             std::shared_ptr<HttpStreamCommon> _common;

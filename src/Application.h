@@ -1,19 +1,27 @@
 #pragma once
 
 #include <common.h>
+#include <net/HttpStreamCommon.h>
 #include "ProgramOptions.h"
 #include "MusicFsException.h"
 
 namespace vk_music_fs {
-    template <typename TFileManager, typename TAudioFs, typename TLogger>
+    template <typename TFileManager, typename TAudioFs, typename TLogger, typename THttpCommon>
     class Application {
     public:
         Application(
                 const std::shared_ptr<TAudioFs> &api, const std::shared_ptr<TFileManager> &fileManager,
+                const std::shared_ptr<THttpCommon> &httpCommon,
                 const std::shared_ptr<TLogger> &logger,
                 std::shared_ptr<ProgramOptions> options
         )
-        :_options(options), _audioFs(api), _fileManager(fileManager), _logger(logger){
+        :
+        _httpCommon(httpCommon), _options(options),
+        _audioFs(api), _fileManager(fileManager), _logger(logger){
+        }
+
+        ~Application(){
+            _httpCommon->stop();
         }
 
         int_fast32_t open(const std::string &filename){
@@ -106,6 +114,7 @@ namespace vk_music_fs {
             }
         }
     private:
+        std::shared_ptr<THttpCommon> _httpCommon;
         std::shared_ptr<ProgramOptions> _options;
         std::shared_ptr<TAudioFs> _audioFs;
         std::shared_ptr<TFileManager> _fileManager;

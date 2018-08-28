@@ -1,6 +1,4 @@
 #include <boost/beast/http.hpp>
-#include <boost/beast/version.hpp>
-#include <boost/asio/ip/tcp.hpp>
 #include <boost/beast/core.hpp>
 #include "SizeObtainer.h"
 #include "HttpException.h"
@@ -20,12 +18,7 @@ Mp3FileSize SizeObtainer::getSize(const std::string &uri, const std::string &art
             auto hostPath = _common->getHostPath(uri);
             stream = _common->connect(hostPath);
             _common->sendHeadReq(stream, hostPath, _userAgent);
-            http::response_parser<http::empty_body> parser;
-            boost::beast::basic_flat_buffer<std::allocator<uint8_t>> readBuffer;
-            parser.skip(true);
-            read(*stream, readBuffer, parser);
-            size = static_cast<uint_fast32_t>(*parser.content_length());
-            _common->closeStream(stream);
+            size = _common->readSize(stream);
             break;
         } catch (const boost::system::system_error &ex) {
             _common->closeStream(stream);
@@ -34,7 +27,6 @@ Mp3FileSize SizeObtainer::getSize(const std::string &uri, const std::string &art
             }
         }
     }
-
     return Mp3FileSize{size, getTagSize(artist, title)};
 }
 

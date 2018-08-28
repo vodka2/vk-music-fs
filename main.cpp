@@ -3,7 +3,6 @@
 #include <boost/di/extension/scopes/scoped.hpp>
 #include <Mp3Parser.h>
 #include <MusicFile.h>
-#include <ThreadPool.h>
 #include <FileManager.h>
 #include <Reader.h>
 #include <Application.h>
@@ -11,9 +10,9 @@
 #include <net/VkApiQueryMaker.h>
 #include <boost/nowide/iostream.hpp>
 #include <boost/nowide/args.hpp>
-#include <boost/filesystem.hpp>
 #include <ErrLogger.h>
 #include <codecvt>
+#include <boost/filesystem/path.hpp>
 #include "fuse_wrap.h"
 
 using namespace vk_music_fs;
@@ -23,7 +22,7 @@ fuse_operations operations = {};
 typedef FileProcessor<net::HttpStream, MusicFile, Mp3Parser, ThreadPool> FileProcessorD;
 typedef AudioFs<net::VkApiQueryMaker> AudioFsD;
 typedef FileManager<AudioFsD, FileCache, FileProcessorD, Reader> FileManagerD;
-typedef Application<FileManagerD, AudioFsD, ErrLogger> ApplicationD;
+typedef Application<FileManagerD, AudioFsD, ErrLogger, net::HttpStreamCommon> ApplicationD;
 
 auto curTime = static_cast<uint_fast32_t>(time(nullptr)); //NOLINT
 
@@ -62,6 +61,7 @@ int main(int argc, char* argv[]) {
             di::bind<ProgramOptions>.to(std::shared_ptr<ProgramOptions>{conf}),
             di::bind<LogErrorsToFile>.to(LogErrorsToFile{conf->logErrorsToFile()}),
             di::bind<ErrLogFile>.to(ErrLogFile{conf->getErrLogFile()}),
+            di::bind<HttpTimeout>.to(HttpTimeout{conf->getHttpTimeout()}),
             di::bind<di::extension::iextfactory<FileProcessorD,
                     Artist,
                     Title,

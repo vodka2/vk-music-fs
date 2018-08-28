@@ -31,11 +31,13 @@ ProgramOptions::ProgramOptions(uint_fast32_t argc, char **argv, const std::strin
             ("cache_dir", po::value<std::string>()->default_value(getUserCacheDir(appName)), "set cache dir")
             ("create_dummy_dirs", po::value<bool>()->default_value(createDummyDirsDefault()), "create dummy dirs")
             ("num_size_retries", po::value<uint_fast32_t>()->default_value(3),
-                    "set max number of HEAD request when retrieving size")
+                    "set max number of HEAD requests when retrieving size")
             ("err_log", po::value<std::string>()->default_value(
                     (bfs::path(getUserConfigDir(appName)) / "ErrorLog.txt").string()
             ), "set error log file name")
             ("log_err_to_file", po::value<bool>()->default_value(false), "log errors to file")
+            ("http_timeout", po::value<uint_fast32_t>()->default_value(12000),
+                    "set HTTP requests timeout in milliseconds")
     ;
 
     po::variables_map vm;
@@ -142,6 +144,7 @@ void ProgramOptions::parseOptions(boost::program_options::variables_map &vm) {
     _createDummyDirs = vm["create_dummy_dirs"].as<bool>();
     _logErrorsToFile = vm["log_err_to_file"].as<bool>();
     _numSizeRetries = vm["num_size_retries"].as<uint_fast32_t>();
+    _httpTimeout = vm["http_timeout"].as<uint_fast32_t>();
 }
 
 std::string ProgramOptions::getCacheDir() {
@@ -191,4 +194,8 @@ std::string ProgramOptions::getErrLogFile() {
 
 bool ProgramOptions::logErrorsToFile() {
     return _logErrorsToFile;
+}
+
+uint_fast32_t ProgramOptions::getHttpTimeout() {
+    return _httpTimeout;
 }

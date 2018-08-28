@@ -1,5 +1,4 @@
 #include <boost/beast/http.hpp>
-#include <boost/beast/version.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include "VkApiQueryMaker.h"
@@ -29,23 +28,7 @@ std::string VkApiQueryMaker::makeSearchQuery(const std::string &query, uint_fast
         auto hostPath = _common->getHostPath(uri);
         stream = _common->connect(hostPath);
         _common->sendGetReq(stream, hostPath, _userAgent);
-        boost::beast::basic_flat_buffer<std::allocator<uint8_t>> readBuffer;
-        http::response_parser<http::string_body> parser;
-        http::read_header(*stream, readBuffer, parser);
-        if (parser.get().result() != http::status::partial_content && parser.get().result() != http::status::ok) {
-            throw HttpException(
-                    "Bad status code " + std::to_string(static_cast<uint_fast32_t>(parser.get().result())) +
-                    " when searching for " + query
-            );
-        }
-        boost::beast::error_code ec;
-        http::read(*stream, readBuffer, parser, ec);
-        if (ec && ec != boost::beast::http::error::need_buffer) {
-            throw boost::system::system_error{ec};
-        }
-        auto res = parser.get().body();
-        _common->closeStream(stream);
-        return res;
+        return _common->readRespAsStr(stream);
     } catch (const boost::system::system_error &ex){
         _common->closeStream(stream);
         throw HttpException(std::string("Error searching for ") + query + ". " + ex.what());
@@ -60,23 +43,7 @@ std::string VkApiQueryMaker::makeMyAudiosQuery(uint_fast32_t offset, uint_fast32
         auto hostPath = _common->getHostPath(uri);
         stream = _common->connect(hostPath);
         _common->sendGetReq(stream, hostPath, _userAgent);
-        boost::beast::basic_flat_buffer<std::allocator<uint8_t>> readBuffer;
-        http::response_parser<http::string_body> parser;
-        http::read_header(*stream, readBuffer, parser);
-        if (parser.get().result() != http::status::partial_content && parser.get().result() != http::status::ok) {
-            throw HttpException(
-                    "Bad status code " + std::to_string(static_cast<uint_fast32_t>(parser.get().result())) +
-                    " when querying my audios"
-            );
-        }
-        boost::beast::error_code ec;
-        http::read(*stream, readBuffer, parser, ec);
-        if(ec && ec != boost::beast::http::error::need_buffer){
-            throw boost::system::system_error{ec};
-        }
-        auto res = parser.get().body();
-        _common->closeStream(stream);
-        return res;
+        return _common->readRespAsStr(stream);
     } catch (const boost::system::system_error &ex){
         _common->closeStream(stream);
         throw HttpException(std::string("Error querying my audios. ") + ex.what());
