@@ -28,13 +28,7 @@ public:
     vk_music_fs::Artist artist{"Justin Bieber"};
     vk_music_fs::Title title{"Baby"};
     vk_music_fs::TagSize prevTagSize{4096};
-    di::injector<
-        std::shared_ptr<FileProcessor>,
-        std::shared_ptr<StreamM>,
-        std::shared_ptr<FileM>,
-        std::shared_ptr<ParserM>,
-        std::shared_ptr<ThreadPoolM>
-    > inj = di::make_injector(
+    auto_init(inj, (di::make_injector<vk_music_fs::BoundPolicy>(
         di::bind<FileProcessor>.in(di::extension::scoped),
         di::bind<StreamM>.in(di::extension::scoped),
         di::bind<FileM>.in(di::extension::scoped),
@@ -43,7 +37,7 @@ public:
         di::bind<vk_music_fs::Artist>.to(artist),
         di::bind<vk_music_fs::Title>.to(title),
         di::bind<vk_music_fs::TagSize>.to(prevTagSize)
-    );
+    )));
 
     std::shared_ptr<FileProcessor> fp;
     std::shared_ptr<MusicData> data;

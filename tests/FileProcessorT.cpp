@@ -8,7 +8,7 @@
 #include "data/Writer.h"
 #include <boost/di.hpp>
 #include <boost/di/extension/scopes/scoped.hpp>
-#include <HttpException.h>
+#include <net/HttpException.h>
 
 namespace di = boost::di;
 
@@ -24,19 +24,13 @@ typedef vk_music_fs::FileProcessor<StreamM, FileM, ParserM, ThreadPoolM> FilePro
 
 class FileProcessorT: public ::testing::Test {
 public:
-    di::injector<
-        std::shared_ptr<FileProcessor>,
-        std::shared_ptr<StreamM>,
-        std::shared_ptr<FileM>,
-        std::shared_ptr<ParserM>,
-        std::shared_ptr<ThreadPoolM>
-    > inj = di::make_injector(
+    auto_init(inj, (di::make_injector<vk_music_fs::BoundPolicy>(
         di::bind<FileProcessor>.in(di::extension::scoped),
         di::bind<StreamM>.in(di::extension::scoped),
         di::bind<FileM>.in(di::extension::scoped),
         di::bind<ParserM>.in(di::extension::scoped),
         di::bind<ThreadPoolM>.in(di::extension::scoped)
-    );
+    )));
 
     std::shared_ptr<FileProcessor> fp;
     std::shared_ptr<MusicData> data;
@@ -222,7 +216,7 @@ TEST_F(FileProcessorT, NonZeroPrependSize){ //NOLINT
 }
 
 TEST_F(FileProcessorT, StreamOpenExc){ //NOLINT
-    using vk_music_fs::HttpException;
+    using vk_music_fs::net::HttpException;
     using vk_music_fs::RemoteException;
     EXPECT_CALL(*inj.create<std::shared_ptr<StreamM>>(), open(testing::_, testing::_)).WillOnce(testing::Invoke(
             [] (...) {
@@ -240,7 +234,7 @@ TEST_F(FileProcessorT, StreamOpenExc){ //NOLINT
 }
 
 TEST_F(FileProcessorT, StreamReadFirstExc){ //NOLINT
-    using vk_music_fs::HttpException;
+    using vk_music_fs::net::HttpException;
     using vk_music_fs::RemoteException;
     EXPECT_CALL(*inj.create<std::shared_ptr<StreamM>>(), read()).WillOnce(testing::Invoke(
             [] (...) -> std::optional<ByteVect>{
@@ -258,7 +252,7 @@ TEST_F(FileProcessorT, StreamReadFirstExc){ //NOLINT
 }
 
 TEST_F(FileProcessorT, StreamReadMiddleExc){ //NOLINT
-    using vk_music_fs::HttpException;
+    using vk_music_fs::net::HttpException;
     using vk_music_fs::RemoteException;
     EXPECT_CALL(*inj.create<std::shared_ptr<ParserM>>(), parse(testing::_));
     EXPECT_CALL(*inj.create<std::shared_ptr<StreamM>>(), read()).WillRepeatedly(testing::Invoke(

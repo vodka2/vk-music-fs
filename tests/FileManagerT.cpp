@@ -79,7 +79,7 @@ class FileManagerT: public ::testing::Test {
 public:
     typedef vk_music_fs::FileManager<AudioFsM, FileCacheM, FileProcessorM, ReaderM> FileManager;
 
-    auto_init(inj, (di::make_injector(
+    auto_init(inj, (di::make_injector<vk_music_fs::BoundPolicy>(
             di::bind<FileManager>.in(di::extension::scoped),
             di::bind<AudioFsM>.in(di::extension::scoped),
             di::bind<FileProcessorM>.in(di::extension::scoped),

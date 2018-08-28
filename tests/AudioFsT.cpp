@@ -23,7 +23,7 @@ public:
     typedef vk_music_fs::AudioFs<QueryMakerM> AudioFs;
 
     auto makeInj(bool createDummyDirs){
-        return di::make_injector(
+        return di::make_injector<vk_music_fs::BoundPolicy>(
                 di::bind<AudioFs>.in(di::extension::scoped),
                 di::bind<QueryMakerM>.in(di::extension::scoped),
                 di::bind<vk_music_fs::Mp3Extension>.to(vk_music_fs::Mp3Extension{".mp3"}),

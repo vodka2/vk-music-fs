@@ -5,14 +5,10 @@
 #include <MusicFile.h>
 #include <ThreadPool.h>
 #include <FileManager.h>
-#include <FileCache.h>
 #include <Reader.h>
 #include <Application.h>
 #include <fs/AudioFs.h>
-#include <net/SizeObtainer.h>
-#include <RemoteFile.h>
 #include <net/VkApiQueryMaker.h>
-#include <ProgramOptions.h>
 #include <boost/nowide/iostream.hpp>
 #include <boost/nowide/args.hpp>
 #include <boost/filesystem.hpp>
@@ -40,7 +36,7 @@ int main(int argc, char* argv[]) {
 
         auto conf = reinterpret_cast<ProgramOptions*>(fuse_get_context()->private_data);
 
-        static auto inj = di::make_injector(
+        static auto inj = di::make_injector<BoundPolicy>(
             di::bind<net::HttpStream>.in(di::unique),
             di::bind<MusicFile>.in(di::unique),
             di::bind<Mp3Parser>.in(di::unique),
@@ -50,6 +46,7 @@ int main(int argc, char* argv[]) {
             di::bind<net::HttpStreamCommon>.in(di::extension::scoped),
             di::bind<ThreadPool>.in(di::extension::scoped),
             di::bind<FileCache>.in(di::extension::scoped),
+            di::bind<ErrLogger>.in(di::extension::scoped),
             di::bind<AudioFsD>.in(di::extension::scoped),
             di::bind<FileManagerD>.in(di::extension::scoped),
             di::bind<net::VkApiQueryMaker>.in(di::extension::scoped),

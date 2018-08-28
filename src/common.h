@@ -59,4 +59,14 @@ namespace vk_music_fs{
     }
 
     #define auto_init(variable, value) std::decay<decltype(value)>::type variable = value
+
+    class BoundPolicy : public boost::di::config {
+    public:
+        static auto policies(...) noexcept {
+            using namespace boost::di::policies;
+            return boost::di::make_policies(
+                    constructible(is_bound<boost::di::_>{})
+            );
+        }
+    };
 }
