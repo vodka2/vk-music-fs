@@ -15,9 +15,9 @@ namespace po = boost::program_options;
 namespace bfs = boost::filesystem;
 
 ProgramOptions::ProgramOptions(uint_fast32_t argc, char **argv, const std::string &configName, const std::string &appName) {
-    po::options_description desc("VK Music FS options");
+    po::options_description generalDesc("General options");
 
-    desc.add_options()
+    generalDesc.add_options()
             ("help", "produce help message")
             ("token", po::value<std::string>(), "set token")
             ("user_agent", po::value<std::string>(), "set user agent")
@@ -40,8 +40,20 @@ ProgramOptions::ProgramOptions(uint_fast32_t argc, char **argv, const std::strin
                     "set HTTP requests timeout in milliseconds")
     ;
 
+    po::options_description tokenDesc("Token options");
+    tokenDesc.add_options()
+            ("get_token",
+                    po::value<std::vector<std::string>>()->multitoken(),
+                    "Obtain token by login and password")
+    ;
+
+    po::options_description allDesc("");
+    allDesc.add(tokenDesc).add(generalDesc);
+
     po::variables_map vm;
-    auto opts = po::command_line_parser(static_cast<int>(argc), argv).options(desc).allow_unregistered().run();
+    auto opts = po::command_line_parser(static_cast<int>(argc), argv)
+            .options(allDesc).
+            allow_unregistered().run();
     auto additionalParameters = po::collect_unrecognized(opts.options, po::include_positional);
     po::store(opts, vm);
     po::notify(vm);
@@ -49,10 +61,21 @@ ProgramOptions::ProgramOptions(uint_fast32_t argc, char **argv, const std::strin
     _needHelp = vm.count("help") != 0;
     if(_needHelp){
         std::stringstream strm;
-        strm << desc;
+        strm << generalDesc;
         _helpStr = strm.str();
         additionalParameters.emplace_back("-ho");
+    } else if(vm.count("get_token")){
+        if (!vm["get_token"].empty()) {
+            auto loginPass = vm["get_token"].as<std::vector<std::string>>();
+            if(loginPass.size() == 2){
+                _creds = {loginPass[0], loginPass[1]};
+                parseCommonOptions(vm);
+                return;
+            }
+        }
     }
+
+    _creds = std::nullopt;
 
     _fuseArgv = new char*[additionalParameters.size() + 2];
     _fuseArgv[0] = argv[0];
@@ -80,7 +103,7 @@ ProgramOptions::ProgramOptions(uint_fast32_t argc, char **argv, const std::strin
     for(const auto &p: paths){
         if(bfs::exists(p)){
             boost::nowide::ifstream strm(p.string().c_str());
-            po::store(po::parse_config_file<char>(strm, desc), vm);
+            po::store(po::parse_config_file<char>(strm, generalDesc), vm);
             notify(vm);
         }
     }
@@ -135,6 +158,10 @@ void ProgramOptions::parseOptions(boost::program_options::variables_map &vm) {
         _useragent = vm["user_agent"].as<std::string>();
     }
 
+    parseCommonOptions(vm);
+}
+
+void ProgramOptions::parseCommonOptions(boost::program_options::variables_map &vm) {
     _sizesCacheSize = vm["sizes_cache_size"].as<uint_fast32_t>();
     _filesCacheSize = vm["files_cache_size"].as<uint_fast32_t>();
     _mp3Ext = vm["mp3_ext"].as<std::string>();
@@ -198,4 +225,8 @@ bool ProgramOptions::logErrorsToFile() {
 
 uint_fast32_t ProgramOptions::getHttpTimeout() {
     return _httpTimeout;
+}
+
+std::optional<VkCredentials> ProgramOptions::needGetToken() {
+    return _creds;
 }

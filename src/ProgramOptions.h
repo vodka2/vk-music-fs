@@ -10,6 +10,8 @@ namespace vk_music_fs {
 
         virtual ~ProgramOptions();
 
+        std::optional<VkCredentials> needGetToken();
+
         std::string getUseragent();
         bool needHelp();
         std::string getHelpString();
@@ -32,6 +34,8 @@ namespace vk_music_fs {
         std::string getUserCacheDir(const std::string &appName);
         bool createDummyDirsDefault();
         void parseOptions(boost::program_options::variables_map &vm);
+        void parseCommonOptions(boost::program_options::variables_map &vm);
+        std::optional<VkCredentials> _creds;
         std::string _helpStr;
         std::string _errLogFile;
         bool _logErrorsToFile;

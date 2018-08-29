@@ -24,7 +24,7 @@ namespace vk_music_fs {
 
             HostPath getHostPath(const std::string &uri);
 
-            std::shared_ptr<Stream> connect(const HostPath &hostPath);
+            std::shared_ptr<Stream> connect(const HostPath &hostPath, uint_fast32_t port = SSL_PORT);
 
             void closeStream(const std::shared_ptr<HttpStreamCommon::Stream> &stream);
 
@@ -44,9 +44,19 @@ namespace vk_music_fs {
                              const HostPath &hostPath,
                              const std::string &userAgent);
 
+            void sendPostReq(const std::shared_ptr<HttpStreamCommon::Stream> &stream,
+                             const HostPath &hostPath,
+                             const std::string &userAgent,
+                             const ByteVect &data,
+                             const std::string &contentType
+                             );
+
             std::string uriEncode(const std::string &str);
 
-            std::string readRespAsStr(const std::shared_ptr<HttpStreamCommon::Stream> &stream);
+            std::string readRespAsStr(
+                    const std::shared_ptr<HttpStreamCommon::Stream> &stream,
+                    bool checkRespStatus = true
+            );
 
             uint_fast32_t readSize(const std::shared_ptr<HttpStreamCommon::Stream> &stream);
 
@@ -54,6 +64,12 @@ namespace vk_music_fs {
                     const std::shared_ptr<HttpStreamCommon::Stream> &stream,
                     ByteVect &buf
             );
+
+            ByteVect readIntoBuffer(
+                    const std::shared_ptr<HttpStreamCommon::Stream> &stream
+            );
+
+            std::string fieldsToPostReq(const std::unordered_map<std::string, std::string> &map);
 
         private:
             HttpTimeout _timeout;

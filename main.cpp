@@ -13,6 +13,7 @@
 #include <ErrLogger.h>
 #include <codecvt>
 #include <boost/filesystem/path.hpp>
+#include <token/TokenReceiver.h>
 #include "fuse_wrap.h"
 
 using namespace vk_music_fs;
@@ -26,16 +27,9 @@ typedef Application<FileManagerD, AudioFsD, ErrLogger, net::HttpStreamCommon> Ap
 
 auto curTime = static_cast<uint_fast32_t>(time(nullptr)); //NOLINT
 
-int main(int argc, char* argv[]) {
-    boost::filesystem::path::imbue( std::locale( std::locale(), new std::codecvt_utf8_utf16<wchar_t>() ) );
-    boost::nowide::args a(argc,argv);
-
-    operations.init = [](fuse_conn_info *conn) {
-        namespace di = boost::di;
-
-        auto conf = reinterpret_cast<ProgramOptions*>(fuse_get_context()->private_data);
-
-        static auto inj = di::make_injector<BoundPolicy>(
+auto commonInj = [] (ProgramOptions *conf){ // NOLINT
+    namespace di = boost::di;
+    return di::make_injector<BoundPolicy>(
             di::bind<net::HttpStream>.in(di::unique),
             di::bind<MusicFile>.in(di::unique),
             di::bind<Mp3Parser>.in(di::unique),
@@ -51,8 +45,6 @@ int main(int argc, char* argv[]) {
             di::bind<net::VkApiQueryMaker>.in(di::extension::scoped),
             di::bind<SizesCacheSize>.to(SizesCacheSize{conf->getSizesCacheSize()}),
             di::bind<FilesCacheSize>.to(FilesCacheSize{conf->getFilesCacheSize()}),
-            di::bind<UserAgent>.to(UserAgent{conf->getUseragent()}),
-            di::bind<Token>.to(Token{conf->getToken()}),
             di::bind<CacheDir>.to(CacheDir{conf->getCacheDir()}),
             di::bind<Mp3Extension>.to(Mp3Extension{conf->getMp3Extension()}),
             di::bind<NumSearchFiles>.to(NumSearchFiles{conf->getNumSearchFiles()}),
@@ -74,6 +66,60 @@ int main(int argc, char* argv[]) {
                     CachedFilename,
                     FileSize
             >>.to(di::extension::extfactory<Reader>{})
+    );
+};
+
+auto tokenUserAgentInj = [] (ProgramOptions *conf){ //NOLINT
+    namespace di = boost::di;
+    return di::make_injector<BoundPolicy>(
+            di::bind<UserAgent>.to(UserAgent{conf->getUseragent()}),
+            di::bind<Token>.to(Token{conf->getToken()})
+    );
+};
+
+auto getTokenInj = [] (const VkCredentials &creds, const std::string &userAgent){ //NOLINT
+    namespace di = boost::di;
+    return di::make_injector<BoundPolicy>(
+            di::bind<UserAgent>.to(UserAgent{userAgent}),
+            di::bind<VkCredentials>.to(creds)
+    );
+};
+
+int printToken(const VkCredentials &creds, ProgramOptions *opts){
+    namespace di = boost::di;
+    auto inj = di::make_injector<BoundPolicy>(
+            commonInj(opts),
+            getTokenInj(
+                    creds,
+                    token::TokenReceiver::getUserAgent()
+            )
+    );
+    auto obtainer = inj.create<std::shared_ptr<token::TokenReceiver>>();
+    int returnStatus;
+    try {
+        auto token = obtainer->getToken();
+        boost::nowide::cout << "token=" << token << std::endl;
+        boost::nowide::cout << "user_agent=" <<  token::TokenReceiver::getUserAgent() << std::endl;
+        returnStatus = 0;
+    } catch (const MusicFsException &ex){
+        boost::nowide::cerr << ex.what() << std::endl;
+        returnStatus = 1;
+    }
+    inj.create<std::shared_ptr<net::HttpStreamCommon>>()->stop();
+    return returnStatus;
+}
+
+int main(int argc, char* argv[]) {
+    boost::filesystem::path::imbue( std::locale( std::locale(), new std::codecvt_utf8_utf16<wchar_t>() ) );
+    boost::nowide::args a(argc,argv);
+
+    operations.init = [](fuse_conn_info *conn) {
+        namespace di = boost::di;
+
+        auto conf = reinterpret_cast<ProgramOptions*>(fuse_get_context()->private_data);
+        static auto inj = di::make_injector<BoundPolicy>(
+            commonInj(conf),
+            tokenUserAgentInj(conf)
         );
         auto ptr = (void*)inj.create<ApplicationD*>();
         return ptr;
@@ -100,10 +146,10 @@ int main(int argc, char* argv[]) {
             stbuf->st_ctim.tv_sec = curTime + meta.time;
             stbuf->st_atim.tv_sec = curTime + meta.time;
             if (meta.type == FileOrDirMeta::Type::DIR_ENTRY) {
-                stbuf->st_mode = S_IFDIR | 0777u;
+                stbuf->st_mode = static_cast<uint_fast32_t>(S_IFDIR) | 0777u;
                 return 0;
             } else if (meta.type == FileOrDirMeta::Type::FILE_ENTRY) {
-                stbuf->st_mode = S_IFREG | 0777u;
+                stbuf->st_mode = static_cast<uint_fast32_t>(S_IFREG) | 0777u;
                 stbuf->st_size = app->getFileSize(path);
                 return 0;
             }
@@ -169,6 +215,12 @@ int main(int argc, char* argv[]) {
     };
 
     auto opts = new ProgramOptions(static_cast<uint_fast32_t>(argc), argv, "VkMusicFs.ini", "VkMusicFs");
+
+    auto loginPass = opts->needGetToken();
+    if(loginPass){
+        return printToken(*loginPass, opts);
+    }
+
     if(opts->needHelp()){
         boost::nowide::cerr << "Usage " << argv[0] << " mountpoint [options]\n" << std::endl;
         boost::nowide::cerr << opts->getHelpString() << std::endl;

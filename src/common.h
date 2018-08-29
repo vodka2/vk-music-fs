@@ -9,6 +9,12 @@
 
 namespace vk_music_fs{
     typedef std::vector<uint8_t> ByteVect;
+
+    struct VkCredentials{
+        std::string login;
+        std::string password;
+    };
+
     struct Mp3FileSize{
         uint_fast32_t uriSize;
         uint_fast32_t tagSize;
