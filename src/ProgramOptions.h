@@ -41,6 +41,7 @@ namespace vk_music_fs {
         bool _logErrorsToFile;
         bool _createDummyDirs;
         bool _needHelp;
+        bool _argvCreated;
         char **_fuseArgv;
         uint_fast32_t _fuseArgc;
         std::string _useragent;

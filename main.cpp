@@ -226,5 +226,10 @@ int main(int argc, char* argv[]) {
         boost::nowide::cerr << opts->getHelpString() << std::endl;
     }
 
-    return fuse_main(static_cast<int>(opts->getFuseArgc()), opts->getFuseArgv(), &operations, opts);
+    auto ret = fuse_main(static_cast<int>(opts->getFuseArgc()), opts->getFuseArgv(), &operations, opts);
+
+    if(opts->needHelp()){
+        delete opts;
+    }
+    return ret;
 }

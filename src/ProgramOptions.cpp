@@ -14,7 +14,8 @@ using namespace vk_music_fs;
 namespace po = boost::program_options;
 namespace bfs = boost::filesystem;
 
-ProgramOptions::ProgramOptions(uint_fast32_t argc, char **argv, const std::string &configName, const std::string &appName) {
+ProgramOptions::ProgramOptions(uint_fast32_t argc, char **argv, const std::string &configName, const std::string &appName):
+_argvCreated(false){
     po::options_description generalDesc("General options");
 
     generalDesc.add_options()
@@ -61,7 +62,7 @@ ProgramOptions::ProgramOptions(uint_fast32_t argc, char **argv, const std::strin
     _needHelp = vm.count("help") != 0;
     if(_needHelp){
         std::stringstream strm;
-        strm << generalDesc;
+        strm << generalDesc << tokenDesc;
         _helpStr = strm.str();
         additionalParameters.emplace_back("-ho");
     } else if(vm.count("get_token")){
@@ -76,7 +77,7 @@ ProgramOptions::ProgramOptions(uint_fast32_t argc, char **argv, const std::strin
     }
 
     _creds = std::nullopt;
-
+    _argvCreated = true;
     _fuseArgv = new char*[additionalParameters.size() + 2];
     _fuseArgv[0] = argv[0];
 
@@ -209,10 +210,12 @@ uint_fast32_t ProgramOptions::getNumSizeRetries() {
 }
 
 ProgramOptions::~ProgramOptions() {
-    for(uint_fast32_t i = 1; i < _fuseArgc; i++){
-        free(_fuseArgv[i]);
+    if(_argvCreated) {
+        for (uint_fast32_t i = 1; i < _fuseArgc; i++) {
+            free(_fuseArgv[i]);
+        }
+        delete[] _fuseArgv;
     }
-    delete [] _fuseArgv;
 }
 
 std::string ProgramOptions::getErrLogFile() {
