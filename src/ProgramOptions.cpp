@@ -1,4 +1,5 @@
 #include "ProgramOptions.h"
+#include "MusicFsException.h"
 #include <fstream>
 #include <boost/program_options/options_description.hpp>
 #include <boost/program_options/variables_map.hpp>
@@ -17,47 +18,26 @@ namespace bfs = boost::filesystem;
 ProgramOptions::ProgramOptions(uint_fast32_t argc, char **argv, const std::string &configName, const std::string &appName):
 _argvCreated(false){
     po::options_description generalDesc("General options");
-
-    generalDesc.add_options()
-            ("help", "produce help message")
-            ("token", po::value<std::string>(), "set token")
-            ("user_agent", po::value<std::string>(), "set user agent")
-            ("sizes_cache_size", po::value<uint_fast32_t>()->default_value(10000),
-                    "set max number of remote file sizes in cache")
-            ("files_cache_size", po::value<uint_fast32_t>()->default_value(300),
-                    "set max number of remote files in cache")
-            ("mp3_ext", po::value<std::string>()->default_value(".mp3"), "set mp3 files extension")
-            ("num_search_files", po::value<uint_fast32_t>()->default_value(10),
-                    "set initial number of files in the search directory")
-            ("cache_dir", po::value<std::string>()->default_value(getUserCacheDir(appName)), "set cache dir")
-            ("create_dummy_dirs", po::value<bool>()->default_value(createDummyDirsDefault()), "create dummy dirs")
-            ("num_size_retries", po::value<uint_fast32_t>()->default_value(3),
-                    "set max number of HEAD requests when retrieving size")
-            ("err_log", po::value<std::string>()->default_value(
-                    (bfs::path(getUserConfigDir(appName)) / "ErrorLog.txt").string()
-            ), "set error log file name")
-            ("log_err_to_file", po::value<bool>()->default_value(false), "log errors to file")
-            ("http_timeout", po::value<uint_fast32_t>()->default_value(12000),
-                    "set HTTP requests timeout in milliseconds")
-    ;
+    addCommonOpts(generalDesc, appName);
 
     po::options_description tokenDesc("Token options");
-    tokenDesc.add_options()
-            ("get_token",
-                    po::value<std::vector<std::string>>()->multitoken(),
-                    "Obtain token by login and password")
-    ;
+    addTokenOpts(tokenDesc);
 
     po::options_description allDesc("");
     allDesc.add(tokenDesc).add(generalDesc);
 
+    std::vector<std::string> additionalParameters;
     po::variables_map vm;
-    auto opts = po::command_line_parser(static_cast<int>(argc), argv)
-            .options(allDesc).
-            allow_unregistered().run();
-    auto additionalParameters = po::collect_unrecognized(opts.options, po::include_positional);
-    po::store(opts, vm);
-    po::notify(vm);
+    try {
+        auto opts = po::command_line_parser(static_cast<int>(argc), argv)
+                .options(allDesc).
+                allow_unregistered().run();
+        additionalParameters = po::collect_unrecognized(opts.options, po::include_positional);
+        po::store(opts, vm);
+        po::notify(vm);
+    } catch (const po::error &err){
+        throw MusicFsException(std::string("Error when parsing command line options: ") + err.what());
+    }
 
     _needHelp = vm.count("help") != 0;
     if(_needHelp){
@@ -72,22 +52,14 @@ _argvCreated(false){
                 _creds = {loginPass[0], loginPass[1]};
                 parseCommonOptions(vm);
                 return;
+            } else {
+                throw MusicFsException("You must specify login and password after '--get_token'");
             }
         }
     }
 
     _creds = std::nullopt;
-    _argvCreated = true;
-    _fuseArgv = new char*[additionalParameters.size() + 2];
-    _fuseArgv[0] = argv[0];
-
-    uint_fast32_t i = 1;
-    for (const auto &param : additionalParameters) {
-        _fuseArgv[i] = strdup(param.c_str());
-        i++;
-    }
-    _fuseArgc = i;
-    _fuseArgv[i] = nullptr;
+    createFuseArgv(argv, additionalParameters);
 
     if(_needHelp){
         return;
@@ -103,9 +75,13 @@ _argvCreated(false){
 
     for(const auto &p: paths){
         if(bfs::exists(p)){
-            boost::nowide::ifstream strm(p.string().c_str());
-            po::store(po::parse_config_file<char>(strm, generalDesc), vm);
-            notify(vm);
+            try {
+                boost::nowide::ifstream strm(p.string().c_str());
+                po::store(po::parse_config_file<char>(strm, generalDesc), vm);
+                notify(vm);
+            } catch (const po::error &err){
+                throw MusicFsException("Error when parsing config " + p.string() + ". " + err.what());
+            }
         }
     }
     parseOptions(vm);
@@ -232,4 +208,50 @@ uint_fast32_t ProgramOptions::getHttpTimeout() {
 
 std::optional<VkCredentials> ProgramOptions::needGetToken() {
     return _creds;
+}
+
+void ProgramOptions::addCommonOpts(boost::program_options::options_description &opts, const std::string &appName) {
+    opts.add_options()
+            ("help", "produce help message")
+            ("token", po::value<std::string>(), "set token")
+            ("user_agent", po::value<std::string>(), "set user agent")
+            ("sizes_cache_size", po::value<uint_fast32_t>()->default_value(10000),
+             "set max number of remote file sizes in cache")
+            ("files_cache_size", po::value<uint_fast32_t>()->default_value(300),
+             "set max number of remote files in cache")
+            ("mp3_ext", po::value<std::string>()->default_value(".mp3"), "set mp3 files extension")
+            ("num_search_files", po::value<uint_fast32_t>()->default_value(10),
+             "set initial number of files in the search directory")
+            ("cache_dir", po::value<std::string>()->default_value(getUserCacheDir(appName)), "set cache dir")
+            ("create_dummy_dirs", po::value<bool>()->default_value(createDummyDirsDefault()), "create dummy dirs")
+            ("num_size_retries", po::value<uint_fast32_t>()->default_value(3),
+             "set max number of HEAD requests when retrieving size")
+            ("err_log", po::value<std::string>()->default_value(
+                    (bfs::path(getUserConfigDir(appName)) / "ErrorLog.txt").string()
+            ), "set error log file name")
+            ("log_err_to_file", po::value<bool>()->default_value(false), "log errors to file")
+            ("http_timeout", po::value<uint_fast32_t>()->default_value(12000),
+             "set HTTP requests timeout in milliseconds");
+}
+
+void ProgramOptions::addTokenOpts(boost::program_options::options_description &opts) {
+    opts.add_options()
+            ("get_token",
+             po::value<std::vector<std::string>>()->multitoken(),
+             "Obtain token by login and password")
+            ;
+}
+
+void ProgramOptions::createFuseArgv(char **argv, const std::vector<std::string> &additionalParameters) {
+    _argvCreated = true;
+    _fuseArgv = new char*[additionalParameters.size() + 2];
+    _fuseArgv[0] = argv[0];
+
+    uint_fast32_t i = 1;
+    for (const auto &param : additionalParameters) {
+        _fuseArgv[i] = strdup(param.c_str());
+        i++;
+    }
+    _fuseArgc = i;
+    _fuseArgv[i] = nullptr;
 }

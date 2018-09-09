@@ -2,6 +2,7 @@
 
 #include "common.h"
 #include <boost/program_options/variables_map.hpp>
+#include <boost/program_options/options_description.hpp>
 
 namespace vk_music_fs {
     class ProgramOptions {
@@ -30,6 +31,9 @@ namespace vk_music_fs {
         char **getFuseArgv();
         uint_fast32_t getFuseArgc();
     private:
+        void createFuseArgv(char **argv, const std::vector<std::string> &additionalParameters);
+        void addCommonOpts(boost::program_options::options_description &opts, const std::string &appName);
+        void addTokenOpts(boost::program_options::options_description &opts);
         std::string getUserConfigDir(const std::string &appName);
         std::string getUserCacheDir(const std::string &appName);
         bool createDummyDirsDefault();

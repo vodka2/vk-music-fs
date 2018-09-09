@@ -27,7 +27,7 @@ typedef Application<FileManagerD, AudioFsD, ErrLogger, net::HttpStreamCommon> Ap
 
 auto curTime = static_cast<uint_fast32_t>(time(nullptr)); //NOLINT
 
-auto commonInj = [] (ProgramOptions *conf){ // NOLINT
+auto commonInj = [] (const std::shared_ptr<ProgramOptions> &conf){ // NOLINT
     namespace di = boost::di;
     return di::make_injector<BoundPolicy>(
             di::bind<net::HttpStream>.in(di::unique),
@@ -50,7 +50,7 @@ auto commonInj = [] (ProgramOptions *conf){ // NOLINT
             di::bind<NumSearchFiles>.to(NumSearchFiles{conf->getNumSearchFiles()}),
             di::bind<CreateDummyDirs>.to(CreateDummyDirs{conf->createDummyDirs()}),
             di::bind<NumSizeRetries>.to(NumSizeRetries{conf->getNumSizeRetries()}),
-            di::bind<ProgramOptions>.to(std::shared_ptr<ProgramOptions>{conf}),
+            di::bind<ProgramOptions>.to(conf),
             di::bind<LogErrorsToFile>.to(LogErrorsToFile{conf->logErrorsToFile()}),
             di::bind<ErrLogFile>.to(ErrLogFile{conf->getErrLogFile()}),
             di::bind<HttpTimeout>.to(HttpTimeout{conf->getHttpTimeout()}),
@@ -69,7 +69,7 @@ auto commonInj = [] (ProgramOptions *conf){ // NOLINT
     );
 };
 
-auto tokenUserAgentInj = [] (ProgramOptions *conf){ //NOLINT
+auto tokenUserAgentInj = [] (const std::shared_ptr<ProgramOptions> &conf){ //NOLINT
     namespace di = boost::di;
     return di::make_injector<BoundPolicy>(
             di::bind<UserAgent>.to(UserAgent{conf->getUseragent()}),
@@ -85,7 +85,7 @@ auto getTokenInj = [] (const VkCredentials &creds, const std::string &userAgent)
     );
 };
 
-int printToken(const VkCredentials &creds, ProgramOptions *opts){
+int printToken(const VkCredentials &creds, const std::shared_ptr<ProgramOptions> &opts){
     namespace di = boost::di;
     auto inj = di::make_injector<BoundPolicy>(
             commonInj(opts),
@@ -116,7 +116,7 @@ int main(int argc, char* argv[]) {
     operations.init = [](fuse_conn_info *conn) {
         namespace di = boost::di;
 
-        auto conf = reinterpret_cast<ProgramOptions*>(fuse_get_context()->private_data);
+        auto conf = *reinterpret_cast<std::shared_ptr<ProgramOptions>*>(fuse_get_context()->private_data);
         static auto inj = di::make_injector<BoundPolicy>(
             commonInj(conf),
             tokenUserAgentInj(conf)
@@ -213,9 +213,13 @@ int main(int argc, char* argv[]) {
         app->deleteFile(path);
         return 0;
     };
-
-    auto opts = new ProgramOptions(static_cast<uint_fast32_t>(argc), argv, "VkMusicFs.ini", "VkMusicFs");
-
+    std::shared_ptr<ProgramOptions> opts;
+    try {
+        opts = std::make_shared<ProgramOptions>(static_cast<uint_fast32_t>(argc), argv, "VkMusicFs.ini", "VkMusicFs");
+    } catch (const MusicFsException& exc){
+        boost::nowide::cerr << exc.what() << std::endl;
+        return 1;
+    }
     auto loginPass = opts->needGetToken();
     if(loginPass){
         return printToken(*loginPass, opts);
@@ -226,10 +230,5 @@ int main(int argc, char* argv[]) {
         boost::nowide::cerr << opts->getHelpString() << std::endl;
     }
 
-    auto ret = fuse_main(static_cast<int>(opts->getFuseArgc()), opts->getFuseArgv(), &operations, opts);
-
-    if(opts->needHelp()){
-        delete opts;
-    }
-    return ret;
+    return fuse_main(static_cast<int>(opts->getFuseArgc()), opts->getFuseArgv(), &operations, &opts);
 }
