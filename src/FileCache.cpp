@@ -79,7 +79,7 @@ TotalPrepSizes FileCache::getInitialSize(const RemoteFileId &file) {
 void FileCache::loadSizesFromFile() {
     auto headCacheFile = bfs::path(_cacheDir) / std::string(SIZES_CACHE_FNAME);
     if(bfs::is_regular_file(headCacheFile.c_str())){
-        boost::nowide::ifstream strm(headCacheFile.c_str());
+        boost::nowide::ifstream strm(headCacheFile.string().c_str());
         auto data = json::parse(strm);
         for(auto it = data.begin(); it != data.end(); ++it){
             _sizesCache.put(
@@ -93,7 +93,7 @@ void FileCache::loadSizesFromFile() {
 void FileCache::loadInitialSizesFromFile() {
     auto filesCacheFile = bfs::path(_cacheDir) / std::string(INITIAL_SIZES_CACHE_FNAME);
     if(bfs::is_regular_file(filesCacheFile.c_str())){
-        boost::nowide::ifstream strm(filesCacheFile.c_str());
+        boost::nowide::ifstream strm(filesCacheFile.string().c_str());
         auto data = json::parse(strm);
         for(auto it = data.begin(); it != data.end(); ++it){
             _initialSizesCache.put(
@@ -111,7 +111,7 @@ void FileCache::saveSizesToFile() {
         vect.push_back(std::make_tuple<>(item.first.getOwnerId(), item.first.getFileId(), item.second));
     }
     json out(std::move(vect));
-    boost::nowide::ofstream strm(headCacheFile.c_str());
+    boost::nowide::ofstream strm(headCacheFile.string().c_str());
     strm << out;
 }
 
@@ -125,7 +125,7 @@ void FileCache::saveInitialSizesToFile() {
         ));
     }
     json out(std::move(vect));
-    boost::nowide::ofstream strm(filesCacheFile.c_str());
+    boost::nowide::ofstream strm(filesCacheFile.string().c_str());
     strm << out;
 }
 

@@ -25,8 +25,17 @@ add_executable(vk_music_fs main.cpp fuse_wrap.h)
 target_compile_definitions(vk_music_fs PUBLIC -D_FILE_OFFSET_BITS=64)
 
 if(DEFINED MINGW_W64)
-    target_include_directories(vk_music_fs PUBLIC winfsp/include)
-    target_link_libraries(vk_music_fs vk_music_fs_lib ${CMAKE_CURRENT_SOURCE_DIR}/winfsp/winfsp-x86.lib)
+    find_path(FUSE_INCLUDE_DIR fuse.h ${CMAKE_CURRENT_SOURCE_DIR}/winfsp/include/fuse NO_DEFAULT_PATH)
+    find_library(FUSE_LIBRARIES
+        NAMES winfsp-x86
+        PATHS ${CMAKE_CURRENT_SOURCE_DIR}/winfsp ${CMAKE_CURRENT_SOURCE_DIR}
+    )
+    target_include_directories(vk_music_fs PUBLIC ${FUSE_INCLUDE_DIR})
 else()
-    target_link_libraries(vk_music_fs vk_music_fs_lib fuse)
+    find_library(FUSE_LIBRARIES
+        NAMES fuse
+        PATHS /lib64 /lib /usr/lib64 /usr/lib /usr/local/lib64 /usr/local/lib /usr/lib/x86_64-linux-gnu
+    )
 endif()
+
+target_link_libraries(vk_music_fs vk_music_fs_lib ${FUSE_LIBRARIES})

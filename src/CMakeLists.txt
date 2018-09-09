@@ -4,14 +4,24 @@ set(LIB_SRCS FileProcessor.cpp FileProcessor.h common.h Mp3Parser.cpp Mp3Parser.
 
 if(DEFINED MINGW_W64)
     set(LIB_SRCS ${LIB_SRCS} ${CMAKE_SOURCE_DIR}/boost-nowide/libs/nowide/src/iostream.cpp)
+    set(Boost_USE_STATIC_LIBS ON)
+    set(OPENSSL_USE_STATIC_LIBS ON)
 endif()
 
 add_library(vk_music_fs_lib ${LIB_SRCS})
 
 target_include_directories(vk_music_fs_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/di/include ${CMAKE_SOURCE_DIR}/di/extension/include ${CMAKE_SOURCE_DIR}/boost-nowide)
 
+find_package(Boost REQUIRED COMPONENTS filesystem thread program_options system)
+
+set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
+set(THREADS_PREFER_PTHREAD_FLAG TRUE)
+find_package(Threads REQUIRED)
+find_package(OpenSSL REQUIRED)
+
+set(MAIN_LIBS json cfgpath cpp-lru-cache tag z ${Boost_LIBRARIES} Threads::Threads OpenSSL::SSL OpenSSL::Crypto)
+
 if(DEFINED MINGW_W64)
-    target_link_libraries(vk_music_fs_lib json cfgpath cpp-lru-cache tag z boost_system-mt boost_filesystem-mt boost_thread-mt boost_program_options-mt pthread ssl crypto ws2_32)
-else()
-    target_link_libraries(vk_music_fs_lib json cfgpath cpp-lru-cache tag z boost_system boost_filesystem boost_thread boost_program_options pthread ssl crypto)
+    list(APPEND MAIN_LIBS ws2_32)
 endif()
+target_link_libraries(vk_music_fs_lib ${MAIN_LIBS})

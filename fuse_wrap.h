@@ -1,8 +1,7 @@
 #pragma once
 
 #ifdef __WIN32__
-#include <fuse/fuse.h>
-
+#include <fuse.h>
 #define S_IFDIR 0040000u
 #define S_IFREG 0100000u
 #else
