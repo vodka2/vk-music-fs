@@ -5,9 +5,10 @@
 
 using vk_music_fs::ByteVect;
 
-class FileM{
+class FileM0{
 public:
-    FileM(){} //NOLINT
+    template <typename... T>
+    FileM0(T&&... args){} //NOLINT
     MOCK_CONST_METHOD2(read, ByteVect(uint_fast32_t offset, uint_fast32_t size));
     MOCK_CONST_METHOD1(write, void(ByteVect vect)); //NOLINT
     MOCK_CONST_METHOD0(finish, void());
@@ -18,3 +19,5 @@ public:
     MOCK_CONST_METHOD0(close, void());
     MOCK_CONST_METHOD0(getSize, uint_fast32_t());
 };
+
+typedef testing::NiceMock<FileM0> FileM;

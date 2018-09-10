@@ -9,12 +9,15 @@ namespace di = boost::di;
 
 using vk_music_fs::FileOrDirMeta;
 
-class QueryMakerM{
+class QueryMakerM0{
 public:
-    QueryMakerM(){}//NOLINT
+    template <typename... T>
+    QueryMakerM0(T&&... args){}//NOLINT
     MOCK_CONST_METHOD3(makeSearchQuery, std::string(const std::string&, uint_fast32_t, uint_fast32_t));
     MOCK_CONST_METHOD2(makeMyAudiosQuery, std::string(uint_fast32_t, uint_fast32_t));
 };
+
+typedef testing::NiceMock<QueryMakerM0> QueryMakerM;
 
 class AudioFsT: public ::testing::Test {
 public:

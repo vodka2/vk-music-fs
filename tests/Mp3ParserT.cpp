@@ -10,13 +10,16 @@
 namespace di = boost::di;
 using vk_music_fs::ByteVect;
 
-class BlockingBufferM{
+class BlockingBufferM0{
 public:
-    BlockingBufferM(){} //NOLINT
+    template <typename... T>
+    BlockingBufferM0(T&&... args){} //NOLINT
     MOCK_CONST_METHOD2(read, ByteVect (uint_fast32_t offset, uint_fast32_t len));
     MOCK_CONST_METHOD2(prepend, void (ByteVect vect, uint_fast32_t replace)); //NOLINT
     MOCK_CONST_METHOD0(getSize, uint_fast32_t());
 };
+
+typedef testing::NiceMock<BlockingBufferM0> BlockingBufferM;
 
 typedef vk_music_fs::Mp3Parser Mp3Parser;
 

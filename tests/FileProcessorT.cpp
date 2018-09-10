@@ -6,6 +6,7 @@
 #include "data/StreamM.h"
 #include "data/ThreadPoolM.h"
 #include "data/Writer.h"
+#include "data/ParserM.h"
 #include <boost/di.hpp>
 #include <boost/di/extension/scopes/scoped.hpp>
 #include <net/HttpException.h>
@@ -13,12 +14,6 @@
 namespace di = boost::di;
 
 using vk_music_fs::ByteVect;
-
-class ParserM{
-public:
-    ParserM(){} //NOLINT
-    MOCK_CONST_METHOD1(parse, void(const std::shared_ptr<vk_music_fs::BlockingBuffer> &vect));
-};
 
 typedef vk_music_fs::FileProcessor<StreamM, FileM, ParserM, ThreadPoolM> FileProcessor;
 

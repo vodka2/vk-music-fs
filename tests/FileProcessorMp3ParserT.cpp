@@ -8,17 +8,12 @@
 #include "data/ThreadPoolM.h"
 #include "data/Mp3Files.h"
 #include "data/Writer.h"
+#include "data/ParserM.h"
 #include <boost/di.hpp>
 #include <boost/di/extension/scopes/scoped.hpp>
 #include <toolkit/tbytevectorstream.h>
 
 namespace di = boost::di;
-
-class ParserM{
-public:
-    ParserM(){} //NOLINT
-    MOCK_CONST_METHOD1(parse, void(const std::shared_ptr<vk_music_fs::BlockingBuffer> &vect));
-};
 
 typedef vk_music_fs::Mp3Parser Mp3Parser;
 typedef vk_music_fs::FileProcessor<StreamM, FileM, Mp3Parser, ThreadPoolM> FileProcessor;

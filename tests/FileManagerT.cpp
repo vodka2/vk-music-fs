@@ -11,32 +11,41 @@ using vk_music_fs::RemoteFile;
 using vk_music_fs::FNameCache;
 namespace di = boost::di;
 
-class AudioFsM{
+class AudioFsM0{
 public:
-    AudioFsM(){} //NOLINT
+    template <typename... T>
+    AudioFsM0(T&&... args){} //NOLINT
     MOCK_CONST_METHOD1(getRemoteFile, RemoteFile(const std::string &str));
 };
 
-class FileCacheM{
+class FileCacheM0{
 public:
-    FileCacheM(){} //NOLINT
+    template <typename... T>
+    FileCacheM0(T&&... args){} //NOLINT
     MOCK_CONST_METHOD1(getFilename, FNameCache(const RemoteFile &f));
     MOCK_CONST_METHOD1(getFileSize, uint_fast32_t(const RemoteFile &file));
     MOCK_CONST_METHOD1(getTagSize, uint_fast32_t(const RemoteFile &file));
 };
 
-class FileProcessorM{
+class FileProcessorM0{
 public:
-    FileProcessorM(){} //NOLINT
+    template <typename... T>
+    FileProcessorM0(T&&... args){} //NOLINT
     MOCK_CONST_METHOD0(close, void());
     MOCK_CONST_METHOD2(read, ByteVect(uint_fast32_t offset, uint_fast32_t size));
 };
 
-class ReaderM{
+class ReaderM0{
 public:
-    ReaderM(){} //NOLINT
+    template <typename... T>
+    ReaderM0(T&&... args){} //NOLINT
     MOCK_CONST_METHOD2(read, ByteVect(uint_fast32_t offset, uint_fast32_t size));
 };
+
+typedef testing::NiceMock<AudioFsM0> AudioFsM;
+typedef testing::NiceMock<FileCacheM0> FileCacheM;
+typedef testing::NiceMock<FileProcessorM0> FileProcessorM;
+typedef testing::NiceMock<ReaderM0> ReaderM;
 
 typedef di::extension::iextfactory<
         ReaderM,
