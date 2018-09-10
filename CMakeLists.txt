@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.11)
+cmake_minimum_required(VERSION 3.7)
 project(vk_music_fs)
 
 set(OLD_CXX_FLAGS ${CMAKE_CXX_FLAGS})
@@ -26,8 +26,13 @@ target_compile_definitions(vk_music_fs PUBLIC -D_FILE_OFFSET_BITS=64)
 
 if(DEFINED MINGW_W64)
     find_path(FUSE_INCLUDE_DIR fuse.h ${CMAKE_CURRENT_SOURCE_DIR}/winfsp/include/fuse NO_DEFAULT_PATH)
+    if("${CMAKE_SIZEOF_VOID_P}" STREQUAL "4")
+        set(WINFSP_NAME winfsp-x86)
+    else()
+        set(WINFSP_NAME winfsp-x64)
+    endif()
     find_library(FUSE_LIBRARIES
-        NAMES winfsp-x86
+        NAMES ${WINFSP_NAME}
         PATHS ${CMAKE_CURRENT_SOURCE_DIR}/winfsp ${CMAKE_CURRENT_SOURCE_DIR}
     )
     target_include_directories(vk_music_fs PUBLIC ${FUSE_INCLUDE_DIR})

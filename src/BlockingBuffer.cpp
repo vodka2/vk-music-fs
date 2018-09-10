@@ -13,8 +13,8 @@ ByteVect BlockingBuffer::read(uint_fast32_t offset, uint_fast32_t len) {
         }
         if(_buffer.size() >= offset + len || _eof){
             ByteVect res;
-            uint_fast32_t start = std::min(offset, _buffer.size());
-            uint_fast32_t end = std::min(offset + len, _buffer.size());
+            uint_fast32_t start = std::min<uint_fast32_t>(offset, _buffer.size());
+            uint_fast32_t end = std::min<uint_fast32_t>(offset + len, _buffer.size());
             if(start != _buffer.size()) {
                 res.reserve(end - start);
                 std::copy(_buffer.cbegin() + start, _buffer.cbegin() + end, std::back_inserter(res));
