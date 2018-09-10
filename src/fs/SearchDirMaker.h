@@ -10,6 +10,7 @@
 #include "File.h"
 #include "VkException.h"
 #include "FileName.h"
+#include "FsException.h"
 #include <boost/algorithm/string.hpp>
 #include <boost/range/algorithm_ext/erase.hpp>
 #include <algorithm>
@@ -24,7 +25,7 @@ namespace vk_music_fs {
             SearchDirMaker(const std::shared_ptr<TQueryMaker> &queryMaker, const NumSearchFiles &numSearchFiles,
                            const Mp3Extension &ext): _queryMaker(queryMaker), _numSearchFiles(numSearchFiles), _ext(ext){
             }
-            bool createSearchDir(const DirPtr &parentDir, const std::string &dirName){
+            void createSearchDir(const DirPtr &parentDir, const std::string &dirName){
                 std::string searchName;
                 uint_fast32_t offset;
                 uint_fast32_t cnt;
@@ -79,7 +80,6 @@ namespace vk_music_fs {
                     );
                     insertMp3sInDir(parentDir->getItem(dirName).dir(), std::move(data));
                 }
-                return true;
             }
 
             struct OffsetsCnts{
@@ -177,7 +177,7 @@ namespace vk_music_fs {
                 }
             }
 
-            bool createSearchDirInRoot(const DirPtr &parentDir, const std::string &dirName){
+            void createSearchDirInRoot(const DirPtr &parentDir, const std::string &dirName){
                 auto data = makeSearchQuery(dirName, 0, _numSearchFiles);
                 parentDir->addItem(
                         std::make_shared<Dir>(
@@ -186,10 +186,9 @@ namespace vk_music_fs {
                         )
                 );
                 insertMp3sInDir(parentDir->getItem(dirName).dir(), data);
-                return true;
             }
 
-            bool createMyAudiosDir(const DirPtr &parentDir, const std::string &dirName){
+            void createMyAudiosDir(const DirPtr &parentDir, const std::string &dirName){
                 std::smatch mtc;
                 uint_fast32_t offset;
                 uint_fast32_t cnt;
@@ -227,9 +226,8 @@ namespace vk_music_fs {
                             )
                     );
                     insertMp3sInDir(parentDir, data);
-                    return true;
                 } else {
-                    return false;
+                    throw FsException("Can't create dir in My Audios dir");
                 }
             }
 

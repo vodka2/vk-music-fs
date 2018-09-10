@@ -130,11 +130,15 @@ int main(int argc, char* argv[]) {
     };
     operations.readdir = [](const char *path, void *buf, fuse_fill_dir_t filler, fuse_off_t offset,
                             struct fuse_file_info *fi){
-        auto app = reinterpret_cast<ApplicationD*>(fuse_get_context()->private_data);
-        for(const auto &entry : app->getEntries(path)){
-            filler(buf, entry.c_str(), nullptr, 0);
+        try {
+            auto app = reinterpret_cast<ApplicationD *>(fuse_get_context()->private_data);
+            for(const auto &entry : app->getEntries(path)){
+                filler(buf, entry.c_str(), nullptr, 0);
+            }
+            return 0;
+        } catch (...){
+            return -ENOENT;
         }
-        return 0;
     };
     operations.getattr = [](const char *path, struct fuse_stat *stbuf){
         auto app = reinterpret_cast<ApplicationD*>(fuse_get_context()->private_data);
@@ -204,14 +208,22 @@ int main(int argc, char* argv[]) {
         }
     };
     operations.rmdir = [](const char *path){
-        auto app = reinterpret_cast<ApplicationD*>(fuse_get_context()->private_data);
-        app->deleteDir(path);
-        return 0;
+        try {
+            auto app = reinterpret_cast<ApplicationD *>(fuse_get_context()->private_data);
+            app->deleteDir(path);
+            return 0;
+        } catch (...){
+            return -ENOENT;
+        }
     };
     operations.unlink = [](const char *path){
-        auto app = reinterpret_cast<ApplicationD*>(fuse_get_context()->private_data);
-        app->deleteFile(path);
-        return 0;
+        try {
+            auto app = reinterpret_cast<ApplicationD *>(fuse_get_context()->private_data);
+            app->deleteFile(path);
+            return 0;
+        } catch (...){
+            return -ENOENT;
+        }
     };
     std::shared_ptr<ProgramOptions> opts;
     try {

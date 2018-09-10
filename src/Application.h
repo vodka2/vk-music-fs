@@ -69,18 +69,18 @@ namespace vk_music_fs {
             }
         }
 
-        bool createDir(const std::string &dirPath){
+        void createDir(const std::string &dirPath){
             try {
-                return _audioFs->createDir(dirPath);
+                _audioFs->createDir(dirPath);
             } catch (const MusicFsException &exc){
                 _logger->logException(exc);
                 throw;
             }
         }
 
-        bool renameDir(const std::string &oldPath, const std::string &newPath){
+        void renameDir(const std::string &oldPath, const std::string &newPath){
             try {
-                return _audioFs->renameDir(oldPath, newPath);
+                _audioFs->renameDir(oldPath, newPath);
             } catch (const MusicFsException &exc){
                 _logger->logException(exc);
                 throw;
@@ -96,18 +96,18 @@ namespace vk_music_fs {
             }
         }
 
-        bool deleteDir(const std::string &path){
+        void deleteDir(const std::string &path){
             try {
-                return _audioFs->deleteDir(path);
+                _audioFs->deleteDir(path);
             } catch (const MusicFsException &exc){
                 _logger->logException(exc);
                 throw;
             }
         }
 
-        bool deleteFile(const std::string &path){
+        void deleteFile(const std::string &path){
             try {
-                return _audioFs->deleteFile(path);
+                _audioFs->deleteFile(path);
             } catch (const MusicFsException &exc){
                 _logger->logException(exc);
                 throw;

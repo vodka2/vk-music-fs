@@ -33,21 +33,22 @@ namespace vk_music_fs {
                 _rootDir->addItem(myAudiosDir);
             }
 
-            bool createDir(const std::string &dirPath) {
+            void createDir(const std::string &dirPath) {
                 std::scoped_lock<std::mutex> lock(_fsMutex);
                 if(_createDummyDirs){
-                    return createDummyDir(dirPath);
+                    createDummyDir(dirPath);
                 } else {
-                    return createDirNoLock(dirPath);
+                    createDirNoLock(dirPath);
                 }
             }
 
-            bool renameDir(const std::string &oldPath, const std::string &newPath){
+            void renameDir(const std::string &oldPath, const std::string &newPath){
                 std::scoped_lock<std::mutex> lock(_fsMutex);
                 if(_createDummyDirs){
-                    return renameDummyDir(oldPath, newPath);
+                    renameDummyDir(oldPath, newPath);
+                } else {
+                    throw FsException("Renaming dirs is not supported, when renaming " + oldPath + " to " + newPath);
                 }
-                return false;
             }
 
             std::vector<std::string> getEntries(const std::string &dirPath) {
@@ -55,7 +56,7 @@ namespace vk_music_fs {
                 std::vector<std::string> ret;
                 auto dirO = findPath(dirPath);
                 if (!isDir(dirO)) {
-                    return ret;
+                    throw FsException(dirPath + " is not a directory");
                 }
                 auto dir = (*dirO).dir();
                 for (const auto &item : dir->getContents()) {
@@ -80,14 +81,17 @@ namespace vk_music_fs {
             RemoteFile getRemoteFile(const std::string &path) {
                 std::scoped_lock<std::mutex> lock(_fsMutex);
                 auto pathO = findPath(path);
+                if(!pathO || !pathO->isFile()){
+                    throw FsException(path + " is not an MP3 file");
+                }
                 return (*pathO).file()->getRemFile();
             }
 
-            bool deleteDir(const std::string &path) {
+            void deleteDir(const std::string &path) {
                 std::scoped_lock<std::mutex> lock(_fsMutex);
                 auto pathO = findPath(path);
                 if(!isDir(pathO)){
-                    return false;
+                    throw FsException(path + " is not a directory");
                 }
                 if (
                         (*pathO).dir()->getType() == Dir::Type::SEARCH_DIR ||
@@ -99,23 +103,23 @@ namespace vk_music_fs {
                     } else {
                         (*pathO).dir()->getParent()->removeItem(getLast(path));
                     }
-                    return true;
+                } else {
+                    throw FsException("Can't create dir " + path);
                 }
-                return false;
             }
 
-            bool deleteFile(const std::string &path) {
+            void deleteFile(const std::string &path) {
                 std::scoped_lock<std::mutex> lock(_fsMutex);
                 auto pathO = findPath(path);
                 if (isFile(pathO) && (*pathO).file()->getType() == File::Type::MUSIC_FILE) {
                     (*pathO).file()->getParent()->removeItem(getLast(path));
-                    return true;
+                } else {
+                    throw FsException("Can't delete file " + path);
                 }
-                return false;
             }
 
         private:
-            bool createDummyDir(const std::string &path) {
+            void createDummyDir(const std::string &path) {
                 auto pathO = findPath(path, 1);
                 if (isDir(pathO) && isDummyDirParent((*pathO).dir())) {
                     auto dirName = getLast(path);
@@ -126,12 +130,12 @@ namespace vk_music_fs {
                                     DirWPtr{parentDir}
                             )
                     );
-                    return true;
+                } else {
+                    throw FsException("Can't create dummy dir " + path);
                 }
-                return false;
             }
 
-            bool renameDummyDir(const std::string &oldPath, const std::string &newPath) {
+            void renameDummyDir(const std::string &oldPath, const std::string &newPath) {
                 auto oldDirO = findPath(oldPath);
                 auto newDirO = findPath(newPath, 1);
                 if (
@@ -142,41 +146,43 @@ namespace vk_music_fs {
                         ) {
                     auto oldDir = (*oldDirO).dir();
                     oldDir->getParent()->removeItem(oldDir->getName());
-                    return createDirNoLock(newPath);
+                    createDirNoLock(newPath);
+                } else {
+                    throw FsException("Can't rename dummy dir " + oldPath + " to new path");
                 }
-                return false;
             }
 
-            bool createDirNoLock(const std::string &dirPath) {
+            void createDirNoLock(const std::string &dirPath) {
                 auto dirO = findPath(dirPath, 1);
                 if (!isDir(dirO)) {
-                    return false;
+                    throw FsException("Can't find parent dir when creating " + dirPath);
                 }
                 auto dirName = getLast(dirPath);
                 auto type = (*dirO).dir()->getType();
                 if (type == Dir::Type::ROOT_SEARCH_DIR) {
                     try {
                         auto parentDir = (*dirO).dir();
-                        return _searchDirMaker.createSearchDirInRoot(parentDir, dirName);
+                        _searchDirMaker.createSearchDirInRoot(parentDir, dirName);
                     } catch (const MusicFsException &ex){
                         throw FsException("Error creating search directory "+ dirName + " in root. " + ex.what());
                     }
                 } else if (type == Dir::Type::SEARCH_DIR) {
                     try{
                         auto parentDir = (*dirO).dir();
-                        return _searchDirMaker.createSearchDir(parentDir, dirName);
+                        _searchDirMaker.createSearchDir(parentDir, dirName);
                     } catch (const MusicFsException &ex){
                         throw FsException("Error creating search directory "+ dirName + ". " + ex.what());
                     }
                 } else if(type == Dir::Type::ROOT_MY_AUDIOS_DIR){
                     try {
                         auto parentDir = (*dirO).dir();
-                        return _searchDirMaker.createMyAudiosDir(parentDir, dirName);
+                        _searchDirMaker.createMyAudiosDir(parentDir, dirName);
                     } catch (const MusicFsException &ex){
                         throw FsException("Error creating my audios directory "+ dirName + ". " + ex.what());
                     }
+                } else {
+                    throw FsException("Can't create dir " + dirPath);
                 }
-                return false;
             }
 
             bool isDummyDirParent(const DirPtr &ptr){
