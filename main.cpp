@@ -142,7 +142,7 @@ int main(int argc, char* argv[]) {
     };
     operations.getattr = [](const char *path, struct fuse_stat *stbuf){
         auto app = reinterpret_cast<ApplicationD*>(fuse_get_context()->private_data);
-        std::fill(reinterpret_cast<uint8_t*>(stbuf), reinterpret_cast<uint8_t*>(stbuf) + sizeof(struct stat), 0);
+        std::fill(reinterpret_cast<uint8_t*>(stbuf), reinterpret_cast<uint8_t*>(stbuf) + sizeof(struct fuse_stat), 0);
         try {
             auto meta = app->getMeta(path);
             stbuf->st_nlink = 1;
@@ -185,7 +185,7 @@ int main(int argc, char* argv[]) {
         try {
             auto bytes = app->read(static_cast<uint_fast32_t>(fi->fh), static_cast<uint_fast32_t>(off), size);
             if(bytes.empty()){
-                return EOF;
+                return 0;
             }
             std::copy(bytes.cbegin(), bytes.cend(), buf);
             return (int)bytes.size();
