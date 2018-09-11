@@ -10,9 +10,7 @@ add_subdirectory(json)
 add_subdirectory(cpp-lru-cache-mod)
 add_subdirectory(googletest)
 
-set(CMAKE_CXX_STANDARD 17)
-
-set(${CMAKE_CXX_FLAGS} "${OLD_CXX_FLAGS}")
+set(CMAKE_CXX_FLAGS "${OLD_CXX_FLAGS} --std=gnu++17")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${EXTRA_CXX_FLAGS}")
 if(${CMAKE_BUILD_TYPE} STREQUAL "Release")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s")

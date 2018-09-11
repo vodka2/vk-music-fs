@@ -6,6 +6,7 @@ if(DEFINED MINGW_W64)
     set(LIB_SRCS ${LIB_SRCS} ${CMAKE_SOURCE_DIR}/boost-nowide/libs/nowide/src/iostream.cpp)
     set(Boost_USE_STATIC_LIBS ON)
     set(OPENSSL_USE_STATIC_LIBS ON)
+    SET(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
 endif()
 
 add_library(vk_music_fs_lib ${LIB_SRCS})
@@ -18,8 +19,9 @@ set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
 set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads REQUIRED)
 find_package(OpenSSL REQUIRED)
+find_library(ZLIB_LIBRARY libz.a)
 
-set(MAIN_LIBS json cfgpath cpp-lru-cache tag z ${Boost_LIBRARIES} Threads::Threads OpenSSL::SSL OpenSSL::Crypto)
+set(MAIN_LIBS json cfgpath cpp-lru-cache tag ${ZLIB_LIBRARY} ${Boost_LIBRARIES} Threads::Threads OpenSSL::SSL OpenSSL::Crypto)
 
 if(DEFINED MINGW_W64)
     list(APPEND MAIN_LIBS ws2_32)
