@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.7)
 project(vk_music_fs)
 
+option(ENABLE_TESTS "Enable tests" OFF)
+
 set(OLD_CXX_FLAGS ${CMAKE_CXX_FLAGS})
 set(CMAKE_VERBOSE_MAKEFILE 1)
 
@@ -10,7 +12,9 @@ add_subdirectory(json)
 add_subdirectory(cpp-lru-cache-mod)
 add_subdirectory(di)
 add_subdirectory(nowide)
-add_subdirectory(googletest)
+if(${ENABLE_TESTS})
+    add_subdirectory(googletest)
+endif()
 
 set(CMAKE_CXX_FLAGS "${OLD_CXX_FLAGS} --std=gnu++17")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${EXTRA_CXX_FLAGS}")
@@ -19,7 +23,9 @@ if(${CMAKE_BUILD_TYPE} STREQUAL "Release")
 endif()
 
 add_subdirectory(src)
-add_subdirectory(tests)
+if(${ENABLE_TESTS})
+    add_subdirectory(tests)
+endif()
 
 add_executable(vk_music_fs main.cpp fuse_wrap.h)
 target_compile_definitions(vk_music_fs PUBLIC -D_FILE_OFFSET_BITS=64)
