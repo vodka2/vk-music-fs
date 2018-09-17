@@ -8,38 +8,38 @@
 
 #include <memory>
 
-#include <boost/di.hpp>
-#include <boost/di/extension/injections/extensible_injector.hpp>
+#include "boost/di.hpp"
+#include "boost/di/extension/injections/extensible_injector.hpp"
 
 BOOST_DI_NAMESPACE_BEGIN
 namespace extension {
 
 template <class T, class... TArgs>
-struct iextfactory {
-  virtual ~iextfactory() noexcept = default;
-  virtual std::shared_ptr<T> createShared(TArgs...) const = 0;
+struct ifactory {
+  virtual ~ifactory() noexcept = default;
+  virtual std::unique_ptr<T> create(TArgs&&...) const = 0;
 };
 
 template <class, class, class>
-struct extfactory_impl;
+struct factory_impl;
 
 template <class TInjector, class T, class I, class... TArgs>
-struct extfactory_impl<TInjector, T, iextfactory<I, TArgs...>> : iextfactory<I, TArgs...> {
-  explicit extfactory_impl(const TInjector& injector) : injector_(const_cast<TInjector&>(injector)) {}
+struct factory_impl<TInjector, T, ifactory<I, TArgs...>> : ifactory<I, TArgs...> {
+  explicit factory_impl(const TInjector& injector) : injector_(const_cast<TInjector&>(injector)) {}
 
-  std::shared_ptr<I> createShared(TArgs... args) const override {
+  std::unique_ptr<I> create(TArgs&&... args) const override {
     // clang-format off
     auto injector = make_injector(
       make_extensible(injector_)
 #if (__clang_major__ == 3) && (__clang_minor__ > 4) || defined(__GCC___) || defined(__MSVC__)
-      , bind<TArgs>().to(std::forward<TArgs>(args))[override]...
+    , bind<TArgs>().to(std::forward<TArgs>(args))[override]...
 #else // wknd for clang 3.4
-      , core::dependency<scopes::instance, TArgs, TArgs, no_name, core::override>(std::forward<TArgs>(args))...
+    , core::dependency<scopes::instance, TArgs, TArgs, no_name, core::override>(std::forward<TArgs>(args))...
 #endif
     );
     // clang-format on
 
-    return injector.template create<std::shared_ptr<T>>();
+    return injector.template create<std::unique_ptr<T>>();
   }
 
  private:
@@ -47,14 +47,13 @@ struct extfactory_impl<TInjector, T, iextfactory<I, TArgs...>> : iextfactory<I, 
 };
 
 template <class T>
-struct extfactory {
+struct factory {
   template <class TInjector, class TDependency>
   auto operator()(const TInjector& injector, const TDependency&) const {
-    static auto sp = std::make_shared<extfactory_impl<TInjector, T, typename TDependency::expected>>(injector);
+    static auto sp = std::make_shared<factory_impl<TInjector, T, typename TDependency::expected>>(injector);
     return sp;
   }
 };
 
 }  // namespace extension
 BOOST_DI_NAMESPACE_END
-

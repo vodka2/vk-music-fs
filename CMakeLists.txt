@@ -8,6 +8,8 @@ add_subdirectory(taglib_mod)
 add_subdirectory(cfgpath)
 add_subdirectory(json)
 add_subdirectory(cpp-lru-cache-mod)
+add_subdirectory(di)
+add_subdirectory(nowide)
 add_subdirectory(googletest)
 
 set(CMAKE_CXX_FLAGS "${OLD_CXX_FLAGS} --std=gnu++17")
