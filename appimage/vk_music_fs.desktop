@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=vk music fs
+Comment=FUSE filesystem for VK audios
+Icon=vk_music_fs-icon
+Exec=vk_music_fs
