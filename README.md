@@ -20,7 +20,9 @@ Windows 7 or later is supported.
 
 ### Linux
 
-Currently only compilation from sources is available
+Download appimage from releases: `vk_music_fs-i386.AppImage` or `vk_music_fs-x86_64.AppImage`. Appimages are executable files with bundled dependencies.
+
+Installation from source:
 
 1. Install the following packages: `cmake g++ libssl-dev libfuse-dev libboost-system1.67-dev libboost-thread1.67-dev libboost-filesystem1.67-dev libboost-program-options1.67-dev zlib1g-dev` GCC compiler must support C++17
 2. Execute in the sources directory: `mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Release && cmake --build . --target vk_music_fs`
