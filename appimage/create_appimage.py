@@ -8,12 +8,14 @@ from string import Template
 archparts = [
     {
         'app': 'x86_64',
+        'remoteapp': '',
         'pkg': 'amd64',
         'lib': 'x86_64',
         'apprun': 'x86_64'
     },
     {
         'app': 'x86',
+        'remoteapp': '_x86_64',
         'pkg': 'i386',
         'lib': 'i386',
         'apprun': 'i686'
@@ -22,6 +24,9 @@ archparts = [
 
 for part in archparts:
     appfile = Template(path.join('app-$app', 'vk_music_fs')).substitute(part)
+    appfile_remote = \
+        Template('https://github.com/vodka2/vk-music-fs/releases/download/1.0/vk_music_fs$remoteapp').substitute(part)
+
     desktop = 'vk_music_fs.desktop'
     icon = 'vk_music_fs-icon.svg'
 
@@ -68,9 +73,13 @@ for part in archparts:
     os.makedirs(path.join(appdir, 'usr', 'bin'))
     os.makedirs(tmpdir)
 
-    shutil.copy(appfile, os.path.join(appdir, 'usr', 'bin'))
-    shutil.copy(desktop, os.path.join(appdir, desktop))
-    shutil.copy(icon, os.path.join(appdir, icon))
+    if path.exists(appfile):
+        shutil.copy(appfile, path.join(appdir, 'usr', 'bin'))
+    else:
+        req.urlretrieve(appfile_remote, path.join(appdir, 'usr', 'bin', 'vk_music_fs'))
+
+    shutil.copy(desktop, path.join(appdir, desktop))
+    shutil.copy(icon, path.join(appdir, icon))
     req.urlretrieve(apprun, path.join(appdir, 'AppRun'))
 
     for package in packages:
