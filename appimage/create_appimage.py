@@ -8,14 +8,14 @@ from string import Template
 archparts = [
     {
         'app': 'x86_64',
-        'remoteapp': '',
+        'remoteapp': '_x86_64',
         'pkg': 'amd64',
         'lib': 'x86_64',
         'apprun': 'x86_64'
     },
     {
         'app': 'x86',
-        'remoteapp': '_x86_64',
+        'remoteapp': '',
         'pkg': 'i386',
         'lib': 'i386',
         'apprun': 'i686'
