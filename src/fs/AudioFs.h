@@ -104,7 +104,7 @@ namespace vk_music_fs {
                         (*pathO).dir()->getParent()->removeItem(getLast(path));
                     }
                 } else {
-                    throw FsException("Can't create dir " + path);
+                    throw FsException("Can't delete dir " + path);
                 }
             }
 
