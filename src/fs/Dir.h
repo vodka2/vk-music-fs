@@ -16,7 +16,9 @@ namespace vk_music_fs {
                 SEARCH_DIR,
                 DUMMY_DIR,
                 ROOT_DIR,
-                ROOT_SEARCH_DIR
+                ROOT_SEARCH_DIR,
+                ARTIST_SEARCH_DIR,
+                ROOT_ARTIST_SEARCH_DIR
             };
             Dir(
                     std::string name,

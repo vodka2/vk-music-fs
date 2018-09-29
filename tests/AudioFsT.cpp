@@ -14,6 +14,7 @@ public:
     template <typename... T>
     QueryMakerM0(T&&... args){}//NOLINT
     MOCK_CONST_METHOD3(makeSearchQuery, std::string(const std::string&, uint_fast32_t, uint_fast32_t));
+    MOCK_CONST_METHOD3(makeArtistSearchQuery, std::string(const std::string&, uint_fast32_t, uint_fast32_t));
     MOCK_CONST_METHOD2(makeMyAudiosQuery, std::string(uint_fast32_t, uint_fast32_t));
 };
 
@@ -48,6 +49,28 @@ public:
         } else {
             queryMakerM = inj.create<std::shared_ptr<QueryMakerM>>();
         }
+    }
+
+    void initArtistQuery(){
+        ON_CALL(*queryMakerM, makeArtistSearchQuery("Artist", 0, 3)).WillByDefault(testing::Return(
+                R"(
+                        {"response": {"count":3, "items": [
+                            {"id": 1, "owner_id": 2, "artist":"Artist1", "title":"Song1", "url":"https:\/\/uri1"},
+                            {"id": 2, "owner_id": 3, "artist":"Artist2", "title":"Song2", "url":"https:\/\/uri2"},
+                            {"id": -1, "owner_id": 2, "artist":"Artist3", "title":"Song3", "url":"https:\/\/uri3"}
+                        ] }}
+                        )"
+        ));
+    }
+
+    void initArtistSecondQuery(){
+        ON_CALL(*queryMakerM, makeArtistSearchQuery("Artist", 3, 1)).WillByDefault(testing::Return(
+                R"(
+                        {"response": {"count":1, "items": [
+                            {"id": -1, "owner_id": 5, "artist":"Artist4", "title":"Song4", "url":"https:\/\/uri4"}
+                        ] }}
+                        )"
+        ));
     }
 
     void initMyAudiosQuery(){
@@ -156,8 +179,9 @@ public:
 
 TEST_F(AudioFsT, Empty){ //NOLINT
     auto api = inj.create<std::shared_ptr<AudioFs>>();
-    EXPECT_EQ(api->getEntries("/").size(), 2);
+    EXPECT_EQ(api->getEntries("/").size(), 3);
     EXPECT_EQ(api->getEntries("/Search").size(), 0);
+    EXPECT_EQ(api->getEntries("/Search by artist").size(), 0);
 }
 
 TEST_F(AudioFsT, CreateDir){ //NOLINT
@@ -327,4 +351,32 @@ TEST_F(AudioFsT, CreateMyAudiosDirTwoNumThenOneNum){ //NOLINT
     auto files = api->getEntries("/My audios");
     std::sort(files.begin(), files.end());
     EXPECT_EQ(files, expFiles);
+}
+
+TEST_F(AudioFsT, CreateArtistSearchDir){ //NOLINT
+    auto api = inj.create<std::shared_ptr<AudioFs>>();
+    initArtistQuery();
+    api->createDir("/Search by artist/Artist");
+    std::vector<std::string> expDirs = {"Artist"};
+    EXPECT_EQ(api->getEntries("/Search by artist"), expDirs);
+    std::vector<std::string> expFiles = {"Artist1 - Song1.mp3", "Artist2 - Song2.mp3", "Artist3 - Song3.mp3"};
+    auto files = api->getEntries("/Search by artist/Artist");
+    std::sort(files.begin(), files.end());
+    EXPECT_EQ(files, expFiles);
+    EXPECT_EQ(api->getRemoteFile("/Search by artist/Artist/Artist2 - Song2.mp3").getOwnerId(), 3);
+    EXPECT_EQ(api->getRemoteFile("/Search by artist/Artist/Artist3 - Song3.mp3").getUri(), "https://uri3");
+}
+
+TEST_F(AudioFsT, CreateArtistSearchMoreDirOneNum){ //NOLINT
+    auto api = inj.create<std::shared_ptr<AudioFs>>();
+    initArtistQuery();
+    initArtistSecondQuery();
+    api->createDir("/Search by artist/Artist");
+    api->createDir("/Search by artist/Artist/4");
+    std::vector<std::string> expData = {
+            "4", "Artist1 - Song1.mp3", "Artist2 - Song2.mp3", "Artist3 - Song3.mp3", "Artist4 - Song4.mp3"
+    };
+    auto dirs = api->getEntries("/Search by artist/Artist");
+    std::sort(dirs.begin(), dirs.end());
+    EXPECT_EQ(dirs, expData);
 }

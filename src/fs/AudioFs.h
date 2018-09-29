@@ -31,6 +31,10 @@ namespace vk_music_fs {
                         "My audios", Dir::Type::ROOT_MY_AUDIOS_DIR, OffsetCnt{0, 0}, _rootDir
                 );
                 _rootDir->addItem(myAudiosDir);
+                auto mySearchDir = std::make_shared<Dir>(
+                        "Search by artist", Dir::Type::ROOT_ARTIST_SEARCH_DIR, OffsetCnt{0, 0}, _rootDir
+                );
+                _rootDir->addItem(mySearchDir);
             }
 
             void createDir(const std::string &dirPath) {
@@ -95,6 +99,7 @@ namespace vk_music_fs {
                 }
                 if (
                         (*pathO).dir()->getType() == Dir::Type::SEARCH_DIR ||
+                        (*pathO).dir()->getType() == Dir::Type::ARTIST_SEARCH_DIR ||
                         (*pathO).dir()->getType() == Dir::Type::DUMMY_DIR ||
                         (*pathO).dir()->getType() == Dir::Type::COUNTER_DIR
                 ) {
@@ -159,26 +164,38 @@ namespace vk_music_fs {
                 }
                 auto dirName = getLast(dirPath);
                 auto type = (*dirO).dir()->getType();
+                auto parentDir = (*dirO).dir();
                 if (type == Dir::Type::ROOT_SEARCH_DIR) {
                     try {
-                        auto parentDir = (*dirO).dir();
                         _searchDirMaker.createSearchDirInRoot(parentDir, dirName);
                     } catch (const MusicFsException &ex){
                         throw FsException("Error creating search directory "+ dirName + " in root. " + ex.what());
                     }
                 } else if (type == Dir::Type::SEARCH_DIR) {
                     try{
-                        auto parentDir = (*dirO).dir();
                         _searchDirMaker.createSearchDir(parentDir, dirName);
                     } catch (const MusicFsException &ex){
                         throw FsException("Error creating search directory "+ dirName + ". " + ex.what());
                     }
                 } else if(type == Dir::Type::ROOT_MY_AUDIOS_DIR){
                     try {
-                        auto parentDir = (*dirO).dir();
                         _searchDirMaker.createMyAudiosDir(parentDir, dirName);
                     } catch (const MusicFsException &ex){
                         throw FsException("Error creating my audios directory "+ dirName + ". " + ex.what());
+                    }
+                } else if(type == Dir::Type::ROOT_ARTIST_SEARCH_DIR){
+                    try {
+                        _searchDirMaker.createArtistSearchDirInRoot(parentDir, dirName);
+                    } catch (const MusicFsException &ex){
+                        throw FsException(
+                                "Error creating artist search directory "+ dirName + " in root. " + ex.what()
+                        );
+                    }
+                } else if(type == Dir::Type::ARTIST_SEARCH_DIR){
+                    try {
+                        _searchDirMaker.createArtistSearchDir(parentDir, dirName);
+                    } catch (const MusicFsException &ex){
+                        throw FsException("Error creating artist search directory "+ dirName + ". " + ex.what());
                     }
                 } else {
                     throw FsException("Can't create dir " + dirPath);
@@ -188,6 +205,8 @@ namespace vk_music_fs {
             bool isDummyDirParent(const DirPtr &ptr){
                 return
                     ptr->getType() == Dir::Type::ROOT_SEARCH_DIR ||
+                    ptr->getType() == Dir::Type::ARTIST_SEARCH_DIR ||
+                    ptr->getType() == Dir::Type::ROOT_ARTIST_SEARCH_DIR ||
                     ptr->getType() == Dir::Type::SEARCH_DIR ||
                     ptr->getType() == Dir::Type::ROOT_MY_AUDIOS_DIR
                 ;

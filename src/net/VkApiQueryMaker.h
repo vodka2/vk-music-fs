@@ -15,6 +15,8 @@ namespace vk_music_fs {
 
             std::string makeSearchQuery(const std::string &query, uint_fast32_t offset, uint_fast32_t count);
 
+            std::string makeArtistSearchQuery(const std::string &query, uint_fast32_t offset, uint_fast32_t count);
+
             std::string makeMyAudiosQuery(uint_fast32_t offset, uint_fast32_t count);
 
         private:

@@ -26,60 +26,11 @@ namespace vk_music_fs {
                            const Mp3Extension &ext): _queryMaker(queryMaker), _numSearchFiles(numSearchFiles), _ext(ext){
             }
             void createSearchDir(const DirPtr &parentDir, const std::string &dirName){
-                std::string searchName;
-                uint_fast32_t offset;
-                uint_fast32_t cnt;
-                auto queryParams = parseQuery(dirName);
-                if(queryParams.type != QueryParams::Type::STRING){
-                    searchName = parentDir->getOffsetCntName().getName();
-                    bool needClear = false;
-                    if(queryParams.type == QueryParams::Type::TWO_NUMBERS) {
-                        offset = queryParams.first;
-                        cnt = queryParams.second;
-                    } else {
-                        auto offsetCntName = parentDir->getOffsetCntName();
-                        auto res = processOffsetCnt(offsetCntName.getOffset(), offsetCntName.getCnt(), queryParams.first);
-                        offset = res.queryOffset;
-                        cnt = res.queryCnt;
-                        needClear = res.needClear;
-                    }
+                createArtistOrSongSearchDir(parentDir, dirName, false);
+            }
 
-                    auto data = makeSearchQuery(searchName, offset, cnt);
-
-                    if(queryParams.type == QueryParams::Type::TWO_NUMBERS){
-                        parentDir->getOffsetCntName().setCnt(cnt);
-                        parentDir->getOffsetCntName().setOffset(offset);
-                        parentDir->clearContentsExceptNested();
-                    } else {
-                        if(needClear){
-                            parentDir->clearContentsExceptNested();
-                        }
-                        parentDir->getOffsetCntName().setCnt(queryParams.first);
-                    }
-
-                    parentDir->removeCounter();
-                    parentDir->addItem(
-                            std::make_shared<Dir>(
-                                    dirName, Dir::Type::COUNTER_DIR,
-                                    std::nullopt, DirWPtr{parentDir}
-                            )
-                    );
-                    insertMp3sInDir(parentDir, data);
-                } else {
-                    offset = 0;
-                    cnt = _numSearchFiles;
-                    searchName = parentDir->getOffsetCntName().getName() + " " + dirName;
-
-                    auto data = makeSearchQuery(searchName, offset, cnt);
-
-                    parentDir->addItem(
-                            std::make_shared<Dir>(
-                                    dirName, Dir::Type::SEARCH_DIR,
-                                    OffsetCntName{offset, cnt, searchName}, DirWPtr{parentDir}
-                            )
-                    );
-                    insertMp3sInDir(parentDir->getItem(dirName).dir(), std::move(data));
-                }
+            void createArtistSearchDir(const DirPtr &parentDir, const std::string &dirName){
+                createArtistOrSongSearchDir(parentDir, dirName, true);
             }
 
             struct OffsetsCnts{
@@ -141,6 +92,21 @@ namespace vk_music_fs {
                 }
             }
 
+            json makeArtistSearchQuery(
+                    const std::string &searchName,
+                    uint_fast32_t offset, uint_fast32_t count
+            ){
+                std::string respStr;
+                try{
+                    respStr = _queryMaker->makeArtistSearchQuery(searchName, offset, count);
+                    return std::move(parseJson(respStr));
+                } catch (const json::parse_error &err){
+                    throw VkException(
+                            "Error parsing JSON '" + respStr + "' when searching in artist names for " + searchName
+                    );
+                }
+            }
+
             json makeMyAudiosQuery(
                     uint_fast32_t offset, uint_fast32_t count
             ){
@@ -182,6 +148,17 @@ namespace vk_music_fs {
                 parentDir->addItem(
                         std::make_shared<Dir>(
                                 dirName, Dir::Type::SEARCH_DIR,
+                                OffsetCntName{0, _numSearchFiles, dirName}, DirWPtr{parentDir}
+                        )
+                );
+                insertMp3sInDir(parentDir->getItem(dirName).dir(), data);
+            }
+
+            void createArtistSearchDirInRoot(const DirPtr &parentDir, const std::string &dirName){
+                auto data = makeArtistSearchQuery(dirName, 0, _numSearchFiles);
+                parentDir->addItem(
+                        std::make_shared<Dir>(
+                                dirName, Dir::Type::ARTIST_SEARCH_DIR,
                                 OffsetCntName{0, _numSearchFiles, dirName}, DirWPtr{parentDir}
                         )
                 );
@@ -232,6 +209,71 @@ namespace vk_music_fs {
             }
 
         private:
+            void createArtistOrSongSearchDir(const DirPtr &parentDir, const std::string &dirName, bool byArtist){
+                std::string searchName;
+                uint_fast32_t offset;
+                uint_fast32_t cnt;
+                auto queryParams = parseQuery(dirName);
+                if(queryParams.type != QueryParams::Type::STRING){
+                    searchName = parentDir->getOffsetCntName().getName();
+                    bool needClear = false;
+                    if(queryParams.type == QueryParams::Type::TWO_NUMBERS) {
+                        offset = queryParams.first;
+                        cnt = queryParams.second;
+                    } else {
+                        auto offsetCntName = parentDir->getOffsetCntName();
+                        auto res = processOffsetCnt(offsetCntName.getOffset(), offsetCntName.getCnt(), queryParams.first);
+                        offset = res.queryOffset;
+                        cnt = res.queryCnt;
+                        needClear = res.needClear;
+                    }
+
+                    auto data =
+                            (byArtist) ?
+                            makeArtistSearchQuery(searchName, offset, cnt) :
+                            makeSearchQuery(searchName, offset, cnt)
+                    ;
+
+                    if(queryParams.type == QueryParams::Type::TWO_NUMBERS){
+                        parentDir->getOffsetCntName().setCnt(cnt);
+                        parentDir->getOffsetCntName().setOffset(offset);
+                        parentDir->clearContentsExceptNested();
+                    } else {
+                        if(needClear){
+                            parentDir->clearContentsExceptNested();
+                        }
+                        parentDir->getOffsetCntName().setCnt(queryParams.first);
+                    }
+
+                    parentDir->removeCounter();
+                    parentDir->addItem(
+                            std::make_shared<Dir>(
+                                    dirName, Dir::Type::COUNTER_DIR,
+                                    std::nullopt, DirWPtr{parentDir}
+                            )
+                    );
+                    insertMp3sInDir(parentDir, data);
+                } else {
+                    offset = 0;
+                    cnt = _numSearchFiles;
+                    searchName = parentDir->getOffsetCntName().getName() + " " + dirName;
+
+                    auto data =
+                            (byArtist) ?
+                            makeArtistSearchQuery(searchName, offset, cnt) :
+                            makeSearchQuery(searchName, offset, cnt)
+                    ;;
+
+                    parentDir->addItem(
+                            std::make_shared<Dir>(
+                                    dirName, (byArtist) ? Dir::Type::ARTIST_SEARCH_DIR : Dir::Type::SEARCH_DIR,
+                                    OffsetCntName{offset, cnt, searchName}, DirWPtr{parentDir}
+                            )
+                    );
+                    insertMp3sInDir(parentDir->getItem(dirName).dir(), std::move(data));
+                }
+            }
+
             json parseJson(const std::string &str){
                 auto res = json::parse(str);
                 if(res.find("error") != res.end()) {
