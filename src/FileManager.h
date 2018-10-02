@@ -86,7 +86,6 @@ namespace vk_music_fs {
                     std::visit([id, offset, size, &ret](auto &&el) {
                         ret = std::move(el->read(offset, size));
                     }, reader);
-                    _readersMutex.unlock();
                     return std::move(ret);
                 } catch (const net::HttpException &ex){
                     auto fname = _readers[_idToRemFile.find(id)->second.getId()].fname;
