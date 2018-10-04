@@ -73,10 +73,11 @@ namespace cache {
         }
 
         void remove(const key_t &key){
-            auto iter = _cache_items_map[key];
-            _cache_items_list.erase(iter);
-            _cache_items_map.erase(key);
-            _del_func(key);
+            if(_del_func(key)) {
+                auto iter = _cache_items_map[key];
+                _cache_items_list.erase(iter);
+                _cache_items_map.erase(key);
+            }
         }
 
         auto& getList(){

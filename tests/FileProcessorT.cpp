@@ -200,7 +200,7 @@ TEST_F(FileProcessorT, NonZeroPrependSize){ //NOLINT
     EXPECT_CALL(*inj.create<std::shared_ptr<FileM>>(), getSize()).WillRepeatedly(testing::Return(10));
     EXPECT_CALL(*inj.create<std::shared_ptr<FileM>>(), getTotalSize()).WillRepeatedly(testing::Return(20));
     EXPECT_CALL(*inj.create<std::shared_ptr<FileM>>(), getPrependSize()).WillRepeatedly(testing::Return(5));
-    EXPECT_CALL(*inj.create<std::shared_ptr<StreamM>>(), open(5, 15));
+    EXPECT_CALL(*inj.create<std::shared_ptr<StreamM>>(), open(5, 20));
     EXPECT_CALL(*inj.create<std::shared_ptr<ParserM>>(), parse(testing::_)).Times(0);
 
     init({});

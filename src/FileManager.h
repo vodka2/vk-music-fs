@@ -11,6 +11,7 @@
 #include "RemoteFile.h"
 #include "net/HttpException.h"
 #include <mutex>
+#include <net/WrongSizeException.h>
 
 namespace vk_music_fs {
 
@@ -47,29 +48,35 @@ namespace vk_music_fs {
                 RemoteFile remFile = _audioFs->getRemoteFile(filename);
                 auto remFileId = remFile.getId();
                 _idToRemFile.insert(std::make_pair<>(retId, remFile));
-                if(_procs.find(remFileId) != _procs.end()){
-                    _procs[remFileId].ids.insert(retId);
-                    _readers[remFileId].ids.insert(std::make_pair<>(retId, _procs[remFileId].proc));
-                } else {
-                    auto fname = _fileCache->getFilename(remFile);
-                    if(fname.inCache){
-                        std::shared_ptr<TReader> reader = _readersFact->createShared(
-                                CachedFilename{fname.data}, FileSize{_fileCache->getFileSize(remFile)}
-                        );
-                        _readers[remFileId].ids.insert(std::make_pair<>(retId, reader));
-                    } else {
-                        _procs[remFileId].proc = _procsFact->createShared(
-                                Artist{remFile.getArtist()},
-                                Title{remFile.getTitle()},
-                                Mp3Uri{remFile.getUri()},
-                                TagSize{_fileCache->getTagSize(remFile)},
-                                RemoteFile(remFile),
-                                CachedFilename{fname.data}
-                        );
-                        _readers[remFileId].ids.insert(std::make_pair<>(retId, _procs[remFileId].proc));
+                try {
+                    if (_procs.find(remFileId) != _procs.end()) {
                         _procs[remFileId].ids.insert(retId);
+                        _readers[remFileId].ids.insert(std::make_pair<>(retId, _procs[remFileId].proc));
+                    } else {
+                        auto fname = _fileCache->getFilename(remFile);
+                        if (fname.inCache) {
+                            std::shared_ptr<TReader> reader = _readersFact->createShared(
+                                    CachedFilename{fname.data}, FileSize{_fileCache->getFileSize(remFile)}
+                            );
+                            _readers[remFileId].ids.insert(std::make_pair<>(retId, reader));
+                        } else {
+                            _procs[remFileId].proc = _procsFact->createShared(
+                                    Artist{remFile.getArtist()},
+                                    Title{remFile.getTitle()},
+                                    Mp3Uri{remFile.getUri()},
+                                    TagSize{_fileCache->getTagSize(remFile)},
+                                    RemoteFile(remFile),
+                                    CachedFilename{fname.data}
+                            );
+                            _readers[remFileId].ids.insert(std::make_pair<>(retId, _procs[remFileId].proc));
+                            _procs[remFileId].ids.insert(retId);
+                        }
+                        _readers[remFileId].fname = fname.data;
                     }
-                    _readers[remFileId].fname = fname.data;
+                } catch (const net::WrongSizeException &ex) {
+                    _fileCache->removeSize(remFileId);
+                    closeNoLock(retId);
+                    throw RemoteException("Error getting size from " + filename + ". " + ex.what());
                 }
             } catch (const net::HttpException &ex){
                 closeNoLock(retId);
@@ -81,14 +88,20 @@ namespace vk_music_fs {
             ByteVect ret;
             std::scoped_lock<std::mutex> readersLock(_readersMutex);
             if(_idToRemFile.find(id) != _idToRemFile.end()) {
+                auto remFileId = _idToRemFile.find(id)->second.getId();
                 try {
-                    auto reader = _readers[_idToRemFile.find(id)->second.getId()].ids.find(id)->second;
+                    auto reader = _readers[remFileId].ids.find(id)->second;
                     std::visit([id, offset, size, &ret](auto &&el) {
                         ret = std::move(el->read(offset, size));
                     }, reader);
                     return std::move(ret);
+                } catch (const net::WrongSizeException &ex) {
+                    _fileCache->removeSize(remFileId);
+                    auto fname = _readers[remFileId].fname;
+                    closeNoLock(id);
+                    throw RemoteException("Error getting size from " + fname + ". " + ex.what());
                 } catch (const net::HttpException &ex){
-                    auto fname = _readers[_idToRemFile.find(id)->second.getId()].fname;
+                    auto fname = _readers[remFileId].fname;
                     closeNoLock(id);
                     throw RemoteException("Error reading from " + fname + ". " + ex.what());
                 } catch (const RemoteException &ex){

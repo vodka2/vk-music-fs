@@ -62,6 +62,7 @@ namespace vk_music_fs {
 
             void readPartIntoBuffer(
                     const std::shared_ptr<HttpStreamCommon::Stream> &stream,
+                    const std::string &uri,
                     ByteVect &buf
             );
 

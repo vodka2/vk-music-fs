@@ -15,11 +15,6 @@ namespace vk_music_fs{
         std::string password;
     };
 
-    struct Mp3FileSize{
-        uint_fast32_t uriSize;
-        uint_fast32_t tagSize;
-    };
-
     struct FileOrDirMeta{
         enum class Type{
             FILE_ENTRY,

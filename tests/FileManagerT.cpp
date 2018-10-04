@@ -25,6 +25,7 @@ public:
     MOCK_CONST_METHOD1(getFilename, FNameCache(const RemoteFile &f));
     MOCK_CONST_METHOD1(getFileSize, uint_fast32_t(const RemoteFile &file));
     MOCK_CONST_METHOD1(getTagSize, uint_fast32_t(const RemoteFile &file));
+    MOCK_CONST_METHOD1(removeSize, uint_fast32_t(const vk_music_fs::RemoteFileId &file));
 };
 
 class FileProcessorM0{

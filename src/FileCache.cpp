@@ -10,11 +10,12 @@ using json = nlohmann::json;
 using namespace vk_music_fs;
 
 FileCache::FileCache(
-        const std::shared_ptr<net::SizeObtainer> &sizeObtainer,
+        const std::shared_ptr<net::Mp3SizeObtainer> &sizeObtainer,
+        const std::shared_ptr<TagSizeCalculator> &tagSizeCalc,
         SizesCacheSize sizesCacheSize,
         FilesCacheSize filesCacheSize,
         CacheDir cacheDir
-): _sizeObtainer(sizeObtainer),
+): _tagSizeCalc(tagSizeCalc), _sizeObtainer(sizeObtainer),
 _sizesCache(sizesCacheSize, [](...) -> bool{return true;}),
 _initialSizesCache(filesCacheSize, [this](auto file) -> bool{
     if(_openedFiles.find(file) == _openedFiles.end()) {
@@ -46,7 +47,7 @@ FNameCache FileCache::getFilename(const RemoteFile &file) {
 }
 
 uint_fast32_t FileCache::getTagSize(const RemoteFile &file) {
-    return _sizeObtainer->getTagSize(file.getArtist(), file.getTitle());
+    return _tagSizeCalc->getTagSize(file.getArtist(), file.getTitle());
 }
 
 uint_fast32_t FileCache::getFileSize(const RemoteFile &file) {
@@ -54,11 +55,25 @@ uint_fast32_t FileCache::getFileSize(const RemoteFile &file) {
     if(_sizesCache.exists(file.getId())){
         return _sizesCache.get(file.getId());
     } else {
-        auto sizeStruct = _sizeObtainer->getSize(file.getUri(), file.getArtist(), file.getTitle());
-        uint_fast32_t size = sizeStruct.uriSize + sizeStruct.tagSize;
-        _sizesCache.put(file.getId(), size);
+        auto size =
+                _sizeObtainer->getSize(file.getUri()) +
+                _tagSizeCalc->getTagSize(file)
+        ;
+        _sizesCache.put(
+                file.getId(),
+                size
+        );
         return size;
     }
+}
+
+void FileCache::removeSize(const RemoteFileId &fileId) {
+    std::scoped_lock<std::mutex> lock(_sizesMutex);
+    _sizesCache.remove(fileId);
+}
+
+uint_fast32_t FileCache::getUriSize(const RemoteFile &file) {
+    return getFileSize(file) - _tagSizeCalc->getTagSize(file);
 }
 
 void FileCache::fileClosed(const RemoteFile &file, const TotalPrepSizes &sizes) {

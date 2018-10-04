@@ -1,3 +1,4 @@
+#include "WrongSizeException.h"
 #include "HttpStream.h"
 #include "HttpException.h"
 
@@ -46,7 +47,7 @@ std::optional<ByteVect> HttpStream::read() {
 }
 
 ByteVect HttpStream::read(uint_fast32_t offset, uint_fast32_t length) {
-    std::shared_ptr<HttpStreamCommon::Stream> stream;
+    std::shared_ptr<HttpStreamCommon::Stream> stream = nullptr;
     try {
         if (offset >= _size || _closed) {
             return {};
@@ -57,7 +58,7 @@ ByteVect HttpStream::read(uint_fast32_t offset, uint_fast32_t length) {
         auto readSize = maxReadByte + 1 - offset;
         _common->sendPartialGetReq(stream, _hostPath, _userAgent, offset, maxReadByte);
         ByteVect buf(readSize);
-        _common->readPartIntoBuffer(stream, buf);
+        _common->readPartIntoBuffer(stream, _uri, buf);
         return buf;
     } catch (const boost::system::system_error &ex){
         _common->closeStream(stream);
@@ -80,10 +81,10 @@ HttpStream::HttpStream(
 void HttpStream::open(uint_fast32_t offset, uint_fast32_t totalSize) {
     try {
         _stream = _common->connect(_hostPath);
+        _size = totalSize;
         if(offset == 0) {
             _common->sendGetReq(_stream, _hostPath, _userAgent);
         } else {
-            _size = totalSize;
             _common->sendPartialGetReq(_stream, _hostPath, _userAgent, offset, _size - 1);
         }
         auto readHeaderFuture = http::async_read_header(*_stream, _readBuffer, _parser, boost::asio::use_future);
@@ -100,8 +101,12 @@ void HttpStream::open(uint_fast32_t offset, uint_fast32_t totalSize) {
                     "Bad status code " + std::to_string(static_cast<uint_fast32_t>(_parser.get().result())) +
                     " when opening " + _uri + " when reading");
         }
-        if(offset == 0){
-            _size = static_cast<uint_fast32_t>(*_parser.content_length());
+        if((_size - offset) != static_cast<uint_fast32_t>(*_parser.content_length())){
+            close();
+            throw WrongSizeException(
+                    _size - offset, static_cast<uint_fast32_t>(*_parser.content_length()),
+                    _uri
+            );
         }
     } catch (const boost::system::system_error &ex){
         close();

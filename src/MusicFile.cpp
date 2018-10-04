@@ -9,7 +9,7 @@ MusicFile::MusicFile(const CachedFilename &name, const RemoteFile &remFile, cons
     auto t = _cache->getInitialSize(_remFile.getId());
     _totalInitialSize = t.totalSize;
     _prepSize = t.prependSize;
-    _totalUriSize = _cache->getFileSize(_remFile);
+    _totalUriSize = _cache->getUriSize(_remFile);
 }
 
 void MusicFile::write(ByteVect vect) {

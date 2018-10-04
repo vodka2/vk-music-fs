@@ -1,5 +1,6 @@
 #include "HttpStreamCommon.h"
 #include "HttpException.h"
+#include "WrongSizeException.h"
 #include <regex>
 #include <boost/beast/http.hpp>
 #include <iomanip>
@@ -148,6 +149,7 @@ std::string HttpStreamCommon::readRespAsStr(const std::shared_ptr<HttpStreamComm
 
 void HttpStreamCommon::readPartIntoBuffer(
         const std::shared_ptr<HttpStreamCommon::Stream> &stream,
+        const std::string &uri,
         ByteVect &buf
 ) {
     boost::beast::basic_flat_buffer<std::allocator<uint8_t>> readBuffer;
@@ -159,6 +161,9 @@ void HttpStreamCommon::readPartIntoBuffer(
         throw HttpException("Reading headers aborted on timeout");
     }
     readHeaderFuture.get();
+    if(parser.get().result() == http::status::range_not_satisfiable){
+        throw WrongSizeException(uri);
+    }
     if (parser.get().result() != http::status::partial_content && parser.get().result() != http::status::ok) {
         throw HttpException(
                 "Bad status code " + std::to_string(static_cast<uint_fast32_t>(parser.get().result())) +

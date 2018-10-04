@@ -7,8 +7,8 @@
 #include <optional>
 #include <common.h>
 #include <BlockingBuffer.h>
-#include "net/HttpException.h"
 #include "RemoteException.h"
+#include "net/WrongSizeException.h"
 
 namespace vk_music_fs {
     class FileProcessorInt{
@@ -57,17 +57,17 @@ namespace vk_music_fs {
                         try {
                             _stream->open(
                                     _file->getSize() - _file->getPrependSize(),
-                                    _file->getTotalSize() - _file->getPrependSize()
+                                    _file->getTotalSize()
                             );
                             _file->open();
                             if (_file->getSize() == 0) {
-                                _buffer->setSize(_file->getTotalSize() - _file->getPrependSize());
+                                _buffer->setSize(_file->getTotalSize());
                                 _pool->post([this] {
                                     try {
                                         while (!addToBuffer(_stream->read())) {
                                             std::this_thread::sleep_for(std::chrono::milliseconds(30));
                                         }
-                                    } catch (const net::HttpException &ex) {
+                                    } catch (const MusicFsException &ex) {
                                         _buffer->setEOF();
                                         _bufferAppendPromise->set_exception(std::current_exception());
                                     }
@@ -82,7 +82,7 @@ namespace vk_music_fs {
                             } else {
                                 _prependSize = _file->getPrependSize();
                             }
-                        } catch (const net::HttpException &ex) {
+                        } catch (const MusicFsException &ex) {
                             _openedPromise->set_exception(std::current_exception());
                             throw;
                         }
@@ -101,7 +101,7 @@ namespace vk_music_fs {
                             _file->write(std::move(*buf));
                         }
                         _threadPromise->set_value();
-                    } catch (const net::HttpException &ex){
+                    } catch (const MusicFsException &ex){
                         _error = true;
                         _threadPromise->set_exception(std::current_exception());
                     }
@@ -126,7 +126,11 @@ namespace vk_music_fs {
                         return _stream->read(start - _prependSize, size);
                     }
                 }
-            } catch (const net::HttpException &ex){
+            } catch (const net::WrongSizeException &ex){
+                _stream->close();
+                close();
+                throw;
+            } catch (const MusicFsException &ex){
                 _stream->close();
                 close();
                 throw RemoteException(std::string("Error reading remote file. ") + ex.what());
@@ -145,7 +149,7 @@ namespace vk_music_fs {
             if (_opened) {
                 try {
                     _threadFinishedFuture.get();
-                } catch (const net::HttpException &ex){
+                } catch (const MusicFsException &ex){
                 }
             }
         }

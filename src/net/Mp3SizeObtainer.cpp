@@ -1,6 +1,6 @@
 #include <boost/beast/http.hpp>
 #include <boost/beast/core.hpp>
-#include "SizeObtainer.h"
+#include "Mp3SizeObtainer.h"
 #include "HttpException.h"
 
 using namespace vk_music_fs;
@@ -10,7 +10,7 @@ using tcp = boost::asio::ip::tcp;
 namespace http = boost::beast::http;
 namespace ssl = boost::asio::ssl;
 
-Mp3FileSize SizeObtainer::getSize(const std::string &uri, const std::string &artist, const std::string &title) {
+uint_fast32_t Mp3SizeObtainer::getSize(const std::string &uri) {
     uint_fast32_t size = 0;
     std::shared_ptr<HttpStreamCommon::Stream> stream;
     for(uint_fast32_t i = 0; ; i++) {
@@ -27,20 +27,13 @@ Mp3FileSize SizeObtainer::getSize(const std::string &uri, const std::string &art
             }
         }
     }
-    return Mp3FileSize{size, getTagSize(artist, title)};
+    return size;
 }
 
-SizeObtainer::SizeObtainer(
+Mp3SizeObtainer::Mp3SizeObtainer(
         const std::shared_ptr<HttpStreamCommon> &common,
         const UserAgent &userAgent,
         const NumSizeRetries &numSizeRetries
 )  : _common(common), _userAgent(userAgent.t), _numSizeRetries(numSizeRetries.t){
 
-}
-
-uint_fast32_t SizeObtainer::getTagSize(const std::string &artist, const std::string &title) {
-    TagLib::ID3v2::Tag tag;
-    tag.setTitle(title);
-    tag.setArtist(artist);
-    return tag.render(4).size();
 }
