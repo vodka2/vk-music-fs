@@ -40,6 +40,7 @@ auto commonInj = [] (const std::shared_ptr<ProgramOptions> &conf){ // NOLINT
             di::bind<net::HttpStreamCommon>.in(di::extension::scoped),
             di::bind<ThreadPool>.in(di::extension::scoped),
             di::bind<FileCache>.in(di::extension::scoped),
+            di::bind<CacheSaver>.in(di::extension::scoped),
             di::bind<ErrLogger>.in(di::extension::scoped),
             di::bind<AudioFsD>.in(di::extension::scoped),
             di::bind<FileManagerD>.in(di::extension::scoped),
@@ -108,6 +109,12 @@ int printToken(const VkCredentials &creds, const std::shared_ptr<ProgramOptions>
     }
     inj.create<std::shared_ptr<net::HttpStreamCommon>>()->stop();
     return returnStatus;
+}
+
+int clearCache(const std::shared_ptr<ProgramOptions> &opts){
+    namespace di = boost::di;
+    commonInj(opts).create<std::shared_ptr<CacheSaver>>()->clearCache();
+    return 0;
 }
 
 int main(int argc, char* argv[]) {
@@ -233,14 +240,16 @@ int main(int argc, char* argv[]) {
         boost::nowide::cerr << exc.what() << std::endl;
         return 1;
     }
-    if(opts->needObtainToken()){
-        return printToken(opts->getCredentials(), opts);
-    }
-
     if(opts->needHelp()){
         boost::nowide::cerr << "Usage " << argv[0] << " mountpoint [options]\n" << std::endl;
         boost::nowide::cerr << opts->getHelpString() << std::endl;
+    } else {
+        if (opts->needObtainToken()) {
+            return printToken(opts->getCredentials(), opts);
+        }
+        if (opts->needClearCache()) {
+            return clearCache(opts);
+        }
     }
-
     return fuse_main(static_cast<int>(opts->getFuseArgc()), opts->getFuseArgv(), &operations, &opts);
 }

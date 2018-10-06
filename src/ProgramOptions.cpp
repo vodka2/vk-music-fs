@@ -61,6 +61,7 @@ _argvCreated(false), _creds(std::nullopt){
             }
         }
     } else if(_needClearCache) {
+        parseCommonOptions(vm);
         return;
     }
 
@@ -268,4 +269,8 @@ VkCredentials ProgramOptions::getCredentials() {
 
 bool ProgramOptions::needObtainToken() {
     return static_cast<bool>(_creds);
+}
+
+bool ProgramOptions::needClearCache() {
+    return _needClearCache;
 }

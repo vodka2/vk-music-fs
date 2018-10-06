@@ -10,6 +10,11 @@
 namespace vk_music_fs{
     typedef std::vector<uint8_t> ByteVect;
 
+    struct TotalPrepSizes{
+        uint_fast32_t totalSize;
+        uint_fast32_t prependSize;
+    };
+
     struct VkCredentials{
         std::string login;
         std::string password;

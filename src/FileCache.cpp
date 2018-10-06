@@ -12,21 +12,21 @@ using namespace vk_music_fs;
 FileCache::FileCache(
         const std::shared_ptr<net::Mp3SizeObtainer> &sizeObtainer,
         const std::shared_ptr<TagSizeCalculator> &tagSizeCalc,
+        const std::shared_ptr<CacheSaver> &cacheSaver,
         SizesCacheSize sizesCacheSize,
-        FilesCacheSize filesCacheSize,
-        CacheDir cacheDir
-): _tagSizeCalc(tagSizeCalc), _sizeObtainer(sizeObtainer),
+        FilesCacheSize filesCacheSize
+): _tagSizeCalc(tagSizeCalc), _sizeObtainer(sizeObtainer), _cacheSaver(cacheSaver),
 _sizesCache(sizesCacheSize, [](...) -> bool{return true;}),
 _initialSizesCache(filesCacheSize, [this](auto file) -> bool{
     if(_openedFiles.find(file) == _openedFiles.end()) {
-        bfs::remove(constructFilename(file));
+        bfs::remove(_cacheSaver->constructFilename(file));
         return true;
     } else {
         return false;
     }
-}), _cacheDir(cacheDir.t) {
-    loadSizesFromFile();
-    loadInitialSizesFromFile();
+}) {
+    _cacheSaver->loadSizesFromFile([this] (auto ...args) {_sizesCache.put(args...);});
+    _cacheSaver->loadInitialSizesFromFile([this] (auto ...args) {_initialSizesCache.put(args...);});
 }
 
 FNameCache FileCache::getFilename(const RemoteFile &file) {
@@ -35,12 +35,12 @@ FNameCache FileCache::getFilename(const RemoteFile &file) {
     _openedFiles.insert(id);
     if(_initialSizesCache.exists(id)){
         if(_initialSizesCache.get(id).totalSize == getFileSize(file)){
-            return {constructFilename(id), true};
+            return {_cacheSaver->constructFilename(id), true};
         } else {
-            return {constructFilename(id), false};
+            return {_cacheSaver->constructFilename(id), false};
         }
     } else {
-        std::string name = constructFilename(id);
+        std::string name = _cacheSaver->constructFilename(id);
         _initialSizesCache.put(id, {0, 0});
         return {name, false};
     }
@@ -82,73 +82,12 @@ void FileCache::fileClosed(const RemoteFile &file, const TotalPrepSizes &sizes) 
     _initialSizesCache.put(file.getId(), sizes);
 }
 
-std::string FileCache::constructFilename(const RemoteFileId &file) {
-    return (bfs::path(_cacheDir) / (idToStr(file) + ".mp3")).string();
-}
-
 TotalPrepSizes FileCache::getInitialSize(const RemoteFileId &file) {
     std::scoped_lock<std::mutex> lock(_initialSizesMutex);
     return _initialSizesCache.get(file);
 }
 
-void FileCache::loadSizesFromFile() {
-    auto headCacheFile = bfs::path(_cacheDir) / std::string(SIZES_CACHE_FNAME);
-    if(bfs::is_regular_file(headCacheFile.c_str())){
-        boost::nowide::ifstream strm(headCacheFile.string().c_str());
-        auto data = json::parse(strm);
-        for(auto it = data.begin(); it != data.end(); ++it){
-            _sizesCache.put(
-                    RemoteFileId((*it)[0], (*it)[1]),
-                    (*it)[2]
-            );
-        }
-    }
-}
-
-void FileCache::loadInitialSizesFromFile() {
-    auto filesCacheFile = bfs::path(_cacheDir) / std::string(INITIAL_SIZES_CACHE_FNAME);
-    if(bfs::is_regular_file(filesCacheFile.c_str())){
-        boost::nowide::ifstream strm(filesCacheFile.string().c_str());
-        auto data = json::parse(strm);
-        for(auto it = data.begin(); it != data.end(); ++it){
-            _initialSizesCache.put(
-                    RemoteFileId((*it)[0], (*it)[1]),
-                    TotalPrepSizes{(*it)[2], (*it)[3]}
-            );
-        }
-    }
-}
-
-void FileCache::saveSizesToFile() {
-    auto headCacheFile = bfs::path(_cacheDir) / std::string(SIZES_CACHE_FNAME);
-    std::vector<std::tuple<int_fast32_t, uint_fast32_t, uint_fast32_t>> vect;
-    for(const auto &item : _sizesCache.getList()){
-        vect.push_back(std::make_tuple<>(item.first.getOwnerId(), item.first.getFileId(), item.second));
-    }
-    json out(std::move(vect));
-    boost::nowide::ofstream strm(headCacheFile.string().c_str());
-    strm << out;
-}
-
-void FileCache::saveInitialSizesToFile() {
-    auto filesCacheFile = bfs::path(_cacheDir) / std::string(INITIAL_SIZES_CACHE_FNAME);
-    std::vector<std::tuple<int_fast32_t, uint_fast32_t, uint_fast32_t, uint_fast32_t>> vect;
-    for(const auto &item : _initialSizesCache.getList()){
-        vect.push_back(std::make_tuple<>(
-                item.first.getOwnerId(), item.first.getFileId(),
-                item.second.totalSize, item.second.prependSize
-        ));
-    }
-    json out(std::move(vect));
-    boost::nowide::ofstream strm(filesCacheFile.string().c_str());
-    strm << out;
-}
-
 FileCache::~FileCache() {
-    saveSizesToFile();
-    saveInitialSizesToFile();
-}
-
-std::string FileCache::idToStr(const RemoteFileId &file) {
-    return std::to_string(file.getOwnerId()) + "_" + std::to_string(file.getFileId());
+    _cacheSaver->saveSizesToFile([this] () {return _sizesCache.getList();});
+    _cacheSaver->saveInitialSizesToFile([this] () {return _initialSizesCache.getList();});
 }
