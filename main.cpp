@@ -233,9 +233,8 @@ int main(int argc, char* argv[]) {
         boost::nowide::cerr << exc.what() << std::endl;
         return 1;
     }
-    auto loginPass = opts->needGetToken();
-    if(loginPass){
-        return printToken(*loginPass, opts);
+    if(opts->needObtainToken()){
+        return printToken(opts->getCredentials(), opts);
     }
 
     if(opts->needHelp()){

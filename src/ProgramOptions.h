@@ -11,10 +11,12 @@ namespace vk_music_fs {
 
         virtual ~ProgramOptions();
 
-        std::optional<VkCredentials> needGetToken();
+        VkCredentials getCredentials();
+        bool needObtainToken();
 
         std::string getUseragent();
         bool needHelp();
+        bool needClearCache();
         std::string getHelpString();
         std::string getToken();
         std::string getMp3Extension();
@@ -34,6 +36,7 @@ namespace vk_music_fs {
         void createFuseArgv(char **argv, const std::vector<std::string> &additionalParameters);
         void addCommonOpts(boost::program_options::options_description &opts, const std::string &appName);
         void addTokenOpts(boost::program_options::options_description &opts);
+        void addCmdlineOnlyOpts(boost::program_options::options_description &opts);
         std::string getUserConfigDir(const std::string &appName);
         std::string getUserCacheDir(const std::string &appName);
         bool createDummyDirsDefault();
@@ -45,6 +48,7 @@ namespace vk_music_fs {
         bool _logErrorsToFile;
         bool _createDummyDirs;
         bool _needHelp;
+        bool _needClearCache;
         bool _argvCreated;
         char **_fuseArgv;
         uint_fast32_t _fuseArgc;

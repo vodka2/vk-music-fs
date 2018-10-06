@@ -16,7 +16,7 @@ namespace po = boost::program_options;
 namespace bfs = boost::filesystem;
 
 ProgramOptions::ProgramOptions(uint_fast32_t argc, char **argv, const std::string &configName, const std::string &appName):
-_argvCreated(false){
+_argvCreated(false), _creds(std::nullopt){
     po::options_description generalDesc("General options");
     addCommonOpts(generalDesc, appName);
 
@@ -24,6 +24,7 @@ _argvCreated(false){
     addTokenOpts(tokenDesc);
 
     po::options_description allDesc("");
+    addCmdlineOnlyOpts(allDesc);
     allDesc.add(tokenDesc).add(generalDesc);
 
     std::vector<std::string> additionalParameters;
@@ -39,7 +40,10 @@ _argvCreated(false){
         throw MusicFsException(std::string("Error when parsing command line options: ") + err.what());
     }
 
+    addCmdlineOnlyOpts(generalDesc);
+
     _needHelp = vm.count("help") != 0;
+    _needClearCache = vm.count("clear_cache") != 0;
     if(_needHelp){
         std::stringstream strm;
         strm << generalDesc << tokenDesc;
@@ -56,9 +60,10 @@ _argvCreated(false){
                 throw MusicFsException("You must specify login and password after '--get_token'");
             }
         }
+    } else if(_needClearCache) {
+        return;
     }
 
-    _creds = std::nullopt;
     createFuseArgv(argv, additionalParameters);
 
     if(_needHelp){
@@ -206,13 +211,8 @@ uint_fast32_t ProgramOptions::getHttpTimeout() {
     return _httpTimeout;
 }
 
-std::optional<VkCredentials> ProgramOptions::needGetToken() {
-    return _creds;
-}
-
 void ProgramOptions::addCommonOpts(boost::program_options::options_description &opts, const std::string &appName) {
     opts.add_options()
-            ("help", "produce help message")
             ("token", po::value<std::string>(), "set token")
             ("user_agent", po::value<std::string>(), "set user agent")
             ("sizes_cache_size", po::value<uint_fast32_t>()->default_value(10000),
@@ -242,6 +242,12 @@ void ProgramOptions::addTokenOpts(boost::program_options::options_description &o
             ;
 }
 
+void ProgramOptions::addCmdlineOnlyOpts(boost::program_options::options_description &opts) {
+    opts.add_options()
+            ("help", "produce help message")
+            ("clear_cache", "clear remote files and remote file sizes cache");
+}
+
 void ProgramOptions::createFuseArgv(char **argv, const std::vector<std::string> &additionalParameters) {
     _argvCreated = true;
     _fuseArgv = new char*[additionalParameters.size() + 2];
@@ -254,4 +260,12 @@ void ProgramOptions::createFuseArgv(char **argv, const std::vector<std::string> 
     }
     _fuseArgc = i;
     _fuseArgv[i] = nullptr;
+}
+
+VkCredentials ProgramOptions::getCredentials() {
+    return *_creds;
+}
+
+bool ProgramOptions::needObtainToken() {
+    return static_cast<bool>(_creds);
 }
