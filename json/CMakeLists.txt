@@ -1,5 +1,5 @@
 project(json)
 
-add_library(json json.hpp)
-target_include_directories(json PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-set_target_properties(json PROPERTIES LINKER_LANGUAGE CXX)
+add_library(json INTERFACE)
+target_sources(json INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/json.hpp)
+target_include_directories(json INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
