@@ -44,9 +44,15 @@ if(DEFINED MINGW_W64)
     target_include_directories(vk_music_fs PUBLIC ${FUSE_INCLUDE_DIR})
 else()
     find_library(FUSE_LIBRARIES
-        NAMES fuse
+        NAMES libosxfuse.dylib fuse
         PATHS /lib64 /lib /usr/lib64 /usr/lib /usr/local/lib64 /usr/local/lib /usr/lib/x86_64-linux-gnu
     )
+    message(STATUS "Found fuse ${FUSE_LIBRARIES}")
 endif()
 
 target_link_libraries(vk_music_fs vk_music_fs_lib ${FUSE_LIBRARIES})
+
+if(APPLE)
+    find_library(CoreServices CoreServices)
+    target_link_libraries(vk_music_fs ${CoreServices})
+endif(APPLE)

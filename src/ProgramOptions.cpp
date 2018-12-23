@@ -179,7 +179,7 @@ std::string ProgramOptions::getUserCacheDir(const std::string &appName) {
 
 bool ProgramOptions::createDummyDirsDefault() {
     return
-#ifdef WIN32
+#if defined(WIN32) || defined(__APPLE__)
             true
 #else
             false

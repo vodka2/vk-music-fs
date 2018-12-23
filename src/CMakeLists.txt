@@ -17,6 +17,11 @@ find_package(Boost REQUIRED COMPONENTS filesystem thread program_options system)
 set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
 set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads REQUIRED)
+
+if(APPLE)
+    set(OPENSSL_ROOT_DIR /usr/local/opt/openssl)
+endif()
+
 find_package(OpenSSL REQUIRED)
 if(DEFINED MINGW_W64)
     find_library(ZLIB_LIBRARY libz.a)

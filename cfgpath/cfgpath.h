@@ -54,6 +54,7 @@
 #define PATH_SEPARATOR_CHAR '\\'
 #define PATH_SEPARATOR_STRING "\\"
 #elif defined(__APPLE__)
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #include <CoreServices/CoreServices.h>
 #include <sys/stat.h>
 #define MAX_PATH PATH_MAX
