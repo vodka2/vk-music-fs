@@ -28,19 +28,40 @@ Installation from source:
 2. Execute in the sources directory: `mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Release && cmake --build . --target vk_music_fs`
 3. Copy `vk_music_fs` to the preferred location
 
+### OS X
+
+Installation from source:
+
+1. Install the following packages `cmake gcc openssl osxfuse boost`
+2. Execute in the sources directory:
+```
+mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=/usr/local/bin/g++-8 -DCMAKE_C_COMPILER=/usr/local/bin/gcc-8 && cmake --build . --target vk_music_fs
+```
+
 ## Usage
 
 ### General
 
-First run `vk_music_fs --get_token vk_login vk_password`. The program will print the token and the user agent, copy these two lines to the `VkMusicFs.ini` file either in the same directory or in the configuration folder. (`~/.config/VkMusicFs/VkMusicFs.ini` or `C:\Users\<Username>\AppData\Roaming\VkMusicFs\VkMusicFs.ini`). If you are using Linux create a mount point: `mkdir ~/VkMusicFs`. Then launch the program again: `vk_music_fs ~/VkMusicFs` or just `vk_music_fs` on Windows and the file system will be mounted. On Windows the default mount point is `Z:`.
+#### Linux
 
-It is also possible to specify `--token` and `--user_agent` options when launching the program instead of using a configuration file.
+Run `vk_music_fs --get_token vk_login vk_password`. The program will print the token and the user agent, copy these two lines to the `VkMusicFs.ini` file either in the same directory or in the configuration folder `~/.config/VkMusicFs/VkMusicFs.ini`. Create a mount point: `mkdir ~/VkMusicFs`. Then launch the program again: `vk_music_fs ~/VkMusicFs` and the file system will be mounted.
 
-On Windows it may be necessary to add `-o uid=-1,gid=-1` option.
+Please disable thumbnails for Mp3 files in the file system directory.
 
-Please disable thumbnails for Mp3 files in the file system directory. **On Windows select "Optimize this folder for: Documents" in folder properties, or it may be very slow.**
+#### Windows
 
-On Windows only mounting as a disk is supported.
+Run `vk_music_fs --get_token vk_login vk_password`. The program will print the token and the user agent, copy these two lines to the `VkMusicFs.ini` file either in the same directory or in the configuration folder `C:\Users\<Username>\AppData\Roaming\VkMusicFs\VkMusicFs.ini`. Then launch the program again: `vk_music_fs` and the file system will be mounted. The default mount point is `Z:`.
+
+**Please select "Optimize this folder for: Documents" in folder properties, or it may be very slow.**
+
+Only mounting as a disk is supported. It may be necessary to add `-o uid=-1,gid=-1` option when mounting fails.
+
+#### OS X
+
+Run `vk_music_fs --get_token vk_login vk_password`. The program will print the token and the user agent, copy these two lines to the `VkMusicFs.ini` file either in the same directory or in the configuration folder `~/Library/Application Support/VkMusicFs/VkMusicFs.ini`. Create a mount point: `mkdir ~/VkMusicFs`. Then launch the program again: `vk_music_fs -o modules=iconv,from_code=UTF-8,to_code=UTF-8-MAC ~/VkMusicFs` and the file system will be mounted.
+
+Please disable thumbnails for the file system directory: in Finder press Command+J, then uncheck "Show icon preview" and click on "Use as defaults".
+
 
 ### Commands
 
@@ -55,3 +76,37 @@ In `Search` directory:
 2. Create a directory with name `Baby` inside the `Justin Bieber` directory and the search query will be `Justin Bieber Baby`.
 
 It is possible to delete directories and files.
+
+### Command-line options
+
+Default values may differ for your OS and extra FUSE options are not shown.
+
+```
+Usage ./vk_music_fs mountpoint [options]
+
+General options:
+  --token arg                           set token
+  --user_agent arg                      set user agent
+  --sizes_cache_size arg (=10000)       set max number of remote file sizes in
+                                        cache
+  --files_cache_size arg (=300)         set max number of remote files in cache
+  --mp3_ext arg (=.mp3)                 set mp3 files extension
+  --num_search_files arg (=10)          set initial number of files in the
+                                        search directory
+  --cache_dir arg (=/home/vodka2/.cache/VkMusicFs/)
+                                        set cache dir
+  --create_dummy_dirs arg (=0)          create dummy dirs
+  --num_size_retries arg (=3)           set max number of HEAD requests when
+                                        retrieving size
+  --err_log arg (=/home/vodka2/.config/VkMusicFs/ErrorLog.txt)
+                                        set error log file name
+  --log_err_to_file arg (=0)            log errors to file
+  --http_timeout arg (=12000)           set HTTP requests timeout in
+                                        milliseconds
+  --help                                produce help message
+  --clear_cache                         clear remote files and remote file
+                                        sizes cache
+Token options:
+  --get_token arg       Obtain token by login and password
+
+```
