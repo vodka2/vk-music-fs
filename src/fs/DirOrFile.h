@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common_fs.h"
+#include <mutex>
 
 namespace vk_music_fs {
     namespace fs {
@@ -13,6 +14,9 @@ namespace vk_music_fs {
             DirPtr dir() const;
             FilePtr file() const;
             std::string getName() const;
+            uint_fast32_t getId() const;
+            void lock();
+            void unlock();
         private:
             std::variant<DirPtr, FilePtr> _data;
         };

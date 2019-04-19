@@ -9,7 +9,7 @@ namespace vk_music_fs {
     class RemoteFile {
     public:
         RemoteFile(
-                const std::string &uri, uint_fast32_t ownerId, uint_fast32_t fileId,
+                const std::string &uri, int_fast32_t ownerId, uint_fast32_t fileId,
                 const std::string &artist, const std::string &title
         );
         const std::string& getUri() const;

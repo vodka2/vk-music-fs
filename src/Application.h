@@ -26,7 +26,7 @@ namespace vk_music_fs {
 
         int_fast32_t open(const std::string &filename){
             try {
-                return _fileManager->open(filename);
+                return _audioFs->open(filename);
             } catch (const MusicFsException &exc){
                 _logger->logException(exc);
                 throw;
@@ -89,7 +89,7 @@ namespace vk_music_fs {
 
         uint_fast32_t getFileSize(const std::string &path){
             try {
-                return _fileManager->getFileSize(path);
+                return _audioFs->getFileSize(path);
             } catch (const MusicFsException &exc){
                 _logger->logException(exc);
                 throw;

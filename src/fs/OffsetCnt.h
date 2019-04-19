@@ -6,7 +6,7 @@ namespace vk_music_fs {
     namespace fs {
         class OffsetCnt {
         public:
-            OffsetCnt(uint_fast32_t offset, uint_fast32_t cnt);
+            OffsetCnt(uint_fast32_t offset, uint_fast32_t cnt, DirPtr counterDir);
 
             uint_fast32_t getOffset() const;
 
@@ -15,9 +15,15 @@ namespace vk_music_fs {
             void setOffset(uint_fast32_t offset);
 
             void setCnt(uint_fast32_t cnt);
+
+            DirPtr getCounterDir() const;
+
+            void setCounterDir(const DirPtr &counterDir);
+
         private:
             uint_fast32_t _offset;
             uint_fast32_t _cnt;
+            DirPtr _counterDir;
         };
     }
 }

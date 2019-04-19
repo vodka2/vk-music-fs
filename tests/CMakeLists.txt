@@ -1,6 +1,6 @@
 project(vk_music_fs_tests)
 
-add_library(testlib data/Mp3Files.h data/FileM.h data/ThreadPoolM.h data/StreamM.h data/MusicData.h data/Writer.h data/ParserM.h)
+add_library(testlib data/Mp3Files.h data/FileM.h data/ThreadPoolM.h data/StreamM.h data/MusicData.h data/Writer.h data/ParserM.h data/FileManagerM.h)
 target_link_libraries(testlib PUBLIC gtest_main gmock)
 target_include_directories(testlib PUBLIC ${CURRENT_SRC_DIR})
 
@@ -19,6 +19,7 @@ add_vmf_test(FileProcessorMp3ParserTest FileProcessorMp3ParserT.cpp)
 add_vmf_test(FileManagerTest FileManagerT.cpp)
 add_vmf_test(AudioFsTest AudioFsT.cpp)
 add_vmf_test(FileNameTest FileNameT.cpp)
+add_vmf_test(FsUtilsTest FsUtilsT.cpp)
 
 add_executable(AllTests ${ALL_TESTS_SRC})
 target_link_libraries(AllTests PUBLIC testlib)

@@ -2,7 +2,7 @@
 
 using namespace vk_music_fs;
 using namespace fs;
-OffsetCnt::OffsetCnt(uint_fast32_t offset, uint_fast32_t cnt) : _offset(offset), _cnt(cnt){
+OffsetCnt::OffsetCnt(uint_fast32_t offset, uint_fast32_t cnt, DirPtr counterDir) : _offset(offset), _cnt(cnt), _counterDir(counterDir){
 }
 
 uint_fast32_t OffsetCnt::getOffset() const {
@@ -19,4 +19,12 @@ void OffsetCnt::setOffset(uint_fast32_t offset) {
 
 void OffsetCnt::setCnt(uint_fast32_t cnt) {
     _cnt = cnt;
+}
+
+DirPtr OffsetCnt::getCounterDir() const {
+    return _counterDir;
+}
+
+void OffsetCnt::setCounterDir(const DirPtr &counterDir) {
+    _counterDir = counterDir;
 }

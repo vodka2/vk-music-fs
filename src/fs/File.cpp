@@ -5,23 +5,18 @@ using namespace vk_music_fs;
 using namespace vk_music_fs::fs;
 
 File::File(
-        std::string name, File::Type type, std::variant<RemoteFile> contents,
-        uint_fast32_t time, const DirWPtr &parent
+        std::string name,
+        uint_fast32_t id,
+        uint_fast32_t time,
+        FileExtra extra,
+        const DirWPtr &parent
 )
-        : _name(std::move(name)), _type(type), _contents(std::move(contents)),
-        _time(time), _parent(parent) {
+        : _name(std::move(name)),
+        _time(time), _parent(parent), _id(id), _extra(std::move(extra)) {
 }
 
 const std::string File::getName() const {
     return _name;
-}
-
-File::Type File::getType() const {
-    return _type;
-}
-
-RemoteFile File::getRemFile() {
-    return std::get<RemoteFile>(_contents);
 }
 
 DirPtr File::getParent() {
@@ -30,4 +25,20 @@ DirPtr File::getParent() {
 
 uint_fast32_t File::getTime() const {
     return _time;
+}
+
+void File::lock() {
+    _accessMutex.lock();
+}
+
+void File::unlock() {
+    _accessMutex.unlock();
+}
+
+uint_fast32_t File::getId() const {
+    return _id;
+}
+
+FileExtra& File::getExtra() {
+    return _extra;
 }

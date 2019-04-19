@@ -13,7 +13,7 @@ FileProcessorInt::FileProcessorInt()
     _openFuture(std::move(_openedPromise->get_future())),
     _threadFinishedFuture(std::move(_threadPromise->get_future())),
     _bufferAppendFuture(std::move(_bufferAppendPromise->get_future())){
-};
+}
 
 bool FileProcessorInt::addToBuffer(std::optional<ByteVect> vect) {
     if(vect) {

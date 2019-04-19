@@ -10,25 +10,13 @@ namespace vk_music_fs {
         typedef std::unordered_map<std::string, DirOrFile> ContentsMap;
         class Dir {
         public:
-            enum class Type {
-                ROOT_MY_AUDIOS_DIR,
-                COUNTER_DIR,
-                SEARCH_DIR,
-                DUMMY_DIR,
-                ROOT_DIR,
-                ROOT_SEARCH_DIR,
-                ARTIST_SEARCH_DIR,
-                ROOT_ARTIST_SEARCH_DIR
-            };
             Dir(
                     std::string name,
-                    Type type,
-                    std::optional<std::variant<OffsetCntName, OffsetCnt>> extra,
+                    uint_fast32_t id,
+                    DirExtra extra,
                     const DirWPtr &parent
             );
             const std::string getName() const;
-
-            Type getType() const;
             DirPtr getParent() const;
 
             void addItem(DirOrFile item);
@@ -36,22 +24,19 @@ namespace vk_music_fs {
             void removeItem(const std::string &name);
             const DirOrFile getItem(const std::string &str) const;
             ContentsMap &getContents();
-            OffsetCntName& getOffsetCntName();
-            OffsetCnt& getOffsetCnt();
-            uint_fast32_t getMaxFileNum() const;
-            DirPtr getCounterDir() const;
-            bool haveCounterDir() const;
-            void removeCounter();
-            void clearContents();
-            void clearContentsExceptNested();
+            void clear();
+            uint_fast32_t getNumFiles() const;
+            uint_fast32_t getId() const;
+            DirExtra& getDirExtra();
+            void lock();
+            void unlock();
         private:
             std::string _name;
-            Type _type;
+            uint_fast32_t _id;
             ContentsMap _contents;
-            std::optional<std::variant<OffsetCntName, OffsetCnt>> _extra;
-            std::optional<DirPtr> _counterDir;
             DirWPtr _parent;
-            uint_fast32_t _maxFileNum;
+            DirExtra _extra;
+            std::mutex _accessMutex;
         };
     }
 }

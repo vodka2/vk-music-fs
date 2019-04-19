@@ -15,11 +15,10 @@
 
 namespace vk_music_fs {
 
-    template <typename TAudioFs, typename TFileCache, typename TFileProcessor, typename TReader>
+    template <typename TFileCache, typename TFileProcessor, typename TReader>
     class FileManager{
     public:
         FileManager(
-                const std::shared_ptr<TAudioFs> &audioFs,
                 const std::shared_ptr<TFileCache> &fileCache,
                 std::shared_ptr<boost::di::extension::iextfactory<
                         TFileProcessor,
@@ -35,17 +34,16 @@ namespace vk_music_fs {
                         CachedFilename,
                         FileSize
                 >> readersFact
-        ) :_audioFs(audioFs), _fileCache(fileCache),
+        ) : _fileCache(fileCache),
         _procsFact(procsFact), _readersFact(readersFact){
         }
 
-        int_fast32_t open(const std::string &filename){
+        int_fast32_t open(const RemoteFile &remFile, const std::string &filename){
             namespace di = boost::di;
             std::scoped_lock<std::mutex> readersLock(_readersMutex);
             std::scoped_lock<std::mutex> procsLock(_procsMutex);
             uint_fast32_t retId = _idToRemFile.size() + 1;
             try{
-                RemoteFile remFile = _audioFs->getRemoteFile(filename);
                 auto remFileId = remFile.getId();
                 _idToRemFile.insert(std::make_pair<>(retId, remFile));
                 try {
@@ -117,8 +115,7 @@ namespace vk_music_fs {
             closeNoLock(id);
         }
 
-        uint_fast32_t getFileSize(const std::string &filename){
-            RemoteFile remFile = _audioFs->getRemoteFile(filename);
+        uint_fast32_t getFileSize(const RemoteFile &remFile, const std::string &filename){
             try {
                 return _fileCache->getFileSize(remFile);
             } catch (const net::HttpException &ex){
@@ -126,7 +123,6 @@ namespace vk_music_fs {
             }
         }
     private:
-        std::shared_ptr<TAudioFs> _audioFs;
         std::shared_ptr<TFileCache> _fileCache;
         std::shared_ptr<boost::di::extension::iextfactory<
                 TFileProcessor,

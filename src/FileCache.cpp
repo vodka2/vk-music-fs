@@ -34,11 +34,7 @@ FNameCache FileCache::getFilename(const RemoteFile &file) {
     auto id = RemoteFileId{file};
     _openedFiles.insert(id);
     if(_initialSizesCache.exists(id)){
-        if(_initialSizesCache.get(id).totalSize == getFileSize(file)){
-            return {_cacheSaver->constructFilename(id), true};
-        } else {
-            return {_cacheSaver->constructFilename(id), false};
-        }
+        return {_cacheSaver->constructFilename(id), (_initialSizesCache.get(id).totalSize == getFileSize(file))};
     } else {
         std::string name = _cacheSaver->constructFilename(id);
         _initialSizesCache.put(id, {0, 0});

@@ -34,3 +34,27 @@ std::string DirOrFile::getName() const {
         return file()->getName();
     }
 }
+
+void DirOrFile::unlock() {
+    if(isDir()){
+        dir()->unlock();
+    } else {
+        file()->unlock();
+    }
+}
+
+void DirOrFile::lock() {
+    if(isDir()){
+        dir()->lock();
+    } else {
+        file()->lock();
+    }
+}
+
+uint_fast32_t DirOrFile::getId() const {
+    if(isDir()){
+        return dir()->getId();
+    } else {
+        return file()->getId();
+    }
+}

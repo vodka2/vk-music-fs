@@ -28,8 +28,6 @@ namespace vk_music_fs{
         TotalPrepSizes getInitialSize(const RemoteFileId &file);
         void fileClosed(const RemoteFile &file, const TotalPrepSizes &sizes);
     private:
-        std::string idToStr(const RemoteFileId &file);
-        std::string constructFilename(const RemoteFileId &file);
         std::mutex _initialSizesMutex;
         std::mutex _sizesMutex;
         std::shared_ptr<CacheSaver> _cacheSaver;

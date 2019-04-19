@@ -7,6 +7,7 @@
 #include <Reader.h>
 #include <Application.h>
 #include <fs/AudioFs.h>
+#include <fs/FsUtils.h>
 #include <net/VkApiQueryMaker.h>
 #include <boost/nowide/iostream.hpp>
 #include <boost/nowide/args.hpp>
@@ -14,6 +15,13 @@
 #include <codecvt>
 #include <boost/filesystem/path.hpp>
 #include <token/TokenReceiver.h>
+#include <fs/ctrl/DummyDirWrapper.h>
+#include <fs/ctrl/RemoteFileWrapper.h>
+#include <fs/ctrl/MyAudiosCtrl.h>
+#include <fs/ctrl/SearchSongNameCtrl.h>
+#include <fs/ctrl/RootCtrl.h>
+#include <fs/ctrl/SingleDirCtrl.h>
+#include <fs/FileObtainer.h>
 #include "fuse_wrap.h"
 
 using namespace vk_music_fs;
@@ -21,8 +29,18 @@ using namespace vk_music_fs;
 fuse_operations operations = {};
 
 typedef FileProcessor<net::HttpStream, MusicFile, Mp3Parser, ThreadPool> FileProcessorD;
-typedef AudioFs<net::VkApiQueryMaker> AudioFsD;
-typedef FileManager<AudioFsD, FileCache, FileProcessorD, Reader> FileManagerD;
+typedef FileManager<FileCache, FileProcessorD, Reader> FileManagerD;
+typedef fs::FileObtainer<net::VkApiQueryMaker> FileObtainerD;
+typedef fs::CtrlTuple<fs::FsUtils, FileObtainerD, FileManagerD> CtrlTupleD;
+typedef fs::MyAudiosCtrl<fs::FsUtils, FileObtainerD> MyAudiosCtrlD;
+typedef fs::SingleDirCtrl<MyAudiosCtrlD, fs::FsUtils> MyAudiosSingleDirD;
+typedef fs::RemoteFileWrapper<MyAudiosSingleDirD, fs::FsUtils, FileManagerD> MyAudiosRemoteFileD;
+typedef fs::DummyDirWrapper<MyAudiosRemoteFileD, fs::FsUtils> MyAudiosDummyDirD;
+typedef fs::SearchSongNameCtrl<fs::FsUtils, FileObtainerD> SearchSongNameCtrlD;
+typedef fs::SingleDirCtrl<SearchSongNameCtrlD, fs::FsUtils> SearchSongNameSingleDirD;
+typedef fs::RemoteFileWrapper<SearchSongNameSingleDirD, fs::FsUtils, FileManagerD> SearchSongNameRemoteFileD;
+typedef fs::DummyDirWrapper<SearchSongNameRemoteFileD, fs::FsUtils> SearchSongNameDummyDirD;
+typedef AudioFs<CtrlTupleD> AudioFsD;
 typedef Application<FileManagerD, AudioFsD, ErrLogger, net::HttpStreamCommon> ApplicationD;
 
 auto curTime = static_cast<uint_fast32_t>(time(nullptr)); //NOLINT
@@ -36,6 +54,23 @@ auto commonInj = [] (const std::shared_ptr<ProgramOptions> &conf){ // NOLINT
             di::bind<FileProcessorD>.in(di::unique),
             di::bind<Reader>.in(di::unique),
             di::bind<TagSizeCalculator>.in(di::unique),
+            di::bind<CtrlTupleD>.in(di::unique),
+            di::bind<fs::FsUtils>.in(di::extension::scoped),
+            di::bind<FileObtainerD>.in(di::extension::scoped),
+            di::bind<fs::IdGenerator>.in(di::extension::scoped),
+            di::bind<fs::FsSettings>.in(di::extension::scoped),
+
+            di::bind<MyAudiosCtrlD>.in(di::extension::scoped),
+            di::bind<MyAudiosSingleDirD>.in(di::extension::scoped),
+            di::bind<MyAudiosRemoteFileD>.in(di::extension::scoped),
+            di::bind<MyAudiosDummyDirD>.in(di::extension::scoped),
+
+            di::bind<SearchSongNameCtrlD>.in(di::extension::scoped),
+            di::bind<SearchSongNameSingleDirD>.in(di::extension::scoped),
+            di::bind<SearchSongNameRemoteFileD>.in(di::extension::scoped),
+            di::bind<SearchSongNameDummyDirD>.in(di::extension::scoped),
+
+            di::bind<fs::RootCtrl<fs::FsUtils>>.in(di::extension::scoped),
             di::bind<net::Mp3SizeObtainer>.in(di::extension::scoped),
             di::bind<net::HttpStreamCommon>.in(di::extension::scoped),
             di::bind<ThreadPool>.in(di::extension::scoped),

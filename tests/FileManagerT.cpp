@@ -11,13 +11,6 @@ using vk_music_fs::RemoteFile;
 using vk_music_fs::FNameCache;
 namespace di = boost::di;
 
-class AudioFsM0{
-public:
-    template <typename... T>
-    AudioFsM0(T&&... args){} //NOLINT
-    MOCK_CONST_METHOD1(getRemoteFile, RemoteFile(const std::string &str));
-};
-
 class FileCacheM0{
 public:
     template <typename... T>
@@ -43,7 +36,6 @@ public:
     MOCK_CONST_METHOD2(read, ByteVect(uint_fast32_t offset, uint_fast32_t size));
 };
 
-typedef testing::NiceMock<AudioFsM0> AudioFsM;
 typedef testing::NiceMock<FileCacheM0> FileCacheM;
 typedef testing::NiceMock<FileProcessorM0> FileProcessorM;
 typedef testing::NiceMock<ReaderM0> ReaderM;
@@ -87,11 +79,10 @@ public:
 
 class FileManagerT: public ::testing::Test {
 public:
-    typedef vk_music_fs::FileManager<AudioFsM, FileCacheM, FileProcessorM, ReaderM> FileManager;
+    typedef vk_music_fs::FileManager<FileCacheM, FileProcessorM, ReaderM> FileManager;
 
     auto_init(inj, (di::make_injector<vk_music_fs::BoundPolicy>(
             di::bind<FileManager>.in(di::extension::scoped),
-            di::bind<AudioFsM>.in(di::extension::scoped),
             di::bind<FileProcessorM>.in(di::extension::scoped),
             di::bind<ReaderM>.in(di::extension::scoped),
             di::bind<FileCacheM>.in(di::extension::scoped),
@@ -131,31 +122,28 @@ protected:
 TEST_F(FileManagerT, OpenFileCache){ //NOLINT
     createReaders();
     auto t = inj.create<std::shared_ptr<FileManager>>();
-    EXPECT_CALL(*inj.create<std::shared_ptr<AudioFsM>>(), getRemoteFile(file)).WillOnce(testing::Return(rf));
     EXPECT_CALL(*inj.create<std::shared_ptr<FileCacheM>>(), getFilename(rf))
         .WillOnce(testing::Return(FNameCache{cachedFile, true}));
     EXPECT_CALL(*inj.create<std::shared_ptr<FileCacheM>>(), getTagSize(rf)).Times(0);
-    t->close(static_cast<uint_fast32_t>(t->open(file)));
+    t->close(static_cast<uint_fast32_t>(t->open(rf, file)));
 }
 
 TEST_F(FileManagerT, OpenFileNoCache){ //NOLINT
     createProcs();
     auto t = inj.create<std::shared_ptr<FileManager>>();
-    EXPECT_CALL(*inj.create<std::shared_ptr<AudioFsM>>(), getRemoteFile(file)).WillOnce(testing::Return(rf));
     EXPECT_CALL(*inj.create<std::shared_ptr<FileCacheM>>(), getFilename(rf))
         .WillOnce(testing::Return(FNameCache{cachedFile, false}));
     EXPECT_CALL(*inj.create<std::shared_ptr<FileCacheM>>(), getTagSize(rf));
-    t->close(static_cast<uint_fast32_t>(t->open(file)));
+    t->close(static_cast<uint_fast32_t>(t->open(rf, file)));
 }
 
 TEST_F(FileManagerT, OpenFileCacheRead){ //NOLINT
     createReaders();
     auto t = inj.create<std::shared_ptr<FileManager>>();
-    EXPECT_CALL(*inj.create<std::shared_ptr<AudioFsM>>(), getRemoteFile(file)).WillOnce(testing::Return(rf));
     EXPECT_CALL(*inj.create<std::shared_ptr<FileCacheM>>(), getFilename(rf))
             .WillOnce(testing::Return(FNameCache{cachedFile, true}));
     EXPECT_CALL(*inj.create<std::shared_ptr<ReaderM>>(), read(10, 200)).WillOnce(testing::Return(fileContents));
-    auto id = static_cast<uint_fast32_t>(t->open(file));
+    auto id = static_cast<uint_fast32_t>(t->open(rf, file));
     EXPECT_EQ(t->read(id, 10, 200), fileContents);
     t->close(id);
 }
@@ -163,12 +151,11 @@ TEST_F(FileManagerT, OpenFileCacheRead){ //NOLINT
 TEST_F(FileManagerT, OpenFileNoCacheRead){ //NOLINT
     createProcs();
     auto t = inj.create<std::shared_ptr<FileManager>>();
-    EXPECT_CALL(*inj.create<std::shared_ptr<AudioFsM>>(), getRemoteFile(file)).WillOnce(testing::Return(rf));
     EXPECT_CALL(*inj.create<std::shared_ptr<FileCacheM>>(), getFilename(rf))
             .WillOnce(testing::Return(FNameCache{cachedFile, false}));
     EXPECT_CALL(*inj.create<std::shared_ptr<FileProcessorM>>(), read(10, 200)).WillOnce(testing::Return(fileContents));
     EXPECT_CALL(*inj.create<std::shared_ptr<FileProcessorM>>(), close());
-    auto id = static_cast<uint_fast32_t>(t->open(file));
+    auto id = static_cast<uint_fast32_t>(t->open(rf, file));
     EXPECT_EQ(t->read(id, 10, 200), fileContents);
     t->close(id);
 }
@@ -176,16 +163,14 @@ TEST_F(FileManagerT, OpenFileNoCacheRead){ //NOLINT
 TEST_F(FileManagerT, OpenFileCacheRead2Times){ //NOLINT
     createReaders();
     auto t = inj.create<std::shared_ptr<FileManager>>();
-    EXPECT_CALL(*inj.create<std::shared_ptr<AudioFsM>>(), getRemoteFile(file)).WillOnce(testing::Return(rf));
-    EXPECT_CALL(*inj.create<std::shared_ptr<AudioFsM>>(), getRemoteFile(file2)).WillOnce(testing::Return(rf2));
     EXPECT_CALL(*inj.create<std::shared_ptr<FileCacheM>>(), getFilename(rf))
             .WillOnce(testing::Return(FNameCache{cachedFile, true}));
     EXPECT_CALL(*inj.create<std::shared_ptr<FileCacheM>>(), getFilename(rf2))
             .WillOnce(testing::Return(FNameCache{cachedFile2, true}));
     EXPECT_CALL(*inj.create<std::shared_ptr<ReaderM>>(), read(10, 200)).WillOnce(testing::Return(fileContents));
     EXPECT_CALL(*inj.create<std::shared_ptr<ReaderM>>(), read(100, 200)).WillOnce(testing::Return(fileContents2));
-    auto id = static_cast<uint_fast32_t>(t->open(file));
-    auto id2 = static_cast<uint_fast32_t>(t->open(file2));
+    auto id = static_cast<uint_fast32_t>(t->open(rf, file));
+    auto id2 = static_cast<uint_fast32_t>(t->open(rf2, file2));
     EXPECT_NE(id, id2);
     EXPECT_EQ(t->read(id, 10, 200), fileContents);
     EXPECT_EQ(t->read(id2, 100, 200), fileContents2);
@@ -195,42 +180,39 @@ TEST_F(FileManagerT, OpenFileCacheRead2Times){ //NOLINT
 
 TEST_F(FileManagerT, GetSizes){ //NOLINT
     auto t = inj.create<std::shared_ptr<FileManager>>();
-    EXPECT_CALL(*inj.create<std::shared_ptr<AudioFsM>>(), getRemoteFile(file)).WillOnce(testing::Return(rf));
     EXPECT_CALL(*inj.create<std::shared_ptr<FileCacheM>>(), getFileSize(rf)).WillOnce(testing::Return(1000));
-    EXPECT_EQ(t->getFileSize(file), 1000);
+    EXPECT_EQ(t->getFileSize(rf, file), 1000);
 }
 
 TEST_F(FileManagerT, GetSizesExc){ //NOLINT
     auto t = inj.create<std::shared_ptr<FileManager>>();
-    EXPECT_CALL(*inj.create<std::shared_ptr<AudioFsM>>(), getRemoteFile(file)).WillRepeatedly(testing::Return(rf));
     EXPECT_CALL(*inj.create<std::shared_ptr<FileCacheM>>(), getFileSize(rf)).WillOnce(testing::Invoke(
             [](...) -> uint_fast32_t {
                 throw vk_music_fs::net::HttpException("Test error");
             }
     )).WillOnce(testing::Return(500));
     try{
-        t->getFileSize(file);
+        t->getFileSize(rf, file);
         FAIL();
     } catch (const vk_music_fs::RemoteException &ex){
     }
-    EXPECT_EQ(t->getFileSize(file), 500);
+    EXPECT_EQ(t->getFileSize(rf, file), 500);
 }
 
 TEST_F(FileManagerT, OpenFileExc){ //NOLINT
     createReaders();
     auto t = inj.create<std::shared_ptr<FileManager>>();
-    EXPECT_CALL(*inj.create<std::shared_ptr<AudioFsM>>(), getRemoteFile(file)).WillRepeatedly(testing::Return(rf));
     EXPECT_CALL(*inj.create<std::shared_ptr<FileCacheM>>(), getFilename(rf))
             .WillRepeatedly(testing::Invoke([] (...) -> FNameCache {
                 throw vk_music_fs::net::HttpException("Test error");
             }));
     try {
-        t->close(static_cast<uint_fast32_t>(t->open(file)));
+        t->close(static_cast<uint_fast32_t>(t->open(rf, file)));
         FAIL();
     } catch (const vk_music_fs::RemoteException &ex){
     }
     try {
-        t->close(static_cast<uint_fast32_t>(t->open(file)));
+        t->close(static_cast<uint_fast32_t>(t->open(rf, file)));
         FAIL();
     } catch (const vk_music_fs::RemoteException &ex){
     }
@@ -239,7 +221,6 @@ TEST_F(FileManagerT, OpenFileExc){ //NOLINT
 TEST_F(FileManagerT, OpenFileNoCacheReadExc){ //NOLINT
     createProcs();
     auto t = inj.create<std::shared_ptr<FileManager>>();
-    EXPECT_CALL(*inj.create<std::shared_ptr<AudioFsM>>(), getRemoteFile(file)).WillOnce(testing::Return(rf));
     EXPECT_CALL(*inj.create<std::shared_ptr<FileCacheM>>(), getFilename(rf))
             .WillOnce(testing::Return(FNameCache{cachedFile, false}));
     EXPECT_CALL(*inj.create<std::shared_ptr<FileProcessorM>>(), read(10, 200)).WillOnce(testing::Invoke(
@@ -247,7 +228,7 @@ TEST_F(FileManagerT, OpenFileNoCacheReadExc){ //NOLINT
                 throw vk_music_fs::net::HttpException("Test error");
             }));
     EXPECT_CALL(*inj.create<std::shared_ptr<FileProcessorM>>(), close());
-    auto id = static_cast<uint_fast32_t>(t->open(file));
+    auto id = static_cast<uint_fast32_t>(t->open(rf, file));
     try{
         t->read(id, 10, 200);
         FAIL();
