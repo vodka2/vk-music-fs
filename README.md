@@ -1,5 +1,7 @@
 # VK Music FS
 
+[![Build Status](https://travis-ci.com/vodka2/vk-music-fs.svg?branch=master)](https://travis-ci.com/vodka2/vk-music-fs)
+
 ![VK Music FS screenshot](https://i.imgur.com/OoiJfaW.gif)
 
 FUSE virtual system for VK (Vkontakte) audios. VK account is required.

@@ -1,0 +1,59 @@
+language: cpp
+dist: trusty
+compiler: gcc
+env:
+  global:
+    - CMAKE_URL="https://cmake.org/files/v3.7/cmake-3.7.0-Linux-x86_64.tar.gz"
+    - COMPILER_EVAL="CC=gcc-8 && CXX=g++-8"
+matrix:
+  include:
+  - env:
+    - EXTRA_CMAKE_FLAGS="-DCMAKE_CXX_FLAGS=-m32 -DOPENSSL_ROOT_DIR=/usr/lib/i386-linux-gnu"
+    - APT_DEPS="g++-multilib libssl-dev:i386 libfuse-dev:i386 libboost-system1.67-dev:i386 libboost-thread1.67-dev:i386 libboost-filesystem1.67-dev:i386 libboost-program-options1.67-dev:i386 zlib1g-dev:i386"
+    - ARCH_SUFFIX="i686"
+    - ARCH_SUFFIX2="i386"
+  - env:
+    - EXTRA_CMAKE_FLAGS=""
+    - APT_DEPS="g++ libssl-dev libfuse-dev libboost-system1.67-dev libboost-thread1.67-dev libboost-filesystem1.67-dev libboost-program-options1.67-dev zlib1g-dev"
+    - ARCH_SUFFIX="x86_64"
+    - ARCH_SUFFIX2="x86_64"
+install:
+  - sudo add-apt-repository 'deb http://us.archive.ubuntu.com/ubuntu/ xenial main'
+  - sudo apt-get update
+  - sudo apt-get install -y --allow-unauthenticated dpkg
+  - sudo add-apt-repository 'deb http://deb.debian.org/debian/ testing main'
+  - sudo apt-get update
+  - sudo apt-get install -o Dpkg::Options::="--force-all" -o APT::Force-LoopBreak=1 -y --allow-unauthenticated ${APT_DEPS}
+  - DEPS_DIR="${HOME}/deps"
+  - mkdir -p ${DEPS_DIR} && cd ${DEPS_DIR}
+  - |
+    mkdir cmake && travis_retry wget --quiet -O - ${CMAKE_URL} | tar --strip-components=1 -xz -C cmake
+    export PATH=${DEPS_DIR}/cmake/bin:${PATH}
+  - cmake --version
+  - eval "${COMPILER_EVAL}"
+before_script:
+  - cd "${TRAVIS_BUILD_DIR}" && mkdir build && cd build
+  - cmake .. ${EXTRA_CMAKE_FLAGS} -DENABLE_TESTS=1 -DCMAKE_BUILD_TYPE=Release
+script:
+  - cmake --build . --target AllTests
+  - ./tests/AllTests
+  - cmake --build . --target vk_music_fs
+  - mkdir -p appdir/usr/optional/ ; wget -c https://github.com/darealshinji/AppImageKit-checkrt/releases/download/continuous/exec-${ARCH_SUFFIX}.so -O ./appdir/usr/optional/exec.so
+  - mkdir -p appdir/usr/optional/libstdc++/ ; cp /usr/lib/${ARCH_SUFFIX2}-linux-gnu/libstdc++.so.6 ./appdir/usr/optional/libstdc++/
+  - ( cd appdir ; rm AppRun ; wget -c https://github.com/darealshinji/AppImageKit-checkrt/releases/download/continuous/AppRun-patched-${ARCH_SUFFIX} -O AppRun ; chmod a+x AppRun)
+  - wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+  - chmod a+x linuxdeploy-x86_64.AppImage
+  - OUTPUT="vk_music_fs-$ARCH_SUFFIX2.AppImage" ./linuxdeploy-x86_64.AppImage --appimage-extract-and-run -e vk_music_fs --appdir appdir -e vk_music_fs -i ../appimage/vk_music_fs-icon.svg -d ../appimage/vk_music_fs.desktop --output appimage
+git:
+  submodules: true
+  depth: 1
+deploy:
+  file_glob: true
+  provider: releases
+  api_key:
+    secure: "eu9/Jq3thwP0Un5xdYPyz17/mkpPY4ol/CKdyDtqaWjIbVn4bqkoXOTwdDhQ6fEHR+qpm+jaVXZI7IRmnsXvNqr2KO6XHp7mSHQImuwpHwDmUE7dnlXhuGc/q+Uxq3B7YHnH11piZT3KTwT32xkyd1hBCo8FbfOpUv2oVmm0fwif5xljmPnSY/ZKBJxgDbNQK1OxIjYit8fwc7+9kCfSQjK97cjCUZBXC6zztI/vdd+0HHD8b7oQq6VXWT+rwsRMSMHRtfGZQPQsKfVh19MThNW6NxJaX7N8UCV9+54SvZG8qhNUnpQo5NriOR9Ku+2rxqCRtBut/yiijSKJrxf84iD2B0PHz0hOFhJZ+5AVAFywJxcHhw+VEIdeW/9Un8wxE4RPkAV0YPWWxdWTHtxUuQpF9O33zn/5Tl3IBexF6GbcNYeYJdUc0f0o5u17w9HujokygXh6tdeOFy6IEDhi+8ESN5sLQcgqwtVKrV8YbNP7eGSf6KZiga2XVK5euSaRyJgoPdZOJx5eSF5C+YSuWjgoF+gizASE/0eB4UrG2UpDbNg/+QKvEAyKPzXqzjBW4HISZUc8clgklFNGDbyYeTEuK7iq6hTO0PBpqKiwbWb+le6/fwkMjbExhZ2lETm0dw0vgotbiTxw+JC+RehWvuxjAUyRjkCrrgN30+eFi0c="
+  file: "vk_music_fs*.AppImage*"
+  skip_cleanup: true
+  overwrite: true
+  on:
+    tags: true
