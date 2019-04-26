@@ -72,8 +72,8 @@ public:
                 );
     }
 
-    di::injector<std::shared_ptr<AudioFs>, std::shared_ptr<QueryMakerM>> inj;
-    di::injector<std::shared_ptr<AudioFs>, std::shared_ptr<QueryMakerM>> dummyInj;
+    di::injector<std::shared_ptr<AudioFs>, std::shared_ptr<QueryMakerM>, std::shared_ptr<FileManagerM>> inj;
+    di::injector<std::shared_ptr<AudioFs>, std::shared_ptr<QueryMakerM>, std::shared_ptr<FileManagerM>> dummyInj;
     AudioFsT(): inj(makeInj(false)), dummyInj(makeInj(true)){
         setCreateDummyDirs(false);
     }
@@ -254,9 +254,9 @@ TEST_F(AudioFsT, CreateDir){ //NOLINT
     auto files = api->getEntries("/Search/SongName");
     std::sort(files.begin(), files.end());
     EXPECT_EQ(files, expFiles);
-    EXPECT_CALL(*fileManagerM, open(testing::_, "/Search/SongName/Artist2 - Song3.mp3")).WillOnce(
+    EXPECT_CALL(*fileManagerM, open(testing::_, "/Search/SongName/Artist3 - Song3.mp3")).WillOnce(
             testing::WithArgs<0>(testing::Invoke([](RemoteFile arg){
-                EXPECT_EQ(arg.getUri(), "http://uri3");
+                EXPECT_EQ(arg.getUri(), "https://uri3");
                 return 77;
             })));
     api->open("/Search/SongName/Artist3 - Song3.mp3");
