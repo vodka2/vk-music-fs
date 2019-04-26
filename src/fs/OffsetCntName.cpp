@@ -32,7 +32,7 @@ void OffsetCntName::setCnt(uint_fast32_t cnt) {
 }
 
 DirPtr OffsetCntName::getCounterDir() const {
-    return _counterDir;
+    return _counterDir.lock();
 }
 
 void OffsetCntName::setCounterDir(const DirPtr &counterDir) {

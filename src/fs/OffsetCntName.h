@@ -28,7 +28,7 @@ namespace vk_music_fs {
             std::string _name;
             uint_fast32_t _offset;
             uint_fast32_t _cnt;
-            DirPtr _counterDir;
+            DirWPtr _counterDir;
         };
     }
 }

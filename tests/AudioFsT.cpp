@@ -356,7 +356,7 @@ TEST_F(AudioFsT, CreateMoreDirNested){ //NOLINT
     auto files = api->getEntries("/Search/SongName/Name");
     EXPECT_EQ(files, expFiles);
 }
-/*
+
 TEST_F(AudioFsT, CreateMoreDirNestedThenDelete){ //NOLINT
     auto api = inj.create<std::shared_ptr<AudioFs>>();
     initSongNameQuery();
@@ -365,7 +365,7 @@ TEST_F(AudioFsT, CreateMoreDirNestedThenDelete){ //NOLINT
     api->createDir("/Search/SongName/3");
     api->createDir("/Search/SongName/Name");
     api->deleteDir("/Search/SongName/3");
-    std::vector<std::string> expData = {"Name"};
+    std::vector<std::string> expData = {"Artist1 - Song1.mp3", "Artist2 - Song2.mp3", "Artist3 - Song3.mp3", "Name"};
     auto data = api->getEntries("/Search/SongName");
     std::sort(data.begin(), data.end());
     EXPECT_EQ(data, expData);
@@ -395,7 +395,7 @@ TEST_F(AudioFsT, DeleteFile){ //NOLINT
     auto files = api->getEntries("/Search/SongName");
     std::sort(files.begin(), files.end());
     EXPECT_EQ(files, expFiles);
-}*/
+}
 
 TEST_F(AudioFsT, CreateMyAudiosDirOneNum){ //NOLINT
     auto api = inj.create<std::shared_ptr<AudioFs>>();

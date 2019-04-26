@@ -27,8 +27,8 @@ namespace vk_music_fs {
         private:
             uint_fast32_t _offset;
             uint_fast32_t _cnt;
-            DirPtr _counterDir;
-            DirPtr _refreshDir;
+            DirWPtr _counterDir;
+            DirWPtr _refreshDir;
         };
     }
 }

@@ -132,6 +132,24 @@ namespace vk_music_fs {
                 dir->addItem(_ctrlDir);
             }
 
+            void deleteDir(const std::string &path) {
+                FsPath fsPath = _fsUtils->findPath(_ctrlDir, _fsUtils->stripPathPrefix(path, DIR_NAME), FsPath::WITH_PARENT_DIR);
+                FsPathUnlocker unlocker{fsPath};
+                if(!fsPath.isPathMatched() || !fsPath.isPathDir() || fsPath.getAll().back().getId() == _ctrlDir->getId()){
+                    throw FsException("Directory does not exist " + path);
+                }
+                fsPath.getAll().front().dir()->removeItem(fsPath.getAll().back().getName());
+            }
+
+            void deleteFile(const std::string &path) {
+                FsPath fsPath = _fsUtils->findPath(_ctrlDir, _fsUtils->stripPathPrefix(path, DIR_NAME), FsPath::WITH_PARENT_DIR);
+                FsPathUnlocker unlocker{fsPath};
+                if(!fsPath.isPathMatched() || !fsPath.getAll().back().isFile()){
+                    throw FsException("File does not exist " + path);
+                }
+                fsPath.getAll().front().dir()->removeItem(fsPath.getAll().back().getName());
+            }
+
             std::string getDirName(){
                 return DIR_NAME;
             }

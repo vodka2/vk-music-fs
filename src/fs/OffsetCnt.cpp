@@ -27,7 +27,7 @@ void OffsetCnt::setCnt(uint_fast32_t cnt) {
 }
 
 DirPtr OffsetCnt::getCounterDir() const {
-    return _counterDir;
+    return _counterDir.lock();
 }
 
 void OffsetCnt::setCounterDir(const DirPtr &counterDir) {
@@ -35,7 +35,7 @@ void OffsetCnt::setCounterDir(const DirPtr &counterDir) {
 }
 
 DirPtr OffsetCnt::getRefreshDir() const {
-    return _refreshDir;
+    return _refreshDir.lock();
 }
 
 void OffsetCnt::setRefreshDir(const DirPtr &refreshDir) {
