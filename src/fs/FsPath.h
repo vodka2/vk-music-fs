@@ -29,9 +29,10 @@ namespace vk_music_fs {
         class FsPathUnlocker{
         public:
             FsPathUnlocker(FsPath &path);
+            FsPathUnlocker(const std::vector<FsPath> &paths);
             ~FsPathUnlocker();
         private:
-            FsPath &_path;
+            std::vector<DirOrFile> _els;
         };
     }
 }

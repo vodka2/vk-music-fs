@@ -56,7 +56,30 @@ bool FsPath::isPathDir() {
 }
 
 FsPathUnlocker::~FsPathUnlocker() {
-    _path.unlockAll();
+    for(auto &el: _els){
+        el.unlock();
+    }
 }
 
-FsPathUnlocker::FsPathUnlocker(FsPath &path) : _path(path){}
+FsPathUnlocker::FsPathUnlocker(FsPath &path) {
+    for(const auto &el : path.cgetAll()){
+        _els.push_back(el);
+    }
+}
+
+FsPathUnlocker::FsPathUnlocker(const std::vector<FsPath> &paths) {
+    for(const auto &path : paths){
+        for(const auto &pathEl : path.cgetAll()){
+            bool found = false;
+            for(const auto &el: _els){
+                if(el.getId() == pathEl.getId()){
+                    found = true;
+                    break;
+                }
+            }
+            if(!found){
+                _els.push_back(pathEl);
+            }
+        }
+    }
+}

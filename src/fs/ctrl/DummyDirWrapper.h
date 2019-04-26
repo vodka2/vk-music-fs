@@ -46,8 +46,7 @@ namespace vk_music_fs {
             void rename(const std::string &oldPath, const std::string &newPath){
                 FsPath oldFsPath = _fsUtils->findPath(_ctrl->getCtrlDir(), _ctrl->transformPath(oldPath), FsPath::WITH_PARENT_DIR);
                 FsPath newFsPath = _fsUtils->findPath(_ctrl->getCtrlDir(), _ctrl->transformPath(newPath), {oldFsPath}, FsPath::WITH_PARENT_DIR);
-                FsPathUnlocker oldUnlocker{oldFsPath};
-                FsPathUnlocker newUnlocker{newFsPath};
+                FsPathUnlocker oldUnlocker{{oldFsPath, newFsPath}};
                 if(!oldFsPath.isPathMatched()){
                     throw FsException("Can't rename " + oldPath + " to " + newPath + " because source does not exist");
                 }
