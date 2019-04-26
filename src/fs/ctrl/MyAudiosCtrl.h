@@ -10,6 +10,7 @@
 #include <fs/File.h>
 #include <fs/IdGenerator.h>
 #include <RemoteFile.h>
+#include <regex>
 #include "ThrowExCtrl.h"
 
 namespace vk_music_fs {
@@ -32,7 +33,7 @@ namespace vk_music_fs {
 
             void setRootDir(const DirPtr &dir){
                 _ctrlDir = std::make_shared<Dir>(
-                        DIR_NAME, _idGenerator->getNextId(), OffsetCnt{0,0,DirPtr{}}, dir
+                        DIR_NAME, _idGenerator->getNextId(), OffsetCnt{0,0,DirPtr{},DirPtr{}}, dir
                 );
                 dir->addItem(_ctrlDir);
             }
@@ -50,6 +51,9 @@ namespace vk_music_fs {
                 QueryParams query = _fsUtils->parseQuery(dirName);
                 if(query.type == QueryParams::Type::TWO_NUMBERS || query.type == QueryParams::Type::ONE_NUMBER){
                     OffsetCnt curOffsetCnt = std::get<OffsetCnt>(*_ctrlDir->getDirExtra());
+                    if(curOffsetCnt.getRefreshDir() != nullptr) {
+                        _ctrlDir->removeItem(curOffsetCnt.getRefreshDir()->getName());
+                    }
                     uint_fast32_t queryOffset = 0, queryCnt = 0;
                     bool needMakeQuery = true;
                     if(query.type == QueryParams::Type::TWO_NUMBERS){
@@ -84,9 +88,28 @@ namespace vk_music_fs {
                     );
                     _ctrlDir->addItem(cntDir);
                     curOffsetCnt.setCounterDir(cntDir);
+                    curOffsetCnt.setRefreshDir(nullptr);
+                    std::get<OffsetCnt>(*_ctrlDir->getDirExtra()) = curOffsetCnt;
+                } else if(std::regex_match(dirName, std::regex{"^(r|regex)[0-9]*$"})){
+                    OffsetCnt curOffsetCnt = std::get<OffsetCnt>(*_ctrlDir->getDirExtra());
+                    if(curOffsetCnt.getRefreshDir() != nullptr) {
+                        _ctrlDir->removeItem(curOffsetCnt.getRefreshDir()->getName());
+                    }
+                    _fsUtils->deleteAllFiles(_ctrlDir);
+                    auto refreshDir = std::make_shared<Dir>(
+                            dirName, _idGenerator->getNextId(), std::nullopt, _ctrlDir
+                    );
+                    _fsUtils->addFilesToDir(
+                            _ctrlDir,
+                            _fileObtainer->getMyAudios(curOffsetCnt.getOffset(), curOffsetCnt.getCnt()),
+                            _idGenerator,
+                            _settings->getMp3Ext()
+                    );
+                    curOffsetCnt.setRefreshDir(refreshDir);
+                    _ctrlDir->addItem(refreshDir);
                     std::get<OffsetCnt>(*_ctrlDir->getDirExtra()) = curOffsetCnt;
                 } else {
-                    throw FsException("Can't create non-counter dir in My Audios dir");
+                    throw FsException("Can't create non-counter, non-refresh dir in My Audios dir");
                 }
             }
 

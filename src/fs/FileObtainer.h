@@ -23,6 +23,9 @@ namespace vk_music_fs {
             }
 
         std::vector<RemoteFile> getMyAudios(uint_fast32_t offset, uint_fast32_t count){
+            if(count == 0){
+                return {};
+            }
             return getFilenames(parseJson(makeMyAudiosQuery(offset, count)));
         }
 
@@ -34,6 +37,9 @@ namespace vk_music_fs {
                 const std::string &searchName,
                 uint_fast32_t offset, uint_fast32_t count
         ){
+            if(count == 0){
+                return {};
+            }
             return getFilenames(parseJson(makeSearchQuery(searchName, offset, count)));
         }
 

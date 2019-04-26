@@ -124,6 +124,18 @@ public:
         ));
     }
 
+    void initMyAudiosQuery2(){
+        ON_CALL(*queryMakerM, makeMyAudiosQuery(0, 3)).WillByDefault(testing::Return(
+                R"(
+                        {"response": {"count":3, "items": [
+                            {"id": 1, "owner_id": 2, "artist":"Artist1", "title":"Song1", "url":"https:\/\/uri1"},
+                            {"id": 2, "owner_id": 3, "artist":"Artist2", "title":"Song2", "url":"https:\/\/uri2"},
+                            {"id": -1, "owner_id": 6, "artist":"Artist5", "title":"Song5", "url":"https:\/\/uri3"}
+                        ] }}
+                        )"
+        ));
+    }
+
     void initMyAudiosIntervalQuery(){
         ON_CALL(*queryMakerM, makeMyAudiosQuery(1, 2)).WillByDefault(testing::Return(
                 R"(
@@ -390,6 +402,18 @@ TEST_F(AudioFsT, CreateMyAudiosDirOneNum){ //NOLINT
     initMyAudiosQuery();
     api->createDir("/My audios/3");
     std::vector<std::string> expFiles = {"3", "Artist1 - Song1.mp3", "Artist2 - Song2.mp3", "Artist3 - Song3.mp3"};
+    auto files = api->getEntries("/My audios");
+    std::sort(files.begin(), files.end());
+    EXPECT_EQ(files, expFiles);
+}
+
+TEST_F(AudioFsT, CreateMyAudiosDirOneNumRefresh){ //NOLINT
+    auto api = inj.create<std::shared_ptr<AudioFs>>();
+    initMyAudiosQuery();
+    initMyAudiosQuery2();
+    api->createDir("/My audios/3");
+    api->createDir("/My audios/r4");
+    std::vector<std::string> expFiles = {"3", "Artist1 - Song1.mp3", "Artist2 - Song2.mp3", "Artist5 - Song5.mp3",  "r4"};
     auto files = api->getEntries("/My audios");
     std::sort(files.begin(), files.end());
     EXPECT_EQ(files, expFiles);
