@@ -217,7 +217,7 @@ int main(int argc, char* argv[]) {
     operations.rename = [](const char *oldPath, const char *newPath){
         try {
             auto app = reinterpret_cast<ApplicationD *>(fuse_get_context()->private_data);
-            app->renameDir(oldPath, newPath);
+            app->rename(oldPath, newPath);
         } catch (...){
             return -EACCES;
         }

@@ -43,11 +43,11 @@ namespace vk_music_fs {
                 }
             }
 
-            void renameDir(const std::string &oldPath, const std::string &newPath){
+            void rename(const std::string &oldPath, const std::string &newPath){
                 try {
                     for_each(_ctrlTuple, [oldPath, newPath](auto &&arg) {
                         if (arg->supports(newPath)) {
-                            arg->renameDir(oldPath, newPath);
+                            arg->rename(oldPath, newPath);
                             return true;
                         }
                         return false;

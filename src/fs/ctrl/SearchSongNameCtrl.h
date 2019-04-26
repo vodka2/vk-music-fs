@@ -6,7 +6,9 @@
 #include <fs/OffsetCntName.h>
 #include <fs/Dir.h>
 #include <fs/File.h>
+#include <boost/filesystem/convenience.hpp>
 #include "ThrowExCtrl.h"
+#include <regex>
 
 namespace vk_music_fs {
     namespace fs {
@@ -92,6 +94,31 @@ namespace vk_music_fs {
                     curOffsetCntName.setCounterDir(cntDir);
                     std::get<OffsetCntName>(*parent->getDirExtra()) = curOffsetCntName;
                 }
+            }
+
+            void rename(FsPath& oldPath, FsPath &newPath) {
+                if(!oldPath.getAll().back().isFile()){
+                    throw FsException("Can't rename non-file " + oldPath.getAll().back().getName() + " to " + newPath.getAll().back().getName());
+                }
+                auto origFname = boost::filesystem::change_extension(oldPath.getStringParts().back(), "").string();
+                if(newPath.getStringParts().back() !=  origFname + "_a" + _settings->getMp3Ext()){
+                    throw FsException(
+                            "Currently only adding _a suffix is supported, not " +
+                            oldPath.getAll().back().getName() + " to " + newPath.getAll().back().getName()
+                    );
+                }
+                auto dir = oldPath.getAll().front().dir();
+                auto prevFile = dir->getItem(oldPath.getStringParts().back()).file();
+                auto remFile = std::get<RemoteFile>(*prevFile->getExtra());
+                _fileObtainer->addToMyAudios(remFile.getOwnerId(), remFile.getFileId());
+                dir->removeItem(oldPath.getStringParts().back());
+                dir->addItem(std::make_shared<File>(
+                        newPath.getStringParts().back(),
+                        _idGenerator->getNextId(),
+                        prevFile->getTime(),
+                        remFile,
+                        dir
+                ));
             }
 
             DirPtr getCtrlDir(){

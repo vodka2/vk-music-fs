@@ -26,6 +26,10 @@ namespace vk_music_fs {
             return getFilenames(parseJson(makeMyAudiosQuery(offset, count)));
         }
 
+        void addToMyAudios(int_fast32_t ownerId, uint_fast32_t fileId){
+            parseJson(addToMyAudiosQuery(ownerId, fileId));
+        }
+
         std::vector<RemoteFile> searchBySongName(
                 const std::string &searchName,
                 uint_fast32_t offset, uint_fast32_t count
@@ -43,6 +47,21 @@ namespace vk_music_fs {
                     return std::move(respStr);
                 } catch (const json::parse_error &err){
                     throw VkException("Error parsing JSON '" + respStr + "' when obtaining my audios");
+                }
+            }
+
+            std::string addToMyAudiosQuery(
+                    int_fast32_t ownerId, uint_fast32_t fileId
+            ){
+                std::string respStr;
+                try{
+                    respStr = _queryMaker->addToMyAudios(ownerId, fileId);
+                    return std::move(respStr);
+                } catch (const json::parse_error &err){
+                    throw VkException(
+                            "Error parsing JSON '" + respStr + "' when adding " +
+                            std::to_string(ownerId) + ":" + std::to_string(fileId)
+                    );
                 }
             }
 
@@ -71,7 +90,6 @@ namespace vk_music_fs {
                     json returnedJson
             ) {
                 std::vector<RemoteFile> ret;
-                std::unordered_set<std::string> _fileNames;
                 auto resp = returnedJson["response"];
                 for (const auto &item: resp["items"]) {
                     if(!static_cast<std::string>(item["url"]).empty()) {

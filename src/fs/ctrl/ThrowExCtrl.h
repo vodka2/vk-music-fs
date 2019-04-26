@@ -18,12 +18,12 @@ namespace vk_music_fs {
                 throw FsException("Can't create dir - not supported");
             }
 
-            void renameDir(const std::string &oldPath, const std::string &newPath) {
-                throw FsException("Can't rename dir - not supported");
+            void rename(const std::string &oldPath, const std::string &newPath) {
+                throw FsException("Can't rename - not supported");
             }
 
-            void renameDir(FsPath& oldPath, FsPath &newPath) {
-                throw FsException("Can't rename dir - not supported");
+            void rename(FsPath& oldPath, FsPath &newPath) {
+                throw FsException("Can't rename - not supported");
             }
 
             std::vector<std::string> getEntries(const std::string &path) {

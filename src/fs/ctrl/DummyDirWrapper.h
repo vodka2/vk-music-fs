@@ -43,18 +43,18 @@ namespace vk_music_fs {
                 }
             }
 
-            void renameDir(const std::string &oldPath, const std::string &newPath){
+            void rename(const std::string &oldPath, const std::string &newPath){
                 FsPath oldFsPath = _fsUtils->findPath(_ctrl->getCtrlDir(), _ctrl->transformPath(oldPath), FsPath::WITH_PARENT_DIR);
                 FsPath newFsPath = _fsUtils->findPath(_ctrl->getCtrlDir(), _ctrl->transformPath(newPath), {oldFsPath}, FsPath::WITH_PARENT_DIR);
                 FsPathUnlocker oldUnlocker{oldFsPath};
                 FsPathUnlocker newUnlocker{newFsPath};
-                if(!oldFsPath.isPathMatched() || !oldFsPath.isPathDir()){
-                    throw FsException("Can't rename " + oldPath + " to " + newPath + " because source dir does not exist");
+                if(!oldFsPath.isPathMatched()){
+                    throw FsException("Can't rename " + oldPath + " to " + newPath + " because source does not exist");
                 }
                 if(!newFsPath.isParentPathMatched() || !newFsPath.isParentPathDir()){
                     throw FsException("Can't rename " + oldPath + " to " + newPath + " because parent of target dir does not exist");
                 }
-                if(_fsSettings->isCreateDummyDirs() && std::holds_alternative<DummyDirMarker>(
+                if(_fsSettings->isCreateDummyDirs() && oldFsPath.isPathDir() && std::holds_alternative<DummyDirMarker>(
                         *oldFsPath.getAll().back().dir()->getDirExtra()
                 )) {
                     auto parent = oldFsPath.getAll().front().dir();
@@ -64,7 +64,7 @@ namespace vk_music_fs {
                     parent->removeItem(oldFsPath.getAll().back().getName());
                     _ctrl->createDir(newFsPath);
                 } else {
-                    _ctrl->renameDir(oldFsPath, newFsPath);
+                    _ctrl->rename(oldFsPath, newFsPath);
                 }
             }
         private:

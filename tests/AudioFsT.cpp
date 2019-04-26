@@ -26,6 +26,7 @@ public:
     MOCK_CONST_METHOD3(makeSearchQuery, std::string(const std::string&, uint_fast32_t, uint_fast32_t));
     MOCK_CONST_METHOD3(makeArtistSearchQuery, std::string(const std::string&, uint_fast32_t, uint_fast32_t));
     MOCK_CONST_METHOD2(makeMyAudiosQuery, std::string(uint_fast32_t, uint_fast32_t));
+    MOCK_CONST_METHOD2(addToMyAudios, std::string(int_fast32_t, uint_fast32_t));
 };
 
 typedef testing::NiceMock<QueryMakerM0> QueryMakerM;
@@ -213,6 +214,14 @@ public:
                         )"
         ));
     }
+
+    void initRenameFileQuery(){
+        ON_CALL(*queryMakerM, addToMyAudios(3, 2)).WillByDefault(testing::Return(
+                R"(
+                        {"response": {}}
+                        )"
+        ));
+    }
 };
 /*
 TEST_F(AudioFsT, Empty){ //NOLINT
@@ -272,13 +281,25 @@ TEST_F(AudioFsT, CreateDirHttpErr){ //NOLINT
     }
 }
 
+TEST_F(AudioFsT, RenameFile){ //NOLINT
+    auto api = inj.create<std::shared_ptr<AudioFs>>();
+    initSongNameQuery();
+    initRenameFileQuery();
+    api->createDir("/Search/SongName");
+    api->rename("/Search/SongName/Artist2 - Song2.mp3", "/Search/SongName/Artist2 - Song2_a.mp3");
+    std::vector<std::string> expData = {"Artist1 - Song1.mp3", "Artist2 - Song2_a.mp3", "Artist3 - Song3.mp3"};
+    auto data = api->getEntries("/Search/SongName");
+    std::sort(data.begin(), data.end());
+    EXPECT_EQ(data, expData);
+}
+
 TEST_F(AudioFsT, CreateDummyDir){ //NOLINT
     setCreateDummyDirs(true);
     auto api = dummyInj.create<std::shared_ptr<AudioFs>>();
     initSongNameQuery();
     api->createDir("/Search/New Folder");
     EXPECT_EQ(api->getEntries("/Search/New Folder").size(), 0);
-    api->renameDir("/Search/New Folder", "/Search/SongName");
+    api->rename("/Search/New Folder", "/Search/SongName");
     std::vector<std::string> expFiles = {"Artist1 - Song1.mp3", "Artist2 - Song2.mp3", "Artist3 - Song3.mp3"};
     auto files = api->getEntries("/Search/SongName");
     std::sort(files.begin(), files.end());

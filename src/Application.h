@@ -78,9 +78,9 @@ namespace vk_music_fs {
             }
         }
 
-        void renameDir(const std::string &oldPath, const std::string &newPath){
+        void rename(const std::string &oldPath, const std::string &newPath){
             try {
-                _audioFs->renameDir(oldPath, newPath);
+                _audioFs->rename(oldPath, newPath);
             } catch (const MusicFsException &exc){
                 _logger->logException(exc);
                 throw;

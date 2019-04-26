@@ -41,8 +41,8 @@ namespace vk_music_fs {
             }
 
             template<typename... Args>
-            auto renameDir(Args&&... args){
-                return _ctrl->renameDir(std::forward<Args>(args)...);
+            auto rename(Args&&... args){
+                return _ctrl->rename(std::forward<Args>(args)...);
             }
 
             template<typename... Args>
