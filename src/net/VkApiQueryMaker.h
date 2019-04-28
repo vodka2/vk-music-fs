@@ -21,6 +21,8 @@ namespace vk_music_fs {
 
             std::string addToMyAudios(int_fast32_t ownerId, uint_fast32_t fileId);
 
+            std::string deleteFromMyAudios(int_fast32_t ownerId, uint_fast32_t fileId);
+
         private:
             std::shared_ptr<HttpStreamCommon> _common;
             std::string _userAgent;

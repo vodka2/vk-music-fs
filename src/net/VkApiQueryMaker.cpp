@@ -85,3 +85,22 @@ std::string VkApiQueryMaker::addToMyAudios(int_fast32_t ownerId, uint_fast32_t f
         );
     }
 }
+
+std::string VkApiQueryMaker::deleteFromMyAudios(int_fast32_t ownerId, uint_fast32_t fileId) {
+    std::shared_ptr<HttpStreamCommon::Stream> stream;
+    try {
+        std::string uri = "https://api.vk.com/method/audio.delete?access_token=" +
+                          _token + "&audio_id=" + std::to_string(fileId) + "&owner_id=" + std::to_string(ownerId) + "&v=5.71";
+        auto hostPath = _common->getHostPath(uri);
+        stream = _common->connect(hostPath);
+        _common->sendGetReq(stream, hostPath, _userAgent);
+        return _common->readRespAsStr(stream);
+    } catch (const boost::system::system_error &ex){
+        _common->closeStream(stream);
+        throw HttpException(
+                std::string("Error deleteting file ") +
+                std::to_string(ownerId) + ":" + std::to_string(fileId) +
+                ". " + ex.what()
+        );
+    }
+}

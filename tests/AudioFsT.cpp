@@ -27,6 +27,7 @@ public:
     MOCK_CONST_METHOD3(makeArtistSearchQuery, std::string(const std::string&, uint_fast32_t, uint_fast32_t));
     MOCK_CONST_METHOD2(makeMyAudiosQuery, std::string(uint_fast32_t, uint_fast32_t));
     MOCK_CONST_METHOD2(addToMyAudios, std::string(int_fast32_t, uint_fast32_t));
+    MOCK_CONST_METHOD2(deleteFromMyAudios, std::string(int_fast32_t, uint_fast32_t));
 };
 
 typedef testing::NiceMock<QueryMakerM0> QueryMakerM;
@@ -153,6 +154,14 @@ public:
                         {"response": {"count":2, "items": [
                             {"id": -1, "owner_id": 2, "artist":"Artist4", "title":"Song4", "url":"https:\/\/uri3"}
                         ] }}
+                        )"
+        ));
+    }
+
+    void initMyAudiosDeleteFileQuery(){
+        ON_CALL(*queryMakerM, deleteFromMyAudios(3, 2)).WillByDefault(testing::Return(
+                R"(
+                        {"response": {}}
                         )"
         ));
     }
@@ -403,6 +412,18 @@ TEST_F(AudioFsT, CreateMyAudiosDirOneNum){ //NOLINT
     api->createDir("/My audios/3");
     std::vector<std::string> expFiles = {"3", "Artist1 - Song1.mp3", "Artist2 - Song2.mp3", "Artist3 - Song3.mp3"};
     auto files = api->getEntries("/My audios");
+    std::sort(files.begin(), files.end());
+    EXPECT_EQ(files, expFiles);
+}
+
+TEST_F(AudioFsT, DeleteMyAudiosFile){ //NOLINT
+    auto api = inj.create<std::shared_ptr<AudioFs>>();
+    initMyAudiosQuery();
+    initMyAudiosDeleteFileQuery();
+    api->createDir("/My audios/3");
+    api->deleteFile("/My audios/Artist2 - Song2.mp3");
+    auto files = api->getEntries("/My audios");
+    std::vector<std::string> expFiles = {"3", "Artist1 - Song1.mp3", "Artist3 - Song3.mp3"};
     std::sort(files.begin(), files.end());
     EXPECT_EQ(files, expFiles);
 }

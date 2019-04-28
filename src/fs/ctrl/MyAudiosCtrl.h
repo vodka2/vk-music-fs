@@ -113,6 +113,18 @@ namespace vk_music_fs {
                 }
             }
 
+            void deleteFile(const std::string &path) {
+                FsPath fsPath = _fsUtils->findPath(_ctrlDir, _fsUtils->stripPathPrefix(path, DIR_NAME), FsPath::WITH_PARENT_DIR);
+                FsPathUnlocker unlocker{fsPath};
+                if(!fsPath.isPathMatched() || !fsPath.getAll().back().isFile()){
+                    throw FsException("File does not exist " + path);
+                }
+                auto file = fsPath.getAll().back();
+                auto remoteFile = std::get<RemoteFile>(*file.file()->getExtra());
+                _fileObtainer->deleteFromMyAudios(remoteFile.getOwnerId(), remoteFile.getFileId());
+                fsPath.getAll().front().dir()->removeItem(file.getName());
+            }
+
             std::string getDirName(){
                 return DIR_NAME;
             }

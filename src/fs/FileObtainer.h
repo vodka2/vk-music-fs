@@ -33,6 +33,10 @@ namespace vk_music_fs {
             parseJson(addToMyAudiosQuery(ownerId, fileId));
         }
 
+        void deleteFromMyAudios(int_fast32_t ownerId, uint_fast32_t fileId){
+            parseJson(deleteFromMyAudiosQuery(ownerId, fileId));
+        }
+
         std::vector<RemoteFile> searchBySongName(
                 const std::string &searchName,
                 uint_fast32_t offset, uint_fast32_t count
@@ -66,6 +70,21 @@ namespace vk_music_fs {
                 } catch (const json::parse_error &err){
                     throw VkException(
                             "Error parsing JSON '" + respStr + "' when adding " +
+                            std::to_string(ownerId) + ":" + std::to_string(fileId)
+                    );
+                }
+            }
+
+            std::string deleteFromMyAudiosQuery(
+                    int_fast32_t ownerId, uint_fast32_t fileId
+            ){
+                std::string respStr;
+                try{
+                    respStr = _queryMaker->deleteFromMyAudios(ownerId, fileId);
+                    return std::move(respStr);
+                } catch (const json::parse_error &err){
+                    throw VkException(
+                            "Error parsing JSON '" + respStr + "' when deleting " +
                             std::to_string(ownerId) + ":" + std::to_string(fileId)
                     );
                 }
