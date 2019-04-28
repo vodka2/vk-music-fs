@@ -11,6 +11,8 @@
 #include <fs/ctrl/RemoteFileWrapper.h>
 #include <fs/ctrl/MyAudiosCtrl.h>
 #include <fs/ctrl/SearchSongNameCtrl.h>
+#include <fs/ctrl/SearchSongNameArtistHelper.h>
+#include <fs/ctrl/SearchSongNameSongHelper.h>
 #include <fs/ctrl/RootCtrl.h>
 #include <fs/ctrl/SingleDirCtrl.h>
 #include "data/FileManagerM.h"
@@ -42,10 +44,16 @@ public:
     typedef vk_music_fs::fs::SingleDirCtrl<MyAudiosCtrlD, vk_music_fs::fs::FsUtils> MyAudiosSingleDirD;
     typedef vk_music_fs::fs::RemoteFileWrapper<MyAudiosSingleDirD, vk_music_fs::fs::FsUtils, FileManagerM> MyAudiosRemoteFileD;
     typedef vk_music_fs::fs::DummyDirWrapper<MyAudiosRemoteFileD, vk_music_fs::fs::FsUtils> MyAudiosDummyDirD;
-    typedef vk_music_fs::fs::SearchSongNameCtrl<vk_music_fs::fs::FsUtils, FileObtainerD> SearchSongNameCtrlD;
-    typedef vk_music_fs::fs::SingleDirCtrl<SearchSongNameCtrlD, vk_music_fs::fs::FsUtils> SearchSongNameSingleDirD;
-    typedef vk_music_fs::fs::RemoteFileWrapper<SearchSongNameSingleDirD, vk_music_fs::fs::FsUtils, FileManagerM> SearchSongNameRemoteFileD;
-    typedef vk_music_fs::fs::DummyDirWrapper<SearchSongNameRemoteFileD, vk_music_fs::fs::FsUtils> SearchSongNameDummyDirD;
+
+    typedef vk_music_fs::fs::SearchSongNameCtrl<vk_music_fs::fs::FsUtils, FileObtainerD, vk_music_fs::fs::SearchSongNameArtistHelper> SearchSongNameCtrlD1;
+    typedef vk_music_fs::fs::SingleDirCtrl<SearchSongNameCtrlD1, vk_music_fs::fs::FsUtils> SearchSongNameSingleDirD1;
+    typedef vk_music_fs::fs::RemoteFileWrapper<SearchSongNameSingleDirD1, vk_music_fs::fs::FsUtils, FileManagerM> SearchSongNameRemoteFileD1;
+    typedef vk_music_fs::fs::DummyDirWrapper<SearchSongNameRemoteFileD1, vk_music_fs::fs::FsUtils> SearchSongNameDummyDirD1;
+
+    typedef vk_music_fs::fs::SearchSongNameCtrl<vk_music_fs::fs::FsUtils, FileObtainerD, vk_music_fs::fs::SearchSongNameSongHelper> SearchSongNameCtrlD2;
+    typedef vk_music_fs::fs::SingleDirCtrl<SearchSongNameCtrlD2, vk_music_fs::fs::FsUtils> SearchSongNameSingleDirD2;
+    typedef vk_music_fs::fs::RemoteFileWrapper<SearchSongNameSingleDirD2, vk_music_fs::fs::FsUtils, FileManagerM> SearchSongNameRemoteFileD2;
+    typedef vk_music_fs::fs::DummyDirWrapper<SearchSongNameRemoteFileD2, vk_music_fs::fs::FsUtils> SearchSongNameDummyDirD2;
     typedef vk_music_fs::AudioFs<CtrlTupleD> AudioFs;
 
     auto makeInj(bool createDummyDirs){
@@ -59,10 +67,16 @@ public:
                 di::bind<MyAudiosSingleDirD>.in(di::extension::scoped),
                 di::bind<MyAudiosDummyDirD>.in(di::extension::scoped),
                 di::bind<MyAudiosRemoteFileD>.in(di::extension::scoped),
-                di::bind<SearchSongNameCtrlD>.in(di::extension::scoped),
-                di::bind<SearchSongNameSingleDirD>.in(di::extension::scoped),
-                di::bind<SearchSongNameDummyDirD>.in(di::extension::scoped),
-                di::bind<SearchSongNameRemoteFileD>.in(di::extension::scoped),
+                di::bind<SearchSongNameCtrlD1>.in(di::extension::scoped),
+                di::bind<SearchSongNameSingleDirD1>.in(di::extension::scoped),
+                di::bind<SearchSongNameDummyDirD1>.in(di::extension::scoped),
+                di::bind<SearchSongNameRemoteFileD1>.in(di::extension::scoped),
+                di::bind<SearchSongNameCtrlD2>.in(di::extension::scoped),
+                di::bind<SearchSongNameSingleDirD2>.in(di::extension::scoped),
+                di::bind<SearchSongNameDummyDirD2>.in(di::extension::scoped),
+                di::bind<SearchSongNameRemoteFileD2>.in(di::extension::scoped),
+                di::bind<vk_music_fs::fs::SearchSongNameSongHelper>.in(di::extension::scoped),
+                di::bind<vk_music_fs::fs::SearchSongNameArtistHelper>.in(di::extension::scoped),
                 di::bind<AudioFs>.in(di::extension::scoped),
                 di::bind<FileManagerM>.in(di::extension::scoped),
                 di::bind<QueryMakerM>.in(di::extension::scoped),
@@ -244,14 +258,13 @@ public:
         ));
     }
 };
-/*
+
 TEST_F(AudioFsT, Empty){ //NOLINT
     auto api = inj.create<std::shared_ptr<AudioFs>>();
     EXPECT_EQ(api->getEntries("/").size(), 3);
     EXPECT_EQ(api->getEntries("/Search").size(), 0);
     EXPECT_EQ(api->getEntries("/Search by artist").size(), 0);
 }
-*/
 
 TEST_F(AudioFsT, CreateDir){ //NOLINT
     auto api = inj.create<std::shared_ptr<AudioFs>>();
@@ -474,7 +487,7 @@ TEST_F(AudioFsT, CreateMyAudiosDirTwoNumThenOneNumLess){ //NOLINT
     EXPECT_EQ(files, expFiles);
 }
 
-/*
+
 TEST_F(AudioFsT, CreateArtistSearchDir){ //NOLINT
     auto api = inj.create<std::shared_ptr<AudioFs>>();
     initArtistQuery();
@@ -485,8 +498,12 @@ TEST_F(AudioFsT, CreateArtistSearchDir){ //NOLINT
     auto files = api->getEntries("/Search by artist/Artist");
     std::sort(files.begin(), files.end());
     EXPECT_EQ(files, expFiles);
-    EXPECT_EQ(api->getRemoteFile("/Search by artist/Artist/Artist2 - Song2.mp3").getOwnerId(), 3);
-    EXPECT_EQ(api->getRemoteFile("/Search by artist/Artist/Artist3 - Song3.mp3").getUri(), "https://uri3");
+    EXPECT_CALL(*fileManagerM, open(testing::_, "/Search by artist/Artist/Artist3 - Song3.mp3")).WillOnce(
+            testing::WithArgs<0>(testing::Invoke([](RemoteFile arg){
+                EXPECT_EQ(arg.getUri(), "https://uri3");
+                return 77;
+            })));
+    api->open("/Search by artist/Artist/Artist3 - Song3.mp3");;
 }
 
 TEST_F(AudioFsT, CreateArtistSearchMoreDirOneNum){ //NOLINT
@@ -501,4 +518,4 @@ TEST_F(AudioFsT, CreateArtistSearchMoreDirOneNum){ //NOLINT
     auto dirs = api->getEntries("/Search by artist/Artist");
     std::sort(dirs.begin(), dirs.end());
     EXPECT_EQ(dirs, expData);
-}*/
+}

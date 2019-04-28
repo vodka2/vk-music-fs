@@ -22,6 +22,8 @@
 #include <fs/ctrl/RootCtrl.h>
 #include <fs/ctrl/SingleDirCtrl.h>
 #include <fs/FileObtainer.h>
+#include <fs/ctrl/SearchSongNameArtistHelper.h>
+#include <fs/ctrl/SearchSongNameSongHelper.h>
 #include "fuse_wrap.h"
 
 using namespace vk_music_fs;
@@ -32,14 +34,21 @@ typedef FileProcessor<net::HttpStream, MusicFile, Mp3Parser, ThreadPool> FilePro
 typedef FileManager<FileCache, FileProcessorD, Reader> FileManagerD;
 typedef fs::FileObtainer<net::VkApiQueryMaker> FileObtainerD;
 typedef fs::CtrlTuple<fs::FsUtils, FileObtainerD, FileManagerD> CtrlTupleD;
+
 typedef fs::MyAudiosCtrl<fs::FsUtils, FileObtainerD> MyAudiosCtrlD;
 typedef fs::SingleDirCtrl<MyAudiosCtrlD, fs::FsUtils> MyAudiosSingleDirD;
 typedef fs::RemoteFileWrapper<MyAudiosSingleDirD, fs::FsUtils, FileManagerD> MyAudiosRemoteFileD;
 typedef fs::DummyDirWrapper<MyAudiosRemoteFileD, fs::FsUtils> MyAudiosDummyDirD;
-typedef fs::SearchSongNameCtrl<fs::FsUtils, FileObtainerD> SearchSongNameCtrlD;
-typedef fs::SingleDirCtrl<SearchSongNameCtrlD, fs::FsUtils> SearchSongNameSingleDirD;
-typedef fs::RemoteFileWrapper<SearchSongNameSingleDirD, fs::FsUtils, FileManagerD> SearchSongNameRemoteFileD;
-typedef fs::DummyDirWrapper<SearchSongNameRemoteFileD, fs::FsUtils> SearchSongNameDummyDirD;
+
+typedef fs::SearchSongNameCtrl<fs::FsUtils, FileObtainerD, fs::SearchSongNameArtistHelper> SearchSongNameCtrlD1;
+typedef fs::SingleDirCtrl<SearchSongNameCtrlD1, fs::FsUtils> SearchSongNameSingleDirD1;
+typedef fs::RemoteFileWrapper<SearchSongNameSingleDirD1, fs::FsUtils, FileManagerD> SearchSongNameRemoteFileD1;
+typedef fs::DummyDirWrapper<SearchSongNameRemoteFileD1, fs::FsUtils> SearchSongNameDummyDirD1;
+
+typedef fs::SearchSongNameCtrl<fs::FsUtils, FileObtainerD, fs::SearchSongNameSongHelper> SearchSongNameCtrlD2;
+typedef fs::SingleDirCtrl<SearchSongNameCtrlD2, fs::FsUtils> SearchSongNameSingleDirD2;
+typedef fs::RemoteFileWrapper<SearchSongNameSingleDirD2, fs::FsUtils, FileManagerD> SearchSongNameRemoteFileD2;
+typedef fs::DummyDirWrapper<SearchSongNameRemoteFileD2, fs::FsUtils> SearchSongNameDummyDirD2;
 typedef AudioFs<CtrlTupleD> AudioFsD;
 typedef Application<FileManagerD, AudioFsD, ErrLogger, net::HttpStreamCommon> ApplicationD;
 
@@ -59,16 +68,23 @@ auto commonInj = [] (const std::shared_ptr<ProgramOptions> &conf){ // NOLINT
             di::bind<FileObtainerD>.in(di::extension::scoped),
             di::bind<fs::IdGenerator>.in(di::extension::scoped),
             di::bind<fs::FsSettings>.in(di::extension::scoped),
+            di::bind<fs::SearchSongNameSongHelper>.in(di::extension::scoped),
+            di::bind<fs::SearchSongNameArtistHelper>.in(di::extension::scoped),
 
             di::bind<MyAudiosCtrlD>.in(di::extension::scoped),
             di::bind<MyAudiosSingleDirD>.in(di::extension::scoped),
             di::bind<MyAudiosRemoteFileD>.in(di::extension::scoped),
             di::bind<MyAudiosDummyDirD>.in(di::extension::scoped),
 
-            di::bind<SearchSongNameCtrlD>.in(di::extension::scoped),
-            di::bind<SearchSongNameSingleDirD>.in(di::extension::scoped),
-            di::bind<SearchSongNameRemoteFileD>.in(di::extension::scoped),
-            di::bind<SearchSongNameDummyDirD>.in(di::extension::scoped),
+            di::bind<SearchSongNameCtrlD1>.in(di::extension::scoped),
+            di::bind<SearchSongNameSingleDirD1>.in(di::extension::scoped),
+            di::bind<SearchSongNameRemoteFileD1>.in(di::extension::scoped),
+            di::bind<SearchSongNameDummyDirD1>.in(di::extension::scoped),
+
+            di::bind<SearchSongNameCtrlD2>.in(di::extension::scoped),
+            di::bind<SearchSongNameSingleDirD2>.in(di::extension::scoped),
+            di::bind<SearchSongNameRemoteFileD2>.in(di::extension::scoped),
+            di::bind<SearchSongNameDummyDirD2>.in(di::extension::scoped),
 
             di::bind<fs::RootCtrl<fs::FsUtils>>.in(di::extension::scoped),
             di::bind<net::Mp3SizeObtainer>.in(di::extension::scoped),

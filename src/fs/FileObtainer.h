@@ -47,6 +47,16 @@ namespace vk_music_fs {
             return getFilenames(parseJson(makeSearchQuery(searchName, offset, count)));
         }
 
+            std::vector<RemoteFile> searchByArtist(
+                    const std::string &searchName,
+                    uint_fast32_t offset, uint_fast32_t count
+            ){
+                if(count == 0){
+                    return {};
+                }
+                return getFilenames(parseJson(makeArtistSearchQuery(searchName, offset, count)));
+            }
+
         private:
             std::string makeMyAudiosQuery(
                     uint_fast32_t offset, uint_fast32_t count
@@ -100,6 +110,21 @@ namespace vk_music_fs {
                     return std::move(respStr);
                 } catch (const json::parse_error &err){
                     throw VkException("Error parsing JSON '" + respStr + "' when searching for " + searchName);
+                }
+            }
+
+            json makeArtistSearchQuery(
+                    const std::string &searchName,
+                    uint_fast32_t offset, uint_fast32_t count
+            ){
+                std::string respStr;
+                try{
+                    respStr = _queryMaker->makeArtistSearchQuery(searchName, offset, count);
+                    return std::move(respStr);
+                } catch (const json::parse_error &err){
+                    throw VkException(
+                            "Error parsing JSON '" + respStr + "' when searching in artist names for " + searchName
+                    );
                 }
             }
 

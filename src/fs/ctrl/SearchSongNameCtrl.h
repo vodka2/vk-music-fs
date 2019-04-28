@@ -12,14 +12,15 @@
 
 namespace vk_music_fs {
     namespace fs {
-        template <typename TFsUtils, typename TFileObtainer>
+        template <typename TFsUtils, typename TFileObtainer, typename THelper>
         class SearchSongNameCtrl : public ThrowExCtrl {
         public:
             SearchSongNameCtrl(
                     const std::shared_ptr<TFsUtils> &utils,
                     const std::shared_ptr<TFileObtainer> &fileObtainer,
                     const std::shared_ptr<FsSettings> &settings,
-                    const std::shared_ptr<IdGenerator> &idGenerator
+                    const std::shared_ptr<IdGenerator> &idGenerator,
+                    const std::shared_ptr<THelper> &helper
             ) : _fsUtils(utils), _fileObtainer(fileObtainer), _idGenerator(idGenerator),
                 _settings(settings){
             }
@@ -51,7 +52,7 @@ namespace vk_music_fs {
                     parent->addItem(searchDir);
                     _fsUtils->addFilesToDir(
                             searchDir,
-                            _fileObtainer->searchBySongName(searchName, 0, _settings->getNumSearchFiles()),
+                            _helper->searchFiles(_fileObtainer, searchName, 0, _settings->getNumSearchFiles()),
                             _idGenerator,
                             _settings->getMp3Ext()
                     );
@@ -82,7 +83,7 @@ namespace vk_music_fs {
                     if(needMakeQuery) {
                         _fsUtils->addFilesToDir(
                                 parent,
-                                _fileObtainer->searchBySongName(curOffsetCntName.getName(), queryOffset, queryCnt),
+                                _helper->searchFiles(_fileObtainer, curOffsetCntName.getName(), queryOffset, queryCnt),
                                 _idGenerator,
                                 _settings->getMp3Ext()
                         );
@@ -127,13 +128,13 @@ namespace vk_music_fs {
 
             void setRootDir(const DirPtr &dir){
                 _ctrlDir = std::make_shared<Dir>(
-                        DIR_NAME, _idGenerator->getNextId(), std::nullopt, dir
+                        getDirName(), _idGenerator->getNextId(), std::nullopt, dir
                 );
                 dir->addItem(_ctrlDir);
             }
 
             void deleteDir(const std::string &path) {
-                FsPath fsPath = _fsUtils->findPath(_ctrlDir, _fsUtils->stripPathPrefix(path, DIR_NAME), FsPath::WITH_PARENT_DIR);
+                FsPath fsPath = _fsUtils->findPath(_ctrlDir, _fsUtils->stripPathPrefix(path, getDirName()), FsPath::WITH_PARENT_DIR);
                 FsPathUnlocker unlocker{fsPath};
                 if(!fsPath.isPathMatched() || !fsPath.isPathDir() || fsPath.getAll().back().getId() == _ctrlDir->getId()){
                     throw FsException("Directory does not exist " + path);
@@ -142,7 +143,7 @@ namespace vk_music_fs {
             }
 
             void deleteFile(const std::string &path) {
-                FsPath fsPath = _fsUtils->findPath(_ctrlDir, _fsUtils->stripPathPrefix(path, DIR_NAME), FsPath::WITH_PARENT_DIR);
+                FsPath fsPath = _fsUtils->findPath(_ctrlDir, _fsUtils->stripPathPrefix(path, getDirName()), FsPath::WITH_PARENT_DIR);
                 FsPathUnlocker unlocker{fsPath};
                 if(!fsPath.isPathMatched() || !fsPath.getAll().back().isFile()){
                     throw FsException("File does not exist " + path);
@@ -151,12 +152,12 @@ namespace vk_music_fs {
             }
 
             std::string getDirName(){
-                return DIR_NAME;
+                return _helper->getDirName();
             }
         private:
-            constexpr const static char *DIR_NAME = "Search";
             std::shared_ptr<TFsUtils> _fsUtils;
             std::shared_ptr<TFileObtainer> _fileObtainer;
+            std::shared_ptr<THelper> _helper;
             std::shared_ptr<IdGenerator> _idGenerator;
             std::shared_ptr<FsSettings> _settings;
             DirPtr _ctrlDir;

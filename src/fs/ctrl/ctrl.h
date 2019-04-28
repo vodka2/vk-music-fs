@@ -5,7 +5,7 @@ namespace vk_music_fs {
         template<typename TFsUtils, typename TQueryMaker>
         class MyAudiosCtrl;
 
-        template<typename TFsUtils, typename TQueryMaker>
+        template<typename TFsUtils, typename TQueryMaker, typename THelper>
         class SearchSongNameCtrl;
 
         template<typename TCtrl, typename TFsUtils>
@@ -19,6 +19,10 @@ namespace vk_music_fs {
 
         template <typename TCtrl, typename TFsUtils, typename TFileManager>
         class RemoteFileWrapper;
+
+        class SearchSongNameSongHelper;
+
+        class SearchSongNameArtistHelper;
 
         template<typename TFsUtils, typename TFileObtainer, typename TFileManager>
         using CtrlTuple = std::tuple<
@@ -39,7 +43,20 @@ namespace vk_music_fs {
                         DummyDirWrapper<
                                 RemoteFileWrapper<
                                         SingleDirCtrl<
-                                                SearchSongNameCtrl<TFsUtils, TFileObtainer>,
+                                                SearchSongNameCtrl<TFsUtils, TFileObtainer, SearchSongNameArtistHelper>,
+                                                TFsUtils
+                                        >,
+                                        TFsUtils,
+                                        TFileManager
+                                >,
+                                TFsUtils
+                        >
+                >,
+                std::shared_ptr<
+                        DummyDirWrapper<
+                                RemoteFileWrapper<
+                                        SingleDirCtrl<
+                                                SearchSongNameCtrl<TFsUtils, TFileObtainer, SearchSongNameSongHelper>,
                                                 TFsUtils
                                         >,
                                         TFsUtils,
