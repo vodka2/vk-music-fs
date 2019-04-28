@@ -12,6 +12,7 @@
 #include "net/HttpException.h"
 #include <mutex>
 #include <net/WrongSizeException.h>
+#include <atomic>
 
 namespace vk_music_fs {
 
@@ -35,14 +36,14 @@ namespace vk_music_fs {
                         FileSize
                 >> readersFact
         ) : _fileCache(fileCache),
-        _procsFact(procsFact), _readersFact(readersFact){
+        _procsFact(procsFact), _readersFact(readersFact), _lastId(1){
         }
 
         int_fast32_t open(const RemoteFile &remFile, const std::string &filename){
             namespace di = boost::di;
             std::scoped_lock<std::mutex> readersLock(_readersMutex);
             std::scoped_lock<std::mutex> procsLock(_procsMutex);
-            uint_fast32_t retId = _idToRemFile.size() + 1;
+            uint_fast32_t retId = (_lastId++);
             try{
                 auto remFileId = remFile.getId();
                 _idToRemFile.insert(std::make_pair<>(retId, remFile));
@@ -174,6 +175,8 @@ namespace vk_music_fs {
         std::unordered_map<RemoteFileId, ReadMapEntry, RemoteFileIdHasher> _readers;
 
         std::unordered_map<uint_fast32_t, RemoteFile> _idToRemFile;
+
+        std::atomic_uint_fast32_t _lastId;
 
         std::mutex _procsMutex;
         std::mutex _readersMutex;
