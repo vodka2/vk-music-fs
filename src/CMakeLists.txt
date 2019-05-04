@@ -31,7 +31,10 @@ else()
     set(ZLIB_LIBRARY_RESULT ${ZLIB_LIBRARIES})
 endif()
 
-set(MAIN_LIBS json cfgpath cpp-lru-cache tag di nowide ${ZLIB_LIBRARY_RESULT} ${Boost_LIBRARIES} Threads::Threads OpenSSL::SSL OpenSSL::Crypto)
+set(
+    MAIN_LIBS json cfgpath cpp-lru-cache tag di nowide ${ZLIB_LIBRARY_RESULT}
+    Boost::filesystem Boost::thread Boost::program_options Boost::system Threads::Threads OpenSSL::SSL OpenSSL::Crypto
+)
 
 if(DEFINED MINGW_W64)
     list(APPEND MAIN_LIBS ws2_32)
