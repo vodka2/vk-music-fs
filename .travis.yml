@@ -3,7 +3,7 @@ dist: trusty
 compiler: gcc
 env:
   global:
-    - CMAKE_URL="https://cmake.org/files/v3.7/cmake-3.7.0-Linux-x86_64.tar.gz"
+    - CMAKE_URL="https://cmake.org/files/v3.11/cmake-3.11.0-Linux-x86_64.tar.gz"
     - COMPILER_EVAL="CC=gcc-8 && CXX=g++-8"
 matrix:
   include:
