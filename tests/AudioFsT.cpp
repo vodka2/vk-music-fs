@@ -15,6 +15,7 @@
 #include <fs/ctrl/SearchSongNameSongHelper.h>
 #include <fs/ctrl/RootCtrl.h>
 #include <fs/ctrl/SingleDirCtrl.h>
+#include <fs/actions/act.h>
 #include "data/FileManagerM.h"
 
 namespace di = boost::di;
@@ -38,6 +39,10 @@ class AudioFsT: public ::testing::Test {
 public:
     uint_fast32_t numSearchFiles = 3;
 
+    typedef vk_music_fs::fs::RefreshAct<vk_music_fs::fs::FsUtils> RefreshActD;
+    typedef vk_music_fs::fs::NumberAct<vk_music_fs::fs::FsUtils> NumberActD;
+    typedef vk_music_fs::fs::ActTuple<vk_music_fs::fs::FsUtils> ActTupleD;
+
     typedef vk_music_fs::fs::FileObtainer<QueryMakerM> FileObtainerD;
     typedef vk_music_fs::fs::CtrlTuple<vk_music_fs::fs::FsUtils, FileObtainerD, FileManagerM> CtrlTupleD;
     typedef vk_music_fs::fs::MyAudiosCtrl<vk_music_fs::fs::FsUtils, FileObtainerD> MyAudiosCtrlD;
@@ -58,6 +63,10 @@ public:
 
     auto makeInj(bool createDummyDirs){
         return di::make_injector<vk_music_fs::BoundPolicy>(
+                di::bind<ActTupleD>.in(di::unique),
+                di::bind<RefreshActD>.in(di::extension::scoped),
+                di::bind<NumberActD>.in(di::extension::scoped),
+
                 di::bind<CtrlTupleD>.in(di::unique),
                 di::bind<vk_music_fs::fs::FsUtils>.in(di::extension::scoped),
                 di::bind<vk_music_fs::fs::IdGenerator>.in(di::extension::scoped),

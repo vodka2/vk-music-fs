@@ -9,6 +9,7 @@
 #include <boost/filesystem/convenience.hpp>
 #include "ThrowExCtrl.h"
 #include <regex>
+#include <fs/actions/act.h>
 
 namespace vk_music_fs {
     namespace fs {
@@ -20,9 +21,10 @@ namespace vk_music_fs {
                     const std::shared_ptr<TFileObtainer> &fileObtainer,
                     const std::shared_ptr<FsSettings> &settings,
                     const std::shared_ptr<IdGenerator> &idGenerator,
-                    const std::shared_ptr<THelper> &helper
+                    const std::shared_ptr<THelper> &helper,
+                    const ActTuple<TFsUtils> &acts
             ) : _fsUtils(utils), _fileObtainer(fileObtainer), _idGenerator(idGenerator),
-                _settings(settings){
+                _settings(settings), _acts(acts){
             }
 
             void checkCreateDirPath(FsPath &path){
@@ -57,43 +59,22 @@ namespace vk_music_fs {
                             _settings->getMp3Ext()
                     );
                 } else {
-                    auto curOffsetCntName = std::get<OffsetCntName>(*parent->getDirExtra());
-                    uint_fast32_t queryOffset = 0, queryCnt = 0;
-                    bool needMakeQuery = true;
-                    if(query.type == QueryParams::Type::TWO_NUMBERS){
-                        _fsUtils->deleteAllFiles(parent);
-                        curOffsetCntName.setOffset(query.first);
-                        curOffsetCntName.setCnt(query.second);
-
-                        queryOffset = query.first;
-                        queryCnt = query.second;
-                    } else {
-                        if(curOffsetCntName.getCounterDir() != nullptr) {
-                            parent->removeItem(curOffsetCntName.getCounterDir()->getName());
-                        }
-                        if(curOffsetCntName.getCnt() >= query.first){
-                            needMakeQuery = false;
-                            _fsUtils->limitFiles(parent, query.first);
-                        } else {
-                            queryOffset = curOffsetCntName.getOffset() + curOffsetCntName.getCnt();
-                            queryCnt = query.first - curOffsetCntName.getCnt();
-                        }
-                        curOffsetCntName.setCnt(query.first);
-                    }
-                    if(needMakeQuery) {
-                        _fsUtils->addFilesToDir(
-                                parent,
-                                _helper->searchFiles(_fileObtainer, curOffsetCntName.getName(), queryOffset, queryCnt),
-                                _idGenerator,
-                                _settings->getMp3Ext()
-                        );
-                    }
-                    auto cntDir = std::make_shared<Dir>(
-                            dirName, _idGenerator->getNextId(), std::nullopt, parent
+                    getAct<NumberAct>(_acts)->template doAction<OffsetCntName>(parent, dirName, true, query,
+                            [this, parent] (uint_fast32_t offset, uint_fast32_t cnt) {
+                                _fsUtils->addFilesToDir(
+                                        parent,
+                                        _helper->searchFiles(
+                                                _fileObtainer,
+                                                std::get<OffsetCntName>(*parent->getDirExtra()).getName(),
+                                                offset,
+                                                cnt
+                                        ),
+                                        _idGenerator,
+                                        _settings->getMp3Ext()
+                                );
+                            }
                     );
-                    parent->addItem(cntDir);
-                    curOffsetCntName.setCounterDir(cntDir);
-                    std::get<OffsetCntName>(*parent->getDirExtra()) = curOffsetCntName;
+
                 }
             }
 
@@ -161,6 +142,7 @@ namespace vk_music_fs {
             std::shared_ptr<IdGenerator> _idGenerator;
             std::shared_ptr<FsSettings> _settings;
             DirPtr _ctrlDir;
+            ActTuple<TFsUtils> _acts;
         };
     }
 }

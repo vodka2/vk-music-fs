@@ -11,6 +11,7 @@
 #include <fs/IdGenerator.h>
 #include <RemoteFile.h>
 #include <regex>
+#include <fs/actions/act.h>
 #include "ThrowExCtrl.h"
 
 namespace vk_music_fs {
@@ -22,9 +23,10 @@ namespace vk_music_fs {
                     const std::shared_ptr<TFsUtils> &utils,
                     const std::shared_ptr<TFileObtainer> &fileObtainer,
                     const std::shared_ptr<FsSettings> &settings,
-                    const std::shared_ptr<IdGenerator> &idGenerator
+                    const std::shared_ptr<IdGenerator> &idGenerator,
+                    const ActTuple<TFsUtils> &acts
             ) : _fsUtils(utils), _fileObtainer(fileObtainer), _idGenerator(idGenerator),
-                _settings(settings){
+                _settings(settings), _acts(acts){
             }
 
             DirPtr getCtrlDir(){
@@ -50,64 +52,30 @@ namespace vk_music_fs {
                 auto dirName = path.getStringParts().back();
                 QueryParams query = _fsUtils->parseQuery(dirName);
                 if(query.type == QueryParams::Type::TWO_NUMBERS || query.type == QueryParams::Type::ONE_NUMBER){
-                    OffsetCnt curOffsetCnt = std::get<OffsetCnt>(*_ctrlDir->getDirExtra());
-                    if(curOffsetCnt.getRefreshDir() != nullptr) {
-                        _ctrlDir->removeItem(curOffsetCnt.getRefreshDir()->getName());
-                    }
-                    uint_fast32_t queryOffset = 0, queryCnt = 0;
-                    bool needMakeQuery = true;
-                    if(query.type == QueryParams::Type::TWO_NUMBERS){
-                        _ctrlDir->clear();
-                        curOffsetCnt.setOffset(query.first);
-                        curOffsetCnt.setCnt(query.second);
-                        queryOffset = query.first;
-                        queryCnt = query.second;
-                    } else {
-                        if(curOffsetCnt.getCounterDir() != nullptr) {
-                            _ctrlDir->removeItem(curOffsetCnt.getCounterDir()->getName());
+                    getAct<NumberAct>(_acts)->template doAction<OffsetCnt>(_ctrlDir, dirName, false, query,
+                        [this] (uint_fast32_t offset, uint_fast32_t cnt) {
+                            OffsetCnt curOffsetCnt = std::get<OffsetCnt>(*_ctrlDir->getDirExtra());
+                            if(curOffsetCnt.getRefreshDir() != nullptr) {
+                                _ctrlDir->removeItem(curOffsetCnt.getRefreshDir()->getName());
+                            }
+                            _fsUtils->addFilesToDir(
+                                    _ctrlDir,
+                                    _fileObtainer->getMyAudios(offset, cnt),
+                                    _idGenerator,
+                                    _settings->getMp3Ext()
+                            );
+                            curOffsetCnt.setRefreshDir(nullptr);
                         }
-                        if(curOffsetCnt.getCnt() >= query.first){
-                            needMakeQuery = false;
-                            _fsUtils->limitFiles(_ctrlDir, query.first);
-                        } else {
-                            queryOffset = curOffsetCnt.getOffset() + curOffsetCnt.getCnt();
-                            queryCnt = query.first - curOffsetCnt.getCnt();
-                        }
-                        curOffsetCnt.setCnt(query.first);
-                    }
-                    if(needMakeQuery) {
+                    );
+                } else if(std::regex_match(dirName, std::regex{"^(r|regex)[0-9]*$"})){
+                    getAct<RefreshAct>(_acts)->template doAction<OffsetCnt>(_ctrlDir, dirName, [this] (uint_fast32_t offset, uint_fast32_t cnt) {
                         _fsUtils->addFilesToDir(
                                 _ctrlDir,
-                                _fileObtainer->getMyAudios(queryOffset, queryCnt),
+                                _fileObtainer->getMyAudios(offset, cnt),
                                 _idGenerator,
                                 _settings->getMp3Ext()
                         );
-                    }
-                    auto cntDir = std::make_shared<Dir>(
-                            dirName, _idGenerator->getNextId(), std::nullopt, _ctrlDir
-                    );
-                    _ctrlDir->addItem(cntDir);
-                    curOffsetCnt.setCounterDir(cntDir);
-                    curOffsetCnt.setRefreshDir(nullptr);
-                    std::get<OffsetCnt>(*_ctrlDir->getDirExtra()) = curOffsetCnt;
-                } else if(std::regex_match(dirName, std::regex{"^(r|regex)[0-9]*$"})){
-                    OffsetCnt curOffsetCnt = std::get<OffsetCnt>(*_ctrlDir->getDirExtra());
-                    if(curOffsetCnt.getRefreshDir() != nullptr) {
-                        _ctrlDir->removeItem(curOffsetCnt.getRefreshDir()->getName());
-                    }
-                    _fsUtils->deleteAllFiles(_ctrlDir);
-                    auto refreshDir = std::make_shared<Dir>(
-                            dirName, _idGenerator->getNextId(), std::nullopt, _ctrlDir
-                    );
-                    _fsUtils->addFilesToDir(
-                            _ctrlDir,
-                            _fileObtainer->getMyAudios(curOffsetCnt.getOffset(), curOffsetCnt.getCnt()),
-                            _idGenerator,
-                            _settings->getMp3Ext()
-                    );
-                    curOffsetCnt.setRefreshDir(refreshDir);
-                    _ctrlDir->addItem(refreshDir);
-                    std::get<OffsetCnt>(*_ctrlDir->getDirExtra()) = curOffsetCnt;
+                    });
                 } else {
                     throw FsException("Can't create non-counter, non-refresh dir in My Audios dir");
                 }
@@ -135,6 +103,7 @@ namespace vk_music_fs {
             std::shared_ptr<IdGenerator> _idGenerator;
             std::shared_ptr<FsSettings> _settings;
             DirPtr _ctrlDir;
+            ActTuple<TFsUtils> _acts;
         };
     }
 }

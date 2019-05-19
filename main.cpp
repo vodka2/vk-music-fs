@@ -30,6 +30,10 @@ using namespace vk_music_fs;
 
 fuse_operations operations = {};
 
+typedef fs::RefreshAct<fs::FsUtils> RefreshActD;
+typedef fs::NumberAct<fs::FsUtils> NumberActD;
+typedef fs::ActTuple<fs::FsUtils> ActTupleD;
+
 typedef FileProcessor<net::HttpStream, MusicFile, Mp3Parser, ThreadPool> FileProcessorD;
 typedef FileManager<FileCache, FileProcessorD, Reader> FileManagerD;
 typedef fs::FileObtainer<net::VkApiQueryMaker> FileObtainerD;
@@ -57,6 +61,10 @@ auto curTime = static_cast<uint_fast32_t>(time(nullptr)); //NOLINT
 auto commonInj = [] (const std::shared_ptr<ProgramOptions> &conf){ // NOLINT
     namespace di = boost::di;
     return di::make_injector<BoundPolicy>(
+            di::bind<ActTupleD>.in(di::unique),
+            di::bind<RefreshActD>.in(di::extension::scoped),
+            di::bind<NumberActD>.in(di::extension::scoped),
+
             di::bind<net::HttpStream>.in(di::unique),
             di::bind<MusicFile>.in(di::unique),
             di::bind<Mp3Parser>.in(di::unique),
