@@ -4,8 +4,6 @@
 #include <vector>
 #include <string>
 #include <boost/serialization/strong_typedef.hpp>
-#include <boost/di.hpp>
-#include <memory>
 
 namespace vk_music_fs{
     typedef std::vector<uint8_t> ByteVect;
@@ -53,29 +51,8 @@ namespace vk_music_fs{
     BOOST_STRONG_TYPEDEF(uint_fast32_t, VkUserId); //NOLINT
     BOOST_STRONG_TYPEDEF(uint_fast32_t, FilesCacheSize); //NOLINT
     BOOST_STRONG_TYPEDEF(uint_fast32_t, NumSizeRetries); //NOLINT
-    template <typename T>
-    class InjPtr: public std::shared_ptr<T>{
-    public:
-        InjPtr(std::shared_ptr<T> t): std::shared_ptr<T>(t){} //NOLINT
-    };
-
-    template <typename ...Ts>
-    auto makeInjPtr(Ts... data){
-        typedef decltype(boost::di::make_injector(std::forward<Ts>(data)...)) InjType;
-        return InjPtr<InjType>{std::make_shared<InjType>(boost::di::make_injector(std::forward<Ts>(data)...))};
-    }
 
     #define auto_init(variable, value) std::decay<decltype(value)>::type variable = value
-
-    class BoundPolicy : public boost::di::config {
-    public:
-        static auto policies(...) noexcept {
-            using namespace boost::di::policies;
-            return boost::di::make_policies(
-                    constructible(is_bound<boost::di::_>{})
-            );
-        }
-    };
 
     template<std::size_t I = 0, typename FuncT, typename... Tp>
     inline typename std::enable_if<I == sizeof...(Tp), void>::type

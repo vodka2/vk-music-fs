@@ -6,6 +6,7 @@ namespace vk_music_fs {
     namespace fs {
         class SearchSongNameArtistHelper {
         public:
+            SearchSongNameArtistHelper(){} //NOLINT
             template <typename TFileObtainer>
             std::vector<RemoteFile> searchFiles(
                     const std::shared_ptr<TFileObtainer> &obtainer,

@@ -1,9 +1,10 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include <boost/di.hpp>
+#include <diext/common_di.h>
 #include <boost/di/extension/scopes/scoped.hpp>
 #include <FileManager.h>
-#include <ext_factory.hpp>
+#include <diext/ext_factory.hpp>
 
 using vk_music_fs::ByteVect;
 using vk_music_fs::InjPtr;
@@ -57,6 +58,8 @@ typedef di::extension::iextfactory<FileProcessorM,
 
 class ReaderFact: public IReaderFact{
 public:
+    template <typename... T>
+    ReaderFact(T&&... args){}
     MOCK_CONST_METHOD2(createShared, std::shared_ptr<ReaderM>(
             vk_music_fs::CachedFilename, vk_music_fs::FileSize
     ));
@@ -64,6 +67,8 @@ public:
 
 class ProcFact: public IProcFact{
 public:
+    template <typename... T>
+    ProcFact(T&&... args){}
     MOCK_CONST_METHOD6(
             createShared,
             std::shared_ptr<FileProcessorM>(
@@ -81,13 +86,9 @@ class FileManagerT: public ::testing::Test {
 public:
     typedef vk_music_fs::FileManager<FileCacheM, FileProcessorM, ReaderM> FileManager;
 
-    auto_init(inj, (di::make_injector<vk_music_fs::BoundPolicy>(
-            di::bind<FileManager>.in(di::extension::scoped),
-            di::bind<FileProcessorM>.in(di::extension::scoped),
-            di::bind<ReaderM>.in(di::extension::scoped),
-            di::bind<FileCacheM>.in(di::extension::scoped),
-            di::bind<IReaderFact>.to<ReaderFact>().in(di::extension::scoped),
-            di::bind<IProcFact>.to<ProcFact>().in(di::extension::scoped)
+    auto_init(inj, (vk_music_fs::makeStorageInj(
+            di::bind<IReaderFact>.to<ReaderFact>(),
+            di::bind<IProcFact>.to<ProcFact>()
     )));
 
     std::string file = "/baby.mp3";

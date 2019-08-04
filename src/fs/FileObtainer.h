@@ -18,7 +18,7 @@ namespace vk_music_fs {
         public:
             FileObtainer(
                     const std::shared_ptr<TQueryMaker> &queryMaker,
-                    const std::shared_ptr<FsSettings> settings
+                    const std::shared_ptr<FsSettings> &settings
             ): _queryMaker(queryMaker), _settings(settings){
             }
 

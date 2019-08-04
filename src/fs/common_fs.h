@@ -3,6 +3,7 @@
 #include <common.h>
 #include <unordered_map>
 #include <variant>
+#include <memory>
 
 namespace vk_music_fs{
     class RemoteFile;

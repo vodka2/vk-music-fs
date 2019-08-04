@@ -7,7 +7,7 @@
 #include "data/ThreadPoolM.h"
 #include "data/Writer.h"
 #include "data/ParserM.h"
-#include <boost/di.hpp>
+#include <diext/common_di.h>
 #include <boost/di/extension/scopes/scoped.hpp>
 #include <net/HttpException.h>
 
@@ -19,13 +19,7 @@ typedef vk_music_fs::FileProcessor<StreamM, FileM, ParserM, ThreadPoolM> FilePro
 
 class FileProcessorT: public ::testing::Test {
 public:
-    auto_init(inj, (di::make_injector<vk_music_fs::BoundPolicy>(
-        di::bind<FileProcessor>.in(di::extension::scoped),
-        di::bind<StreamM>.in(di::extension::scoped),
-        di::bind<FileM>.in(di::extension::scoped),
-        di::bind<ParserM>.in(di::extension::scoped),
-        di::bind<ThreadPoolM>.in(di::extension::scoped)
-    )));
+    auto_init(inj, (vk_music_fs::makeStorageInj()));
 
     std::shared_ptr<FileProcessor> fp;
     std::shared_ptr<MusicData> data;

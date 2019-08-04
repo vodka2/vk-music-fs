@@ -24,7 +24,7 @@ namespace vk_music_fs {
                     const std::shared_ptr<THelper> &helper,
                     const ActTuple<TFsUtils> &acts
             ) : _fsUtils(utils), _fileObtainer(fileObtainer), _idGenerator(idGenerator),
-                _settings(settings), _acts(acts){
+                _settings(settings), _acts(acts), _helper(helper){
             }
 
             void checkCreateDirPath(FsPath &path){

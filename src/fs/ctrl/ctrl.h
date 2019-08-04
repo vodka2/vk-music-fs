@@ -1,4 +1,5 @@
 #include <tuple>
+#include <memory>
 
 namespace vk_music_fs {
     namespace fs {

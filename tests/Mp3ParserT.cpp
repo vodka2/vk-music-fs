@@ -5,6 +5,7 @@
 #include <Mp3Parser.h>
 #include <toolkit/tbytevectorstream.h>
 #include "data/Mp3Files.h"
+#include <diext/common_di.h>
 #include <boost/di/extension/scopes/scoped.hpp>
 
 namespace di = boost::di;
@@ -44,9 +45,7 @@ public:
     vk_music_fs::Artist artist{"Justin Bieber"};
     vk_music_fs::Title title{"Baby"};
     vk_music_fs::TagSize prevTagSize{4096};
-    auto_init(inj, (di::make_injector<vk_music_fs::BoundPolicy>(
-            di::bind<Mp3Parser>.in(di::extension::scoped),
-            di::bind<BlockingBufferM>.in(di::extension::scoped),
+    auto_init(inj, (vk_music_fs::makeStorageInj(
             di::bind<vk_music_fs::Artist>.to(artist),
             di::bind<vk_music_fs::Title>.to(title),
             di::bind<vk_music_fs::TagSize>.to(prevTagSize)

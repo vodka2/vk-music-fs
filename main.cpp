@@ -24,86 +24,33 @@
 #include <fs/FileObtainer.h>
 #include <fs/ctrl/SearchSongNameArtistHelper.h>
 #include <fs/ctrl/SearchSongNameSongHelper.h>
+#include <diext/common_di.h>
 #include "fuse_wrap.h"
 
 using namespace vk_music_fs;
 
 fuse_operations operations = {};
 
-typedef fs::RefreshAct<fs::FsUtils> RefreshActD;
-typedef fs::NumberAct<fs::FsUtils> NumberActD;
-typedef fs::ActTuple<fs::FsUtils> ActTupleD;
-
 typedef FileProcessor<net::HttpStream, MusicFile, Mp3Parser, ThreadPool> FileProcessorD;
 typedef FileManager<FileCache, FileProcessorD, Reader> FileManagerD;
-typedef fs::FileObtainer<net::VkApiQueryMaker> FileObtainerD;
-typedef fs::CtrlTuple<fs::FsUtils, FileObtainerD, FileManagerD> CtrlTupleD;
-
-typedef fs::MyAudiosCtrl<fs::FsUtils, FileObtainerD> MyAudiosCtrlD;
-typedef fs::SingleDirCtrl<MyAudiosCtrlD, fs::FsUtils> MyAudiosSingleDirD;
-typedef fs::RemoteFileWrapper<MyAudiosSingleDirD, fs::FsUtils, FileManagerD> MyAudiosRemoteFileD;
-typedef fs::DummyDirWrapper<MyAudiosRemoteFileD, fs::FsUtils> MyAudiosDummyDirD;
-
-typedef fs::SearchSongNameCtrl<fs::FsUtils, FileObtainerD, fs::SearchSongNameArtistHelper> SearchSongNameCtrlD1;
-typedef fs::SingleDirCtrl<SearchSongNameCtrlD1, fs::FsUtils> SearchSongNameSingleDirD1;
-typedef fs::RemoteFileWrapper<SearchSongNameSingleDirD1, fs::FsUtils, FileManagerD> SearchSongNameRemoteFileD1;
-typedef fs::DummyDirWrapper<SearchSongNameRemoteFileD1, fs::FsUtils> SearchSongNameDummyDirD1;
-
-typedef fs::SearchSongNameCtrl<fs::FsUtils, FileObtainerD, fs::SearchSongNameSongHelper> SearchSongNameCtrlD2;
-typedef fs::SingleDirCtrl<SearchSongNameCtrlD2, fs::FsUtils> SearchSongNameSingleDirD2;
-typedef fs::RemoteFileWrapper<SearchSongNameSingleDirD2, fs::FsUtils, FileManagerD> SearchSongNameRemoteFileD2;
-typedef fs::DummyDirWrapper<SearchSongNameRemoteFileD2, fs::FsUtils> SearchSongNameDummyDirD2;
-typedef AudioFs<CtrlTupleD> AudioFsD;
-typedef Application<FileManagerD, AudioFsD, ErrLogger, net::HttpStreamCommon> ApplicationD;
+typedef Application<
+        FileManagerD,
+        AudioFs<fs::CtrlTuple<fs::FsUtils, fs::FileObtainer<net::VkApiQueryMaker>, FileManagerD>>,
+        ErrLogger, net::HttpStreamCommon
+> ApplicationD;
 
 auto curTime = static_cast<uint_fast32_t>(time(nullptr)); //NOLINT
 
 auto commonInj = [] (const std::shared_ptr<ProgramOptions> &conf){ // NOLINT
     namespace di = boost::di;
-    return di::make_injector<BoundPolicy>(
-            di::bind<ActTupleD>.in(di::unique),
-            di::bind<RefreshActD>.in(di::extension::scoped),
-            di::bind<NumberActD>.in(di::extension::scoped),
-
+    return makeStorageInj(
             di::bind<net::HttpStream>.in(di::unique),
             di::bind<MusicFile>.in(di::unique),
             di::bind<Mp3Parser>.in(di::unique),
             di::bind<FileProcessorD>.in(di::unique),
             di::bind<Reader>.in(di::unique),
             di::bind<TagSizeCalculator>.in(di::unique),
-            di::bind<CtrlTupleD>.in(di::unique),
-            di::bind<fs::FsUtils>.in(di::extension::scoped),
-            di::bind<FileObtainerD>.in(di::extension::scoped),
-            di::bind<fs::IdGenerator>.in(di::extension::scoped),
-            di::bind<fs::FsSettings>.in(di::extension::scoped),
-            di::bind<fs::SearchSongNameSongHelper>.in(di::extension::scoped),
-            di::bind<fs::SearchSongNameArtistHelper>.in(di::extension::scoped),
 
-            di::bind<MyAudiosCtrlD>.in(di::extension::scoped),
-            di::bind<MyAudiosSingleDirD>.in(di::extension::scoped),
-            di::bind<MyAudiosRemoteFileD>.in(di::extension::scoped),
-            di::bind<MyAudiosDummyDirD>.in(di::extension::scoped),
-
-            di::bind<SearchSongNameCtrlD1>.in(di::extension::scoped),
-            di::bind<SearchSongNameSingleDirD1>.in(di::extension::scoped),
-            di::bind<SearchSongNameRemoteFileD1>.in(di::extension::scoped),
-            di::bind<SearchSongNameDummyDirD1>.in(di::extension::scoped),
-
-            di::bind<SearchSongNameCtrlD2>.in(di::extension::scoped),
-            di::bind<SearchSongNameSingleDirD2>.in(di::extension::scoped),
-            di::bind<SearchSongNameRemoteFileD2>.in(di::extension::scoped),
-            di::bind<SearchSongNameDummyDirD2>.in(di::extension::scoped),
-
-            di::bind<fs::RootCtrl<fs::FsUtils>>.in(di::extension::scoped),
-            di::bind<net::Mp3SizeObtainer>.in(di::extension::scoped),
-            di::bind<net::HttpStreamCommon>.in(di::extension::scoped),
-            di::bind<ThreadPool>.in(di::extension::scoped),
-            di::bind<FileCache>.in(di::extension::scoped),
-            di::bind<CacheSaver>.in(di::extension::scoped),
-            di::bind<ErrLogger>.in(di::extension::scoped),
-            di::bind<AudioFsD>.in(di::extension::scoped),
-            di::bind<FileManagerD>.in(di::extension::scoped),
-            di::bind<net::VkApiQueryMaker>.in(di::extension::scoped),
             di::bind<SizesCacheSize>.to(SizesCacheSize{conf->getSizesCacheSize()}),
             di::bind<FilesCacheSize>.to(FilesCacheSize{conf->getFilesCacheSize()}),
             di::bind<CacheDir>.to(CacheDir{conf->getCacheDir()}),
@@ -132,7 +79,7 @@ auto commonInj = [] (const std::shared_ptr<ProgramOptions> &conf){ // NOLINT
 
 auto tokenUserAgentInj = [] (const std::shared_ptr<ProgramOptions> &conf){ //NOLINT
     namespace di = boost::di;
-    return di::make_injector<BoundPolicy>(
+    return di::make_injector<vk_music_fs::CustomScopePolicy>(
             di::bind<UserAgent>.to(UserAgent{conf->getUseragent()}),
             di::bind<Token>.to(Token{conf->getToken()})
     );
@@ -140,7 +87,7 @@ auto tokenUserAgentInj = [] (const std::shared_ptr<ProgramOptions> &conf){ //NOL
 
 auto getTokenInj = [] (const VkCredentials &creds, const std::string &userAgent){ //NOLINT
     namespace di = boost::di;
-    return di::make_injector<BoundPolicy>(
+    return di::make_injector<vk_music_fs::CustomScopePolicy>(
             di::bind<UserAgent>.to(UserAgent{userAgent}),
             di::bind<VkCredentials>.to(creds)
     );
@@ -148,7 +95,7 @@ auto getTokenInj = [] (const VkCredentials &creds, const std::string &userAgent)
 
 int printToken(const VkCredentials &creds, const std::shared_ptr<ProgramOptions> &opts){
     namespace di = boost::di;
-    auto inj = di::make_injector<BoundPolicy>(
+    auto inj = di::make_injector<vk_music_fs::CustomScopePolicy>(
             commonInj(opts),
             getTokenInj(
                     creds,
@@ -184,7 +131,7 @@ int main(int argc, char* argv[]) {
         namespace di = boost::di;
 
         auto conf = *reinterpret_cast<std::shared_ptr<ProgramOptions>*>(fuse_get_context()->private_data);
-        static auto inj = di::make_injector<BoundPolicy>(
+        static auto inj = di::make_injector<vk_music_fs::CustomScopePolicy>(
             commonInj(conf),
             tokenUserAgentInj(conf)
         );

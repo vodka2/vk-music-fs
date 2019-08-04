@@ -9,7 +9,7 @@
 #include "data/Mp3Files.h"
 #include "data/Writer.h"
 #include "data/ParserM.h"
-#include <boost/di.hpp>
+#include <diext/common_di.h>
 #include <boost/di/extension/scopes/scoped.hpp>
 #include <toolkit/tbytevectorstream.h>
 
@@ -23,12 +23,7 @@ public:
     vk_music_fs::Artist artist{"Justin Bieber"};
     vk_music_fs::Title title{"Baby"};
     vk_music_fs::TagSize prevTagSize{4096};
-    auto_init(inj, (di::make_injector<vk_music_fs::BoundPolicy>(
-        di::bind<FileProcessor>.in(di::extension::scoped),
-        di::bind<StreamM>.in(di::extension::scoped),
-        di::bind<FileM>.in(di::extension::scoped),
-        di::bind<ThreadPoolM>.in(di::extension::scoped),
-        di::bind<Mp3Parser>.in(di::extension::scoped),
+    auto_init(inj, (vk_music_fs::makeStorageInj(
         di::bind<vk_music_fs::Artist>.to(artist),
         di::bind<vk_music_fs::Title>.to(title),
         di::bind<vk_music_fs::TagSize>.to(prevTagSize)
@@ -48,8 +43,8 @@ public:
             return data->readData();
         }));
         fp = inj.create<std::shared_ptr<FileProcessor>>();
-        ON_CALL(*inj.create<std::shared_ptr<FileM>>(), write(testing::_)).WillByDefault(testing::Invoke([this] (auto data){
-            writer->write(data);
+        ON_CALL(*inj.create<std::shared_ptr<FileM>>(), write(testing::_)).WillByDefault(testing::Invoke([this] (auto data2){
+            writer->write(data2);
         }));
         ON_CALL(*inj.create<std::shared_ptr<FileM>>(), getSize()).WillByDefault(testing::Invoke([this] (){
             return writer->getSize();
