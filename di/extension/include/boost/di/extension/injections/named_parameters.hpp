@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2012-2018 Kris Jusiak (kris at jusiak dot net)
+// Copyright (c) 2012-2019 Kris Jusiak (kris at jusiak dot net)
 //
 // Distributed under the Boost Software License, Version 1.0.
 // (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -47,10 +47,17 @@ struct pair {
   long end{};
 };
 
+#if (__GNUC__ >= 9)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic warning "-Wpedantic"
+#endif
 template <class T, T... Chars>
 constexpr auto operator""_s() {
   return aux::integral_constant<long, const_hash(chars<Chars...>{}, sizeof...(Chars) + 1)>{};
 }
+#if (__GNUC__ >= 9)
+#pragma GCC diagnostic pop
+#endif
 
 long constexpr const_hash(char const* input, long m = 0, long i = 0) {
   return *input && i < m ? static_cast<long>(*input) + 33 * const_hash(input + 1, m, i + 1) : 5381;

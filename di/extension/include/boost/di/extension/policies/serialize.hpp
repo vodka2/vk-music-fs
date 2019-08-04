@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2012-2018 Kris Jusiak (kris at jusiak dot net)
+// Copyright (c) 2012-2019 Kris Jusiak (kris at jusiak dot net)
 //
 // Distributed under the Boost Software License, Version 1.0.
 // (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -44,9 +44,12 @@ struct archive {
   int offset;
 };
 struct context : std::vector<archive> {
+  context() {}
   int offset = 0;
 };
-struct serializable : std::vector<archive> {};
+struct serializable : std::vector<archive> {
+  serializable() {}
+};
 
 struct policy_guard {
   policy_guard() { check() = true; }

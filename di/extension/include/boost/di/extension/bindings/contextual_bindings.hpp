@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2012-2018 Kris Jusiak (kris at jusiak dot net)
+// Copyright (c) 2012-2019 Kris Jusiak (kris at jusiak dot net)
 //
 // Distributed under the Boost Software License, Version 1.0.
 // (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -31,8 +31,12 @@ auto get_type() {
 BOOST_DI_NAMESPACE_BEGIN
 namespace extension {
 
-struct context_type : std::string {};
-struct contexts_list : std::vector<std::string> {};
+struct context_type : std::string {
+  context_type() {}
+};
+struct contexts_list : std::vector<std::string> {
+  contexts_list() {}
+};
 
 template <class TInjector>
 auto context(const TInjector& injector) noexcept {
