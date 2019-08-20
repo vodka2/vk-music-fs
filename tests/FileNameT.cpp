@@ -1,8 +1,10 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include <fs/FileName.h>
+#include <fs/Mp3FileName.h>
 
 using vk_music_fs::fs::FileName;
+using vk_music_fs::fs::Mp3FileName;
 
 class FileNameT: public ::testing::Test {
 public:
@@ -23,6 +25,6 @@ TEST_F(FileNameT, IncreaseNumbers){ //NOLINT
 }
 
 TEST_F(FileNameT, ReplaceBrackets){ //NOLINT
-    FileName fname("Artist", "Title (Album version) (Album version)", ".mp3");
+    Mp3FileName fname("Artist", "Title (Album version) (Album version)", ".mp3");
     EXPECT_EQ(fname.getFilename(), "Artist - Title (Album version).mp3");
 }

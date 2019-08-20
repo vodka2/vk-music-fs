@@ -9,8 +9,7 @@ Dir::Dir(
         uint_fast32_t id,
         DirExtra extra,
         const DirWPtr &parent
-) :
-        _name(std::move(name)), _parent(parent), _id(id), _extra(extra) {
+) : Dir(name, id, extra, parent, 0){
 }
 
 const std::string Dir::getName() const {
@@ -63,4 +62,14 @@ uint_fast32_t Dir::getId() const {
 
 DirExtra& Dir::getDirExtra() {
     return _extra;
+}
+
+uint_fast32_t Dir::getTime() const {
+    return _time;
+}
+
+Dir::Dir(
+    std::string name, uint_fast32_t id, DirExtra extra, const DirWPtr &parent, uint_fast32_t time
+) : _name(std::move(name)), _parent(parent), _id(id), _extra(extra), _time(time){
+
 }

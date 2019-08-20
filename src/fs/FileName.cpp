@@ -7,17 +7,8 @@ using namespace fs;
 
 FileName::FileName(
         const std::string &artist, const std::string &title, const std::string &extension
-) : _artist(artist), _title(title), _extension(extension), _useNumberSuffix(false){
-    _title = replaceDoubleBrackets(_title);
-    _filename = escapeName(_artist +  " - " + _title);
-}
-
-std::string FileName::getArtist() {
-    return _artist;
-}
-
-std::string FileName::getTitle() {
-    return _title;
+) : _extension(extension), _useNumberSuffix(false){
+    _filename = escapeName(artist +  " - " + title);
 }
 
 std::string FileName::getFilename() {
@@ -46,7 +37,6 @@ std::string FileName::escapeName(std::string str) {
     return str;
 }
 
-std::string FileName::replaceDoubleBrackets(std::string str) {
-    std::regex regex(R"((\([^\(\)]+\))\s*\1$)");
-    return std::regex_replace(str, regex, "$1");
+FileName::FileName(const std::string &title) : _extension(""), _useNumberSuffix(false){
+    _filename = escapeName(title);
 }

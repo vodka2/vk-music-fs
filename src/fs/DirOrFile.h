@@ -15,6 +15,7 @@ namespace vk_music_fs {
             FilePtr file() const;
             std::string getName() const;
             uint_fast32_t getId() const;
+            uint_fast32_t getTime() const;
             void lock();
             void unlock();
         private:

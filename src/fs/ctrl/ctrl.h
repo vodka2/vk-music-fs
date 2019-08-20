@@ -1,5 +1,14 @@
 #include <tuple>
 #include <memory>
+#include "DummyDirWrapper.h"
+#include "RemoteFileWrapper.h"
+#include "SingleDirCtrl.h"
+#include "MyAudiosCtrl.h"
+#include "SearchSongNameCtrl.h"
+#include "SearchSongNameArtistHelper.h"
+#include "SearchSongNameSongHelper.h"
+#include "PlaylistCtrl.h"
+#include "RootCtrl.h"
 
 namespace vk_music_fs {
     namespace fs {
@@ -58,6 +67,19 @@ namespace vk_music_fs {
                                 RemoteFileWrapper<
                                         SingleDirCtrl<
                                                 SearchSongNameCtrl<TFsUtils, TFileObtainer, SearchSongNameSongHelper>,
+                                                TFsUtils
+                                        >,
+                                        TFsUtils,
+                                        TFileManager
+                                >,
+                                TFsUtils
+                        >
+                >,
+                std::shared_ptr<
+                        DummyDirWrapper<
+                                RemoteFileWrapper<
+                                        SingleDirCtrl<
+                                                PlaylistCtrl<TFsUtils, TFileObtainer>,
                                                 TFsUtils
                                         >,
                                         TFsUtils,

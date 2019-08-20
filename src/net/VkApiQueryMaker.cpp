@@ -98,9 +98,64 @@ std::string VkApiQueryMaker::deleteFromMyAudios(int_fast32_t ownerId, uint_fast3
     } catch (const boost::system::system_error &ex){
         _common->closeStream(stream);
         throw HttpException(
-                std::string("Error deleteting file ") +
-                std::to_string(ownerId) + ":" + std::to_string(fileId) +
+                std::string("Error deleting file ") +
                 ". " + ex.what()
+        );
+    }
+}
+
+std::string VkApiQueryMaker::makeMyPlaylistsQuery(uint_fast32_t ownerId, uint_fast32_t offset, uint_fast32_t count) {
+    std::shared_ptr<HttpStreamCommon::Stream> stream;
+    try {
+        std::string uri = "https://api.vk.com/method/audio.getPlaylists?access_token=" +
+                          _token + "&count=" + std::to_string(count) + "&offset=" + std::to_string(offset) +
+                          "&owner_id=" + std::to_string(ownerId) + "&v=5.71";
+        auto hostPath = _common->getHostPath(uri);
+        stream = _common->connect(hostPath);
+        _common->sendGetReq(stream, hostPath, _userAgent);
+        return _common->readRespAsStr(stream);
+    } catch (const boost::system::system_error &ex){
+        _common->closeStream(stream);
+        throw HttpException(
+                std::string("Error getting playlists ") + ex.what()
+        );
+    }
+}
+
+std::string VkApiQueryMaker::getUserId() {
+    std::shared_ptr<HttpStreamCommon::Stream> stream;
+    try {
+        std::string uri = "https://api.vk.com/method/users.get?access_token=" + _token + "&v=5.71";
+        auto hostPath = _common->getHostPath(uri);
+        stream = _common->connect(hostPath);
+        _common->sendGetReq(stream, hostPath, _userAgent);
+        return _common->readRespAsStr(stream);
+    } catch (const boost::system::system_error &ex){
+        _common->closeStream(stream);
+        throw HttpException(
+                std::string("Error getting user id ") + ex.what()
+        );
+    }
+}
+
+std::string
+VkApiQueryMaker::getPlaylistAudios(const std::string &accessKey, int_fast32_t ownerId, uint_fast32_t albumId,
+                                   uint_fast32_t offset, uint_fast32_t cnt) {
+    std::shared_ptr<HttpStreamCommon::Stream> stream;
+    try {
+        std::string uri = "https://api.vk.com/method/audio.get?access_token=" + _token + "&access_key=" +
+                accessKey + "&album_id=" + std::to_string(albumId) + "&offset=" + std::to_string(offset) +
+                "&count=" + std::to_string(cnt) + "&owner_id=" + std::to_string(ownerId) + "&v=5.71";
+        auto hostPath = _common->getHostPath(uri);
+        stream = _common->connect(hostPath);
+        _common->sendGetReq(stream, hostPath, _userAgent);
+        return _common->readRespAsStr(stream);
+    } catch (const boost::system::system_error &ex){
+        _common->closeStream(stream);
+        throw HttpException(
+                std::string("Error getting playlist ") +
+                " album_id:" + std::to_string(albumId) + " owner_id:" + std::to_string(ownerId) + "." +
+                ex.what()
         );
     }
 }

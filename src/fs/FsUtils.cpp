@@ -4,7 +4,7 @@
 #include "Dir.h"
 #include "File.h"
 #include "FsException.h"
-#include "FileName.h"
+#include "Mp3FileName.h"
 
 using namespace vk_music_fs;
 using namespace vk_music_fs::fs;
@@ -106,7 +106,7 @@ FileOrDirMeta FsUtils::getMeta(const DirPtr &rootDir, const std::string &path) {
     FsPathUnlocker unlocker(fsPath);
     if (fsPath.isPathMatched()) {
         if (fsPath.getLast().isDir()) {
-            return {FileOrDirMeta::Type::DIR_ENTRY, 0};
+            return {FileOrDirMeta::Type::DIR_ENTRY, fsPath.getLast().dir()->getTime()};
         } else {
             return {FileOrDirMeta::Type::FILE_ENTRY, fsPath.getLast().file()->getTime()};
         }
@@ -136,7 +136,7 @@ void FsUtils::addFilesToDir(
 ) {
     auto curTime = dir->getNumFiles();
     for(const auto &file: files){
-        FileName fname(file.getArtist(), file.getTitle(), extension);
+        Mp3FileName fname(file.getArtist(), file.getTitle(), extension);
         while (dir->hasItem(fname.getFilename())) {
             fname.increaseNumberSuffix();
         }
@@ -184,19 +184,19 @@ void FsUtils::deleteAllFiles(const DirPtr &dir) {
     }
 }
 
-void FsUtils::limitFiles(const DirPtr &dir, uint_fast32_t num) {
-    std::vector<FilePtr> files;
+void FsUtils::limitItems(const DirPtr &dir, uint_fast32_t num, bool leaveDirs) {
+    std::vector<DirOrFile> items;
     for(const auto &s: dir->getContents()){
-        if(s.second.isFile()){
-            files.push_back(s.second.file());
+        if(!leaveDirs || s.second.isFile()){
+            items.push_back(s.second);
         }
     }
-    if(files.size() >= num) {
-        std::sort(files.begin(), files.end(), [](const auto &a, const auto &b) {
-            return a->getTime() > b->getTime();
+    if(items.size() >= num) {
+        std::sort(items.begin(), items.end(), [](const auto &a, const auto &b) {
+            return a.getTime() > b.getTime();
         });
-        for (auto it = files.cbegin(); it != files.begin() + (files.size() - num); it++) {
-            dir->removeItem((*it)->getName());
+        for (auto it = items.cbegin(); it != items.begin() + (items.size() - num); it++) {
+            dir->removeItem(it->getName());
         }
     }
 }

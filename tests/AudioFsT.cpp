@@ -30,8 +30,11 @@ public:
     MOCK_CONST_METHOD3(makeSearchQuery, std::string(const std::string&, uint_fast32_t, uint_fast32_t));
     MOCK_CONST_METHOD3(makeArtistSearchQuery, std::string(const std::string&, uint_fast32_t, uint_fast32_t));
     MOCK_CONST_METHOD2(makeMyAudiosQuery, std::string(uint_fast32_t, uint_fast32_t));
+    MOCK_CONST_METHOD3(makeMyPlaylistsQuery, std::string(uint_fast32_t, uint_fast32_t, uint_fast32_t));
+    MOCK_CONST_METHOD5(getPlaylistAudios, std::string(std::string, int_fast32_t, uint_fast32_t, uint_fast32_t, uint_fast32_t));
     MOCK_CONST_METHOD2(addToMyAudios, std::string(int_fast32_t, uint_fast32_t));
     MOCK_CONST_METHOD2(deleteFromMyAudios, std::string(int_fast32_t, uint_fast32_t));
+    MOCK_CONST_METHOD0(getUserId, std::string());
 };
 
 typedef testing::NiceMock<QueryMakerM0> QueryMakerM;
@@ -222,13 +225,53 @@ public:
                         )"
         ));
     }
+
+    void initGetUserIdQuery(){
+        ON_CALL(*queryMakerM, getUserId()).WillByDefault(testing::Return(
+                R"(
+                        {"response": [{
+                           "id" : 456
+                        }]}
+                        )"
+        ));
+    }
+
+    void initMyPlaylistsQuery(){
+        ON_CALL(*queryMakerM, makeMyPlaylistsQuery(456, 0, 3)).WillByDefault(testing::Return(
+                R"(
+                        {"response": {
+                           "count": 3,
+                           "items": [
+                               {"owner_id": 5, "id": 7, "access_key": "8", "title": "Playlist name"},
+                               {"owner_id": -5, "id": 11, "access_key": "7", "title": "Playlist name 2"},
+                               {"owner_id": -9, "id": 1, "access_key": "17", "title": "Playlist name 3"}
+                           ]
+                        }}
+                        )"
+        ));
+    }
+
+    void initMyPlaylistsAudiosQuery(){
+        ON_CALL(*queryMakerM, getPlaylistAudios("7", -5, 11, 0, 2)).WillByDefault(testing::Return(
+                R"(
+                        {"response": {
+                           "count": 2,
+                           "items": [
+                               {"id": 1, "owner_id": 2, "artist":"Artist1", "title":"Song1", "url":"https:\/\/uri1"},
+                               {"id": 2, "owner_id": 3, "artist":"Artist2", "title":"Song2", "url":"https:\/\/uri2"}
+                           ]
+                        }}
+                        )"
+        ));
+    }
 };
 
 TEST_F(AudioFsT, Empty){ //NOLINT
     auto api = inj.create<std::shared_ptr<AudioFs>>();
-    EXPECT_EQ(api->getEntries("/").size(), 3);
+    EXPECT_EQ(api->getEntries("/").size(), 4);
     EXPECT_EQ(api->getEntries("/Search").size(), 0);
     EXPECT_EQ(api->getEntries("/Search by artist").size(), 0);
+    EXPECT_EQ(api->getEntries("/My playlists").size(), 0);
 }
 
 TEST_F(AudioFsT, CreateDir){ //NOLINT
@@ -481,6 +524,34 @@ TEST_F(AudioFsT, CreateArtistSearchMoreDirOneNum){ //NOLINT
             "4", "Artist1 - Song1.mp3", "Artist2 - Song2.mp3", "Artist3 - Song3.mp3", "Artist4 - Song4.mp3"
     };
     auto dirs = api->getEntries("/Search by artist/Artist");
+    std::sort(dirs.begin(), dirs.end());
+    EXPECT_EQ(dirs, expData);
+}
+
+TEST_F(AudioFsT, CreatePlaylists){ //NOLINT
+    auto api = inj.create<std::shared_ptr<AudioFs>>();
+    initGetUserIdQuery();
+    initMyPlaylistsQuery();
+    api->createDir("/My playlists/3");
+    std::vector<std::string> expData = {
+            "3", "Playlist name", "Playlist name 2", "Playlist name 3"
+    };
+    auto dirs = api->getEntries("/My playlists");
+    std::sort(dirs.begin(), dirs.end());
+    EXPECT_EQ(dirs, expData);
+}
+
+TEST_F(AudioFsT, LoadPlaylistAudios){ //NOLINT
+    auto api = inj.create<std::shared_ptr<AudioFs>>();
+    initGetUserIdQuery();
+    initMyPlaylistsQuery();
+    initMyPlaylistsAudiosQuery();
+    api->createDir("/My playlists/3");
+    api->createDir("/My playlists/Playlist name 2/2");
+    auto dirs = api->getEntries("/My playlists/Playlist name 2");
+    std::vector<std::string> expData = {
+            "2", "Artist1 - Song1.mp3", "Artist2 - Song2.mp3"
+    };
     std::sort(dirs.begin(), dirs.end());
     EXPECT_EQ(dirs, expData);
 }

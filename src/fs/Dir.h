@@ -4,6 +4,7 @@
 #include "DirOrFile.h"
 #include "OffsetCntName.h"
 #include "OffsetCnt.h"
+#include "OffsetCntPlaylist.h"
 
 namespace vk_music_fs {
     namespace fs {
@@ -15,6 +16,13 @@ namespace vk_music_fs {
                     uint_fast32_t id,
                     DirExtra extra,
                     const DirWPtr &parent
+            );
+            Dir(
+                    std::string name,
+                    uint_fast32_t id,
+                    DirExtra extra,
+                    const DirWPtr &parent,
+                    uint_fast32_t time
             );
             const std::string getName() const;
             DirPtr getParent() const;
@@ -30,9 +38,11 @@ namespace vk_music_fs {
             DirExtra& getDirExtra();
             void lock();
             void unlock();
+            uint_fast32_t getTime() const;
         private:
             std::string _name;
             uint_fast32_t _id;
+            uint_fast32_t _time;
             ContentsMap _contents;
             DirWPtr _parent;
             DirExtra _extra;

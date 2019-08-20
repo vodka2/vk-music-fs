@@ -28,7 +28,7 @@ namespace vk_music_fs {
             );
             RemoteFile getRemoteFile(FsPath &path, const std::string &fullPath);
             void deleteAllFiles(const DirPtr &dir);
-            void limitFiles(const DirPtr &dir, uint_fast32_t num);
+            void limitItems(const DirPtr &dir, uint_fast32_t num, bool leaveDirs);
 
         private:
             std::vector<std::string> splitPath(std::string path);

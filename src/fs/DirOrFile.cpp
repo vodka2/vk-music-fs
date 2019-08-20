@@ -58,3 +58,11 @@ uint_fast32_t DirOrFile::getId() const {
         return file()->getId();
     }
 }
+
+uint_fast32_t DirOrFile::getTime() const {
+    if(isDir()){
+        return dir()->getTime();
+    } else {
+        return file()->getTime();
+    }
+}

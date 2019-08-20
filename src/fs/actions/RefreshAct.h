@@ -17,11 +17,20 @@ namespace vk_music_fs {
 
             template<typename TData, typename TFunc>
             void doAction(const DirPtr &dir, const std::string &dirName, TFunc func) {
+                doAction<TData>(dir, dirName, true, func);
+            }
+
+            template<typename TData, typename TFunc>
+            void doAction(const DirPtr &dir, const std::string &dirName, bool leaveDirs, TFunc func) {
                 TData curOffsetCnt = std::get<TData>(*dir->getDirExtra());
                 if (curOffsetCnt.getRefreshDir() != nullptr) {
                     dir->removeItem(curOffsetCnt.getRefreshDir()->getName());
                 }
-                _fsUtils->deleteAllFiles(dir);
+                if (leaveDirs) {
+                    _fsUtils->deleteAllFiles(dir);
+                } else {
+                    dir->clear();
+                }
                 auto refreshDir = std::make_shared<Dir>(
                         dirName, _idGenerator->getNextId(), std::nullopt, dir
                 );
@@ -30,6 +39,7 @@ namespace vk_music_fs {
                 dir->addItem(refreshDir);
                 std::get<TData>(*dir->getDirExtra()) = curOffsetCnt;
             }
+
         private:
             std::shared_ptr<TFsUtils> _fsUtils;
             std::shared_ptr<IdGenerator> _idGenerator;

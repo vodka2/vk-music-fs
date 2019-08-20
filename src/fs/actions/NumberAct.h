@@ -39,7 +39,7 @@ namespace vk_music_fs {
                     }
                     if(curOffsetCnt.getCnt() >= query.first){
                         needMakeQuery = false;
-                        _fsUtils->limitFiles(dir, query.first);
+                        _fsUtils->limitItems(dir, query.first, leaveDirs);
                     } else {
                         queryOffset = curOffsetCnt.getOffset() + curOffsetCnt.getCnt();
                         queryCnt = query.first - curOffsetCnt.getCnt();

@@ -7,16 +7,12 @@ namespace vk_music_fs {
         class FileName {
         public:
             FileName(const std::string &artist, const std::string &title, const std::string &extension);
-            std::string getArtist();
-            std::string getTitle();
+            FileName(const std::string &title);
             std::string getFilename();
             void increaseNumberSuffix();
 
         private:
-            std::string replaceDoubleBrackets(std::string str);
             std::string escapeName(std::string str);
-            std::string _artist;
-            std::string _title;
             std::string _extension;
             std::string _filename;
             bool _useNumberSuffix;

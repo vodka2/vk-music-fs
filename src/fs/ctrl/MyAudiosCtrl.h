@@ -54,20 +54,20 @@ namespace vk_music_fs {
                 if(query.type == QueryParams::Type::TWO_NUMBERS || query.type == QueryParams::Type::ONE_NUMBER){
                     getAct<NumberAct>(_acts)->template doAction<OffsetCnt>(_ctrlDir, dirName, false, query,
                         [this] (uint_fast32_t offset, uint_fast32_t cnt) {
-                            OffsetCnt curOffsetCnt = std::get<OffsetCnt>(*_ctrlDir->getDirExtra());
-                            if(curOffsetCnt.getRefreshDir() != nullptr) {
-                                _ctrlDir->removeItem(curOffsetCnt.getRefreshDir()->getName());
-                            }
-                            _fsUtils->addFilesToDir(
+                            getAct<RemoveRefreshDirAct>(_acts)->template doAction<OffsetCnt>(
                                     _ctrlDir,
-                                    _fileObtainer->getMyAudios(offset, cnt),
-                                    _idGenerator,
-                                    _settings->getMp3Ext()
+                                    [this, offset, cnt] {
+                                        _fsUtils->addFilesToDir(
+                                                _ctrlDir,
+                                                _fileObtainer->getMyAudios(offset, cnt),
+                                                _idGenerator,
+                                                _settings->getMp3Ext()
+                                        );
+                                    }
                             );
-                            curOffsetCnt.setRefreshDir(nullptr);
                         }
                     );
-                } else if(std::regex_match(dirName, std::regex{"^(r|regex)[0-9]*$"})){
+                } else if(std::regex_match(dirName, std::regex{"^(r|refresh)[0-9]*$"})){
                     getAct<RefreshAct>(_acts)->template doAction<OffsetCnt>(_ctrlDir, dirName, [this] (uint_fast32_t offset, uint_fast32_t cnt) {
                         _fsUtils->addFilesToDir(
                                 _ctrlDir,
