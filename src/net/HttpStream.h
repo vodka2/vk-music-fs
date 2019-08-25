@@ -4,7 +4,7 @@
 #include <boost/beast/version.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/ssl.hpp>
-#include <common.h>
+#include <common/common.h>
 #include "HttpStreamCommon.h"
 
 namespace vk_music_fs{

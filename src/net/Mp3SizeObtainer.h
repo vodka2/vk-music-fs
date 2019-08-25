@@ -1,8 +1,7 @@
 #pragma once
 
 #include <string>
-#include <common.h>
-#include <mpeg/id3v2/id3v2tag.h>
+#include <common/common.h>
 #include <memory>
 #include "HttpStreamCommon.h"
 

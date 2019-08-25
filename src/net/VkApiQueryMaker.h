@@ -1,6 +1,6 @@
 #pragma once
 
-#include <common.h>
+#include <common/common.h>
 #include "HttpStreamCommon.h"
 
 namespace vk_music_fs {

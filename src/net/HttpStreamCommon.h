@@ -1,9 +1,9 @@
 #pragma once
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/ssl.hpp>
-#include <common.h>
+#include <common/common.h>
 #include <string>
-#include <ThreadPool.h>
+#include <common/ThreadPool.h>
 
 namespace vk_music_fs {
     namespace net {

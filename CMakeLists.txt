@@ -6,6 +6,54 @@ option(ENABLE_TESTS "Enable tests" OFF)
 set(OLD_CXX_FLAGS ${CMAKE_CXX_FLAGS})
 set(CMAKE_VERBOSE_MAKEFILE 1)
 
+if(${ENABLE_TESTS})
+    add_library(testlib INTERFACE)
+    target_link_libraries(testlib INTERFACE gtest_main gmock)
+    target_include_directories(testlib INTERFACE ${CURRENT_SRC_DIR})
+    set(ALL_TESTS_SRC "")
+
+    define_property(GLOBAL PROPERTY ALL_TESTS_SRC BRIEF_DOCS "All tests sources" FULL_DOCS "All tests sources")
+    define_property(GLOBAL PROPERTY ALL_TESTS_LIBS BRIEF_DOCS "All libraries for tests" FULL_DOCS "All libraries for tests")
+    set_property(GLOBAL PROPERTY ALL_TESTS_SRC "")
+    set_property(GLOBAL PROPERTY ALL_TESTS_LIBS "")
+endif()
+
+macro(add_vmf_test name lib)
+    if(${ENABLE_TESTS})
+        add_executable(${name} ${ARGN})
+        target_link_libraries(${name} PUBLIC testlib "${lib}_test")
+
+        set(result "")
+        foreach(test_file ${ARGN})
+            get_filename_component(abs_path "${test_file}" REALPATH)
+            list(APPEND result ${abs_path})
+        endforeach()
+        set_property(GLOBAL APPEND PROPERTY ALL_TESTS_SRC "${result}")
+        set_property(GLOBAL APPEND PROPERTY ALL_TESTS_LIBS "${lib}_test")
+    endif()
+endmacro()
+
+macro(add_vmf_lib name)
+    if(${CMAKE_BUILD_TYPE} STREQUAL "Release")
+        add_library(${name} STATIC)
+    else()
+        add_library(${name} SHARED)
+    endif()
+    target_sources(${name} PRIVATE ${ARGN})
+endmacro()
+
+macro(add_vmf_lib_test name)
+    add_vmf_lib(${name} ${ARGN})
+    target_include_directories(${name} PRIVATE ${ROOT_DIR})
+
+    if(${ENABLE_TESTS})
+        add_library(${name}_test INTERFACE)
+        target_link_libraries(${name}_test INTERFACE ${name})
+        target_include_directories(${name}_test INTERFACE ${ROOT_DIR})
+        target_include_directories(${name}_test INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
+    endif()
+endmacro()
+
 add_subdirectory(taglib_mod)
 add_subdirectory(cfgpath)
 add_subdirectory(json)
@@ -23,36 +71,10 @@ if(${CMAKE_BUILD_TYPE} STREQUAL "Release")
 endif()
 
 add_subdirectory(src)
+
 if(${ENABLE_TESTS})
-    add_subdirectory(tests)
+    get_property(ALL_TESTS_SRC GLOBAL PROPERTY ALL_TESTS_SRC)
+    get_property(ALL_TESTS_LIBS GLOBAL PROPERTY ALL_TESTS_LIBS)
+    add_executable(AllTests ${ALL_TESTS_SRC})
+    target_link_libraries(AllTests PUBLIC testlib ${ALL_TESTS_LIBS})
 endif()
-
-add_executable(vk_music_fs main.cpp fuse_wrap.h)
-target_compile_definitions(vk_music_fs PUBLIC -D_FILE_OFFSET_BITS=64)
-
-if(DEFINED MINGW_W64)
-    find_path(FUSE_INCLUDE_DIR fuse.h ${CMAKE_CURRENT_SOURCE_DIR}/winfsp/include/fuse NO_DEFAULT_PATH)
-    if("${CMAKE_SIZEOF_VOID_P}" STREQUAL "4")
-        set(WINFSP_NAME winfsp-x86)
-    else()
-        set(WINFSP_NAME winfsp-x64)
-    endif()
-    find_library(FUSE_LIBRARIES
-        NAMES ${WINFSP_NAME}
-        PATHS ${CMAKE_CURRENT_SOURCE_DIR}/winfsp ${CMAKE_CURRENT_SOURCE_DIR}
-    )
-    target_include_directories(vk_music_fs PUBLIC ${FUSE_INCLUDE_DIR})
-else()
-    find_library(FUSE_LIBRARIES
-        NAMES libosxfuse.dylib fuse
-        PATHS /lib64 /lib /usr/lib64 /usr/lib /usr/local/lib64 /usr/local/lib /usr/lib/x86_64-linux-gnu
-    )
-    message(STATUS "Found fuse ${FUSE_LIBRARIES}")
-endif()
-
-target_link_libraries(vk_music_fs vk_music_fs_lib ${FUSE_LIBRARIES})
-
-if(APPLE)
-    find_library(CoreServices CoreServices)
-    target_link_libraries(vk_music_fs ${CoreServices})
-endif(APPLE)

@@ -1,11 +1,11 @@
 #pragma once
 
 #include <utility>
-#include <common.h>
+#include <common/common.h>
 #include <unordered_map>
 #include <unordered_set>
 #include <variant>
-#include <RemoteFile.h>
+#include <mp3core/RemoteFile.h>
 #include <mutex>
 #include <net/HttpException.h>
 #include "ctrl/ctrl.h"

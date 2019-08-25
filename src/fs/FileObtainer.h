@@ -6,7 +6,7 @@
 #include "Dir.h"
 #include "FsSettings.h"
 #include <json.hpp>
-#include <RemoteFile.h>
+#include <mp3core/RemoteFile.h>
 #include "OffsetCntPlaylist.h"
 #include <unordered_set>
 #include <atomic>

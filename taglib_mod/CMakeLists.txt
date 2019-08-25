@@ -138,7 +138,7 @@ set(tag_LIB_SRCS
   tagutils.cpp
 )
 
-add_library(tag ${tag_LIB_SRCS} ${tag_HDRS})
+add_vmf_lib(tag ${tag_LIB_SRCS} ${tag_HDRS})
 
 target_include_directories(
         tag

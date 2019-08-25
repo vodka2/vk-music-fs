@@ -2,7 +2,7 @@
 
 #include "common_fs.h"
 #include <mutex>
-#include <RemoteFile.h>
+#include <mp3core/RemoteFile.h>
 
 namespace vk_music_fs {
     namespace fs {

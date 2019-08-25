@@ -1,7 +1,7 @@
 #pragma once
 
 #include <fs/common_fs.h>
-#include <RemoteFile.h>
+#include <mp3core/RemoteFile.h>
 #include <fs/FsException.h>
 #include "ThrowExCtrl.h"
 

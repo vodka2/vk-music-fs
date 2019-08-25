@@ -9,7 +9,7 @@
 #include <fs/Dir.h>
 #include <fs/File.h>
 #include <fs/IdGenerator.h>
-#include <RemoteFile.h>
+#include <mp3core/RemoteFile.h>
 #include <regex>
 #include <fs/actions/act.h>
 #include "ThrowExCtrl.h"

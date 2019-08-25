@@ -1,5 +1,5 @@
 #include <regex>
-#include <RemoteFile.h>
+#include <mp3core/RemoteFile.h>
 #include "FsUtils.h"
 #include "Dir.h"
 #include "File.h"

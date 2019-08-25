@@ -1,0 +1,74 @@
+project(fs)
+
+add_vmf_lib_test(fs
+        AudioFs.h
+        common_fs.h
+        Dir.cpp
+        Dir.h
+        DirOrFile.cpp
+        DirOrFile.h
+        File.cpp
+        File.h
+        FileName.cpp
+        FileName.h
+        FileObtainer.cpp
+        FileObtainer.h
+        FsException.cpp
+        FsException.h
+        FsPath.cpp
+        FsPath.h
+        FsSettings.cpp
+        FsSettings.h
+        FsUtils.cpp
+        FsUtils.h
+        IdGenerator.cpp
+        IdGenerator.h
+        Mp3FileName.cpp
+        Mp3FileName.h
+        OffsetCnt.cpp
+        OffsetCnt.h
+        OffsetCntName.cpp
+        OffsetCntName.h
+        OffsetCntPlaylist.cpp
+        OffsetCntPlaylist.h
+        VkException.cpp
+        VkException.h
+
+        actions/act.h
+        actions/NumberAct.cpp
+        actions/NumberAct.h
+        actions/RefreshAct.cpp
+        actions/RefreshAct.h
+        actions/RemoveRefreshDirAct.h
+
+        ctrl/ctrl.h
+        ctrl/DummyDirWrapper.cpp
+        ctrl/DummyDirWrapper.h
+        ctrl/MyAudiosCtrl.cpp
+        ctrl/MyAudiosCtrl.h
+        ctrl/PlaylistCtrl.cpp
+        ctrl/PlaylistCtrl.h
+        ctrl/RedirectCtrl.cpp
+        ctrl/RedirectCtrl.h
+        ctrl/RemoteFileWrapper.cpp
+        ctrl/RemoteFileWrapper.h
+        ctrl/RootCtrl.cpp
+        ctrl/RootCtrl.h
+        ctrl/SearchSongNameArtistHelper.cpp
+        ctrl/SearchSongNameArtistHelper.h
+        ctrl/SearchSongNameCtrl.cpp
+        ctrl/SearchSongNameCtrl.h
+        ctrl/SearchSongNameSongHelper.cpp
+        ctrl/SearchSongNameSongHelper.h
+        ctrl/SingleDirCtrl.cpp
+        ctrl/SingleDirCtrl.h
+        ctrl/ThrowExCtrl.cpp
+        ctrl/ThrowExCtrl.h
+)
+
+target_link_libraries(
+        fs
+        common mp3core Boost::filesystem Boost::thread Boost::program_options Boost::system
+)
+
+add_subdirectory(0tests)
