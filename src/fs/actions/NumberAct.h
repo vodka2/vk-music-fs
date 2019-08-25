@@ -14,20 +14,17 @@ namespace vk_music_fs {
             ) : _fsUtils(utils), _idGenerator(idGenerator){
             }
 
-            template<typename TData, typename TFunc>
+
+            template<typename TData, typename TAddFunc, typename TDelFunc>
             void doAction(
                     const DirPtr &dir, const std::string &dirName,
-                    bool leaveDirs, const QueryParams &query, TFunc func
+                    const QueryParams &query, TDelFunc delFunc, TAddFunc addFunc
             ) {
                 TData curOffsetCnt = std::get<TData>(*dir->getDirExtra());
                 uint_fast32_t queryOffset = 0, queryCnt = 0;
                 bool needMakeQuery = true;
                 if(query.type == QueryParams::Type::TWO_NUMBERS){
-                    if(leaveDirs){
-                        _fsUtils->deleteAllFiles(dir);
-                    } else {
-                        dir->clear();
-                    }
+                    _fsUtils->deleteItems(dir, delFunc);
                     curOffsetCnt.setOffset(query.first);
                     curOffsetCnt.setCnt(query.second);
 
@@ -39,7 +36,7 @@ namespace vk_music_fs {
                     }
                     if(curOffsetCnt.getCnt() >= query.first){
                         needMakeQuery = false;
-                        _fsUtils->limitItems(dir, query.first, leaveDirs);
+                        _fsUtils->limitItems(dir, query.first, delFunc);
                     } else {
                         queryOffset = curOffsetCnt.getOffset() + curOffsetCnt.getCnt();
                         queryCnt = query.first - curOffsetCnt.getCnt();
@@ -47,7 +44,7 @@ namespace vk_music_fs {
                     curOffsetCnt.setCnt(query.first);
                 }
                 if(needMakeQuery) {
-                    func(queryOffset, queryCnt);
+                    addFunc(queryOffset, queryCnt);
                 }
                 auto cntDir = std::make_shared<Dir>(
                         dirName, _idGenerator->getNextId(), std::nullopt, dir

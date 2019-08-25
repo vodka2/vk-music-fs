@@ -1,7 +1,6 @@
 #include <regex>
 #include <mp3core/RemoteFile.h>
 #include "FsUtils.h"
-#include "Dir.h"
 #include "File.h"
 #include "FsException.h"
 #include "Mp3FileName.h"
@@ -173,30 +172,4 @@ bool FsUtils::isPathElementLocked(const DirOrFile &element, const std::vector<Fs
     return false;
 }
 
-void FsUtils::deleteAllFiles(const DirPtr &dir) {
-    auto &contents = dir->getContents();
-    for (auto it = contents.begin(); it != contents.end();) {
-        if(it->second.isFile()) {
-            it = contents.erase(it);
-        } else {
-            it++;
-        }
-    }
-}
 
-void FsUtils::limitItems(const DirPtr &dir, uint_fast32_t num, bool leaveDirs) {
-    std::vector<DirOrFile> items;
-    for(const auto &s: dir->getContents()){
-        if(!leaveDirs || s.second.isFile()){
-            items.push_back(s.second);
-        }
-    }
-    if(items.size() >= num) {
-        std::sort(items.begin(), items.end(), [](const auto &a, const auto &b) {
-            return a.getTime() > b.getTime();
-        });
-        for (auto it = items.cbegin(); it != items.begin() + (items.size() - num); it++) {
-            dir->removeItem(it->getName());
-        }
-    }
-}

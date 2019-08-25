@@ -52,11 +52,13 @@ namespace vk_music_fs {
                 auto dirName = path.getStringParts().back();
                 QueryParams query = _fsUtils->parseQuery(dirName);
                 if(query.type == QueryParams::Type::TWO_NUMBERS || query.type == QueryParams::Type::ONE_NUMBER){
-                    getAct<NumberAct>(_acts)->template doAction<OffsetCnt>(_ctrlDir, dirName, false, query,
-                        [this] (uint_fast32_t offset, uint_fast32_t cnt) {
-                            getAct<RemoveRefreshDirAct>(_acts)->template doAction<OffsetCnt>(
-                                    _ctrlDir,
-                                    [this, offset, cnt] {
+                    getAct<RemoveRefreshDirAct>(_acts)->template doAction<OffsetCnt>(
+                        _ctrlDir,
+                        [this, dirName, query] {
+                            getAct<NumberAct>(_acts)->template doAction<OffsetCnt>(
+                                    _ctrlDir, dirName, query,
+                                    _fsUtils->getAllDeleter(),
+                                    [this] (uint_fast32_t offset, uint_fast32_t cnt) {
                                         _fsUtils->addFilesToDir(
                                                 _ctrlDir,
                                                 _fileObtainer->getMyAudios(offset, cnt),
@@ -68,14 +70,19 @@ namespace vk_music_fs {
                         }
                     );
                 } else if(std::regex_match(dirName, std::regex{"^(r|refresh)[0-9]*$"})){
-                    getAct<RefreshAct>(_acts)->template doAction<OffsetCnt>(_ctrlDir, dirName, [this] (uint_fast32_t offset, uint_fast32_t cnt) {
-                        _fsUtils->addFilesToDir(
-                                _ctrlDir,
-                                _fileObtainer->getMyAudios(offset, cnt),
-                                _idGenerator,
-                                _settings->getMp3Ext()
-                        );
-                    });
+                    getAct<RefreshAct>(_acts)->template doAction<OffsetCnt>(
+                         _ctrlDir,
+                         dirName,
+                         _fsUtils->template getCounterDirLeaver<OffsetCnt>(),
+                         [this] (uint_fast32_t offset, uint_fast32_t cnt) {
+                            _fsUtils->addFilesToDir(
+                                    _ctrlDir,
+                                    _fileObtainer->getMyAudios(offset, cnt),
+                                    _idGenerator,
+                                    _settings->getMp3Ext()
+                            );
+                        }
+                    );
                 } else {
                     throw FsException("Can't create non-counter, non-refresh dir in My Audios dir");
                 }

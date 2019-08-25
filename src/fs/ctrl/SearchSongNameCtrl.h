@@ -59,7 +59,9 @@ namespace vk_music_fs {
                             _settings->getMp3Ext()
                     );
                 } else {
-                    getAct<NumberAct>(_acts)->template doAction<OffsetCntName>(parent, dirName, true, query,
+                    getAct<NumberAct>(_acts)->template doAction<OffsetCntName>(
+                            parent, dirName, query,
+                            _fsUtils->template getCounterDirLeaver<OffsetCntName>(),
                             [this, parent] (uint_fast32_t offset, uint_fast32_t cnt) {
                                 _fsUtils->addFilesToDir(
                                         parent,

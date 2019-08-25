@@ -96,6 +96,9 @@ TEST_F(PlaylistCtrlT, RefreshPlaylistDir) {
     ctrl->createDir(refreshPath);
     refreshPath.unlockAll();
 
+    std::set<std::string> exp = {"refresh", "10", "pl8", "pl9"};
+    EXPECT_EQ(listContents(refreshPath.getLast().dir()), exp);
+
     EXPECT_EQ(std::get<OffsetCntPlaylist>(*ctrlDir->getItem("pl8").dir()->getDirExtra()).getPlaylist().albumId, 21);
     EXPECT_EQ(std::get<OffsetCntPlaylist>(*ctrlDir->getItem("pl9").dir()->getDirExtra()).getPlaylist().accessKey, "13");
 }
@@ -158,7 +161,7 @@ TEST_F(PlaylistCtrlT, RefreshPlaylistAudiosDir) {
     ctrl->createDir(refreshPath);
     refreshPath.unlockAll();
 
-    std::set<std::string> exp = {"r", "Art 3 - Title 3.mp3"};
+    std::set<std::string> exp = {"1-5", "r", "Art 3 - Title 3.mp3"};
     EXPECT_EQ(listContents(refreshPath.getLast().dir()), exp);
     EXPECT_EQ(std::get<OffsetCntPlaylist>(*ctrlDir->getItem("pl1").dir()->getDirExtra()).getRefreshDir()->getName(), "r");
 }

@@ -53,11 +53,13 @@ namespace vk_music_fs {
                 QueryParams query = _fsUtils->parseQuery(dirName);
                 if(parent->getId() == _ctrlDir->getId()){
                     if(query.type == QueryParams::Type::TWO_NUMBERS || query.type == QueryParams::Type::ONE_NUMBER){
-                        getAct<NumberAct>(_acts)->template doAction<OffsetCnt>(_ctrlDir, dirName, false, query,
-                            [this] (uint_fast32_t offset, uint_fast32_t cnt) {
-                                getAct<RemoveRefreshDirAct>(_acts)->template doAction<OffsetCnt>(
-                                        _ctrlDir,
-                                        [this, offset, cnt] {
+                        getAct<RemoveRefreshDirAct>(_acts)->template doAction<OffsetCnt>(
+                            _ctrlDir,
+                            [this, dirName, query] {
+                                getAct<NumberAct>(_acts)->template doAction<OffsetCnt>(
+                                        _ctrlDir, dirName, query,
+                                        _fsUtils->getAllDeleter(),
+                                        [this] (uint_fast32_t offset, uint_fast32_t cnt) {
                                             addPlaylistsToDir(
                                                     _ctrlDir,
                                                     _fileObtainer->getMyPlaylists(offset, cnt)
@@ -67,27 +69,36 @@ namespace vk_music_fs {
                             }
                         );
                     } else if(std::regex_match(dirName, std::regex{"^(r|refresh)[0-9]*$"})){
-                        getAct<RefreshAct>(_acts)->template doAction<OffsetCnt>(_ctrlDir, dirName, false, [this] (uint_fast32_t offset, uint_fast32_t cnt) {
-                            addPlaylistsToDir(
-                                    _ctrlDir,
-                                    _fileObtainer->getMyPlaylists(offset, cnt)
-                            );
-                        });
+                        getAct<RefreshAct>(_acts)->template doAction<OffsetCnt>(
+                            _ctrlDir, dirName,
+                            _fsUtils->template getCounterDirLeaver<OffsetCnt>(),
+                            [this] (uint_fast32_t offset, uint_fast32_t cnt) {
+                                addPlaylistsToDir(
+                                        _ctrlDir,
+                                        _fileObtainer->getMyPlaylists(offset, cnt)
+                                );
+                            }
+                        );
                     } else {
                         throw FsException("Can't create non-counter, non-refresh dir in My Playlists dir");
                     }
                 } else {
                     if(query.type == QueryParams::Type::TWO_NUMBERS || query.type == QueryParams::Type::ONE_NUMBER){
-                        getAct<NumberAct>(_acts)->template doAction<OffsetCntPlaylist>(parent, dirName, false, query,
-                            [this, parent] (uint_fast32_t offset, uint_fast32_t cnt) {
-                                getAct<RemoveRefreshDirAct>(_acts)->template doAction<OffsetCntPlaylist>(
-                                        parent,
-                                        [this, offset, cnt, parent] {
+                        getAct<RemoveRefreshDirAct>(_acts)->template doAction<OffsetCntPlaylist>(
+                            parent,
+                            [this, dirName, parent, query] {
+                                getAct<NumberAct>(_acts)->template doAction<OffsetCntPlaylist>(
+                                        parent, dirName, query,
+                                        _fsUtils->getAllDeleter(),
+                                        [this, parent] (uint_fast32_t offset, uint_fast32_t cnt) {
                                             OffsetCntPlaylist curOffsetCntPlaylist = std::get<OffsetCntPlaylist>(*parent->getDirExtra());
                                             auto playlist = curOffsetCntPlaylist.getPlaylist();
                                             _fsUtils->addFilesToDir(
                                                     parent,
-                                                    _fileObtainer->getPlaylistAudios(playlist.accessKey, playlist.ownerId, playlist.albumId, offset, cnt),
+                                                    _fileObtainer->getPlaylistAudios(
+                                                            playlist.accessKey, playlist.ownerId, playlist.albumId,
+                                                            offset, cnt
+                                                    ),
                                                     _idGenerator,
                                                     _settings->getMp3Ext()
                                             );
@@ -96,17 +107,24 @@ namespace vk_music_fs {
                             }
                         );
                     } else if(std::regex_match(dirName, std::regex{"^(r|refresh)[0-9]*$"})){
-                        getAct<RefreshAct>(_acts)->template doAction<OffsetCntPlaylist>(parent, dirName, false,
-                        [this, parent] (uint_fast32_t offset, uint_fast32_t cnt) {
-                            OffsetCntPlaylist curOffsetCntPlaylist = std::get<OffsetCntPlaylist>(*parent->getDirExtra());
-                            auto playlist = curOffsetCntPlaylist.getPlaylist();
-                            _fsUtils->addFilesToDir(
-                                    parent,
-                                    _fileObtainer->getPlaylistAudios(playlist.accessKey, playlist.ownerId, playlist.albumId, offset, cnt),
-                                    _idGenerator,
-                                    _settings->getMp3Ext()
-                            );
-                        });
+                        getAct<RefreshAct>(_acts)->template doAction<OffsetCntPlaylist>(
+                            parent, dirName,
+                            _fsUtils->template getCounterDirLeaver<OffsetCntPlaylist>(),
+                            [this, parent] (uint_fast32_t offset, uint_fast32_t cnt) {
+                                OffsetCntPlaylist curOffsetCntPlaylist = std::get<OffsetCntPlaylist>(
+                                        *parent->getDirExtra());
+                                auto playlist = curOffsetCntPlaylist.getPlaylist();
+                                _fsUtils->addFilesToDir(
+                                        parent,
+                                        _fileObtainer->getPlaylistAudios(
+                                                playlist.accessKey, playlist.ownerId,
+                                                playlist.albumId, offset, cnt
+                                        ),
+                                        _idGenerator,
+                                        _settings->getMp3Ext()
+                                );
+                            }
+                        );
                     } else {
                         throw FsException("Can't create non-counter, non-refresh dir in My Playlists dir");
                     }

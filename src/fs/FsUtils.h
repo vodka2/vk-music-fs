@@ -4,6 +4,8 @@
 #include "common_fs.h"
 #include "FsPath.h"
 #include "IdGenerator.h"
+#include "DirOrFile.h"
+#include "Dir.h"
 #include <mp3core/RemoteFile.h>
 
 namespace vk_music_fs {
@@ -27,8 +29,48 @@ namespace vk_music_fs {
                     const std::shared_ptr<IdGenerator> &idGenerator, const std::string &extension
             );
             RemoteFile getRemoteFile(FsPath &path, const std::string &fullPath);
-            void deleteAllFiles(const DirPtr &dir);
-            void limitItems(const DirPtr &dir, uint_fast32_t num, bool leaveDirs);
+            template <typename TFunc>
+            void limitItems(const DirPtr &dir, uint_fast32_t num, TFunc func) {
+                std::vector<DirOrFile> items;
+                for(const auto &s: dir->getContents()){
+                    if(func(s.second)){
+                        items.push_back(s.second);
+                    }
+                }
+                if(items.size() >= num) {
+                    std::sort(items.begin(), items.end(), [](const auto &a, const auto &b) {
+                        return a.getTime() > b.getTime();
+                    });
+                    for (auto it = items.cbegin(); it != items.begin() + (items.size() - num); it++) {
+                        dir->removeItem(it->getName());
+                    }
+                }
+            }
+            template <typename TFunc>
+            void deleteItems(const DirPtr &dir, TFunc func) {
+                auto &contents = dir->getContents();
+                for (auto it = contents.begin(); it != contents.end();) {
+                    if(func(it->second)) {
+                        it = contents.erase(it);
+                    } else {
+                        it++;
+                    }
+                }
+            }
+            auto getAllDeleter(){
+                return [](...){return true;};
+            }
+            template <typename TExtra>
+            auto getCounterDirLeaver(){
+                return [](const DirOrFile &item){
+                    if(item.isFile()){
+                        return true;
+                    }
+                    DirPtr dir = item.dir();
+                    auto extra = std::get<TExtra>(*dir->getParent()->getDirExtra());
+                    return !(extra.getCounterDir() == dir);
+                };
+            }
 
         private:
             std::vector<std::string> splitPath(std::string path);
