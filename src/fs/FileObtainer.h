@@ -31,15 +31,15 @@ namespace vk_music_fs {
             if(count == 0){
                 return {};
             }
-            return getFilenames(parseJson(makeMyAudiosQuery(offset, count)));
+            return getFilenames(parseJson(_queryMaker->makeMyAudiosQuery(offset, count)));
         }
 
         void addToMyAudios(int_fast32_t ownerId, uint_fast32_t fileId){
-            parseJson(addToMyAudiosQuery(ownerId, fileId));
+            parseJson(_queryMaker->addToMyAudios(ownerId, fileId));
         }
 
         void deleteFromMyAudios(int_fast32_t ownerId, uint_fast32_t fileId){
-            parseJson(deleteFromMyAudiosQuery(ownerId, fileId));
+            parseJson(_queryMaker->deleteFromMyAudios(ownerId, fileId));
         }
 
         std::vector<RemoteFile> searchBySongName(
@@ -49,7 +49,7 @@ namespace vk_music_fs {
             if(count == 0){
                 return {};
             }
-            return getFilenames(parseJson(makeSearchQuery(searchName, offset, count)));
+            return getFilenames(parseJson(_queryMaker->makeSearchQuery(searchName, offset, count)));
         }
 
         std::vector<RemoteFile> searchByArtist(
@@ -59,14 +59,14 @@ namespace vk_music_fs {
             if(count == 0){
                 return {};
             }
-            return getFilenames(parseJson(makeArtistSearchQuery(searchName, offset, count)));
+            return getFilenames(parseJson(_queryMaker->makeArtistSearchQuery(searchName, offset, count)));
         }
 
         std::vector<PlaylistData> getMyPlaylists(uint_fast32_t offset, uint_fast32_t count){
             if(count == 0){
                 return {};
             }
-            return getPlaylistData(parseJson(makeMyPlaylistsQuery(offset, count)));
+            return getPlaylistData(parseJson(_queryMaker->makeMyPlaylistsQuery(getUserId(), offset, count)));
         }
 
         std::vector<RemoteFile> getPlaylistAudios(
@@ -87,95 +87,18 @@ namespace vk_music_fs {
         }
 
         private:
-
-            std::string makeMyPlaylistsQuery(
-                    uint_fast32_t offset, uint_fast32_t count
-            ){
-                std::string respStr;
-                try{
-                    respStr = _queryMaker->makeMyPlaylistsQuery(getUserId(), offset, count);
-                    return std::move(respStr);
-                } catch (const json::parse_error &err){
-                    throw VkException("Error parsing JSON '" + respStr + "' when obtaining my playlist");
-                }
-            }
-
-            std::string makeMyAudiosQuery(
-                    uint_fast32_t offset, uint_fast32_t count
-            ){
-                std::string respStr;
-                try{
-                    respStr = _queryMaker->makeMyAudiosQuery(offset, count);
-                    return std::move(respStr);
-                } catch (const json::parse_error &err){
-                    throw VkException("Error parsing JSON '" + respStr + "' when obtaining my audios");
-                }
-            }
-
-            std::string addToMyAudiosQuery(
-                    int_fast32_t ownerId, uint_fast32_t fileId
-            ){
-                std::string respStr;
-                try{
-                    respStr = _queryMaker->addToMyAudios(ownerId, fileId);
-                    return std::move(respStr);
-                } catch (const json::parse_error &err){
-                    throw VkException(
-                            "Error parsing JSON '" + respStr + "' when adding " +
-                            std::to_string(ownerId) + ":" + std::to_string(fileId)
-                    );
-                }
-            }
-
-            std::string deleteFromMyAudiosQuery(
-                    int_fast32_t ownerId, uint_fast32_t fileId
-            ){
-                std::string respStr;
-                try{
-                    respStr = _queryMaker->deleteFromMyAudios(ownerId, fileId);
-                    return std::move(respStr);
-                } catch (const json::parse_error &err){
-                    throw VkException(
-                            "Error parsing JSON '" + respStr + "' when deleting " +
-                            std::to_string(ownerId) + ":" + std::to_string(fileId)
-                    );
-                }
-            }
-
-            std::string makeSearchQuery(
-                    const std::string &searchName,
-                    uint_fast32_t offset, uint_fast32_t count
-            ){
-                std::string respStr;
-                try{
-                    respStr = _queryMaker->makeSearchQuery(searchName, offset, count);
-                    return std::move(respStr);
-                } catch (const json::parse_error &err){
-                    throw VkException("Error parsing JSON '" + respStr + "' when searching for " + searchName);
-                }
-            }
-
-            std::string makeArtistSearchQuery(
-                    const std::string &searchName,
-                    uint_fast32_t offset, uint_fast32_t count
-            ){
-                std::string respStr;
-                try{
-                    respStr = _queryMaker->makeArtistSearchQuery(searchName, offset, count);
-                    return std::move(respStr);
-                } catch (const json::parse_error &err){
-                    throw VkException(
-                            "Error parsing JSON '" + respStr + "' when searching in artist names for " + searchName
-                    );
-                }
-            }
-
             json parseJson(const std::string &str){
-                auto res = json::parse(str);
-                if(res.find("error") != res.end()) {
-                    throw VkException("VK returned error response '" + str + "'");
+                try {
+                    auto res = json::parse(str);
+                    if (res.find("error") != res.end()) {
+                        throw VkException("VK returned error response '" + str + "'");
+                    }
+                    return std::move(res);
+                } catch (const json::parse_error &err){
+                    throw VkException(
+                            "Error parsing JSON '" + str + "'"
+                    );
                 }
-                return std::move(res);
             }
 
             std::vector<RemoteFile> getFilenames(
