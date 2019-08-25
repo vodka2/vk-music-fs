@@ -21,9 +21,9 @@ using json = nlohmann::json;
 
 TokenReceiver::TokenReceiver(
         VkCredentials creds, const std::shared_ptr<net::HttpStreamCommon> &common,
-        const UserAgent &userAgent, const HttpTimeout &timeout
+        const UserAgent &userAgent, const HttpTimeout &timeout, const net::VkSettings &vkSettings
         )
-    :_timeout(timeout.t), _creds(std::move(creds)), _common(common), _userAgent(userAgent.t){
+    :_timeout(timeout.t), _creds(std::move(creds)), _common(common), _userAgent(userAgent.t), _vkSettings(vkSettings){
 }
 
 std::string TokenReceiver::getToken() {
@@ -83,7 +83,7 @@ void TokenReceiver::getNonRefreshedToken() {
     auto hostPath = _common->getHostPath(
             "https://oauth.vk.com/token?grant_type=password&client_id=2685278&client_secret=lxhD8OD7dMsqtXIm5IUY&username=" +
             _common->uriEncode(_creds.login) + "&password=" +
-            _common->uriEncode(_creds.password) + "&v=5.71&scope=" + _common->uriEncode("audio,offline")
+            _common->uriEncode(_creds.password) + "&v=" + _vkSettings.version + "&scope=" + _common->uriEncode("audio,offline")
     );
     auto stream = _common->connect(hostPath);
     _common->sendGetReq(stream, hostPath, _userAgent);
@@ -103,8 +103,8 @@ void TokenReceiver::getNonRefreshedToken() {
 
 void TokenReceiver::refreshToken() {
     auto hostPath = _common->getHostPath(
-            "https://api.vk.com/method/auth.refreshToken?access_token=" + _nonRefreshedToken +
-            "&receipt=" + _receipt + "&v=5.71"
+            _vkSettings.apiUriPrefix + "/auth.refreshToken?access_token=" + _nonRefreshedToken +
+            "&receipt=" + _receipt + "&v=" + _vkSettings.version
     );
     auto stream = _common->connect(hostPath);
     _common->sendGetReq(stream, hostPath, _userAgent);

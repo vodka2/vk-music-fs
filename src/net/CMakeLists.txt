@@ -1,7 +1,7 @@
 project(net)
 
 add_vmf_lib_test(net
-
+        VkSettings.h
         HttpException.cpp
         HttpException.h
         HttpStream.cpp

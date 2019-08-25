@@ -2,6 +2,7 @@
 
 #include <common/common.h>
 #include "HttpStreamCommon.h"
+#include "VkSettings.h"
 
 namespace vk_music_fs {
     namespace net {
@@ -10,7 +11,8 @@ namespace vk_music_fs {
             VkApiQueryMaker(
                     const std::shared_ptr<HttpStreamCommon> &common,
                     const Token &token,
-                    const UserAgent &userAgent
+                    const UserAgent &userAgent,
+                    const VkSettings &vkSettings
             );
 
             std::string makeSearchQuery(const std::string &query, uint_fast32_t offset, uint_fast32_t count);
@@ -37,6 +39,7 @@ namespace vk_music_fs {
             std::shared_ptr<HttpStreamCommon> _common;
             std::string _userAgent;
             std::string _token;
+            VkSettings _vkSettings;
         };
     }
 }

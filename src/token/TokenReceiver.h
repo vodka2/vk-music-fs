@@ -3,6 +3,7 @@
 #include "common_token.h"
 #include "SmallProtobufHelper.h"
 #include <net/HttpStreamCommon.h>
+#include <net/VkSettings.h>
 
 namespace vk_music_fs {
     namespace token {
@@ -10,7 +11,7 @@ namespace vk_music_fs {
         public:
             TokenReceiver(
                     VkCredentials creds, const std::shared_ptr<net::HttpStreamCommon> &common,
-                    const UserAgent &userAgent, const HttpTimeout &timeout
+                    const UserAgent &userAgent, const HttpTimeout &timeout, const net::VkSettings &vkSettings
             );
 
             std::string getToken();
@@ -32,6 +33,7 @@ namespace vk_music_fs {
             std::string _userAgent;
             VkCredentials _creds;
             SmallProtobufHelper _protoHelper;
+            net::VkSettings _vkSettings;
         };
     }
 }

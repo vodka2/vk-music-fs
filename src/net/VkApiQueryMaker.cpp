@@ -14,17 +14,18 @@ namespace ssl = boost::asio::ssl;
 VkApiQueryMaker::VkApiQueryMaker(
         const std::shared_ptr<HttpStreamCommon> &common,
         const Token &token,
-        const UserAgent &userAgent
-) : _common(common), _token(token.t), _userAgent(userAgent.t){
+        const UserAgent &userAgent,
+        const VkSettings &vkSettings
+) : _common(common), _token(token.t), _userAgent(userAgent.t), _vkSettings(vkSettings){
 
 }
 
 std::string VkApiQueryMaker::makeSearchQuery(const std::string &query, uint_fast32_t offset, uint_fast32_t count) {
     std::shared_ptr<HttpStreamCommon::Stream> stream;
     try {
-        std::string uri = "https://api.vk.com/method/audio.search?access_token=" + _token +
+        std::string uri = _vkSettings.apiUriPrefix + "/audio.search?access_token=" + _token +
                           "&q=" + _common->uriEncode(query) + "&offset=" + std::to_string(offset) + "&count=" +
-                          std::to_string(count) + "&v=5.71";
+                          std::to_string(count) + "&v=" + _vkSettings.version;
         auto hostPath = _common->getHostPath(uri);
         stream = _common->connect(hostPath);
         _common->sendGetReq(stream, hostPath, _userAgent);
@@ -38,8 +39,9 @@ std::string VkApiQueryMaker::makeSearchQuery(const std::string &query, uint_fast
 std::string VkApiQueryMaker::makeMyAudiosQuery(uint_fast32_t offset, uint_fast32_t count) {
     std::shared_ptr<HttpStreamCommon::Stream> stream;
     try{
-        std::string uri = "https://api.vk.com/method/audio.get?access_token=" + _token +
-                          "&offset=" + std::to_string(offset) + "&count=" + std::to_string(count) + "&v=5.71";
+        std::string uri = _vkSettings.apiUriPrefix + "/audio.get?access_token=" + _token +
+                          "&offset=" + std::to_string(offset) + "&count=" + std::to_string(count) +
+                          "&v=" + _vkSettings.version;
         auto hostPath = _common->getHostPath(uri);
         stream = _common->connect(hostPath);
         _common->sendGetReq(stream, hostPath, _userAgent);
@@ -54,9 +56,9 @@ std::string
 VkApiQueryMaker::makeArtistSearchQuery(const std::string &query, uint_fast32_t offset, uint_fast32_t count) {
     std::shared_ptr<HttpStreamCommon::Stream> stream;
     try {
-        std::string uri = "https://api.vk.com/method/audio.search?access_token=" + _token + "&performer_only=1"
+        std::string uri = _vkSettings.apiUriPrefix + "/audio.search?access_token=" + _token + "&performer_only=1"
                           "&q=" + _common->uriEncode(query) + "&offset=" + std::to_string(offset) + "&count=" +
-                          std::to_string(count) + "&v=5.71";
+                          std::to_string(count) + "&v=" + _vkSettings.version;
         auto hostPath = _common->getHostPath(uri);
         stream = _common->connect(hostPath);
         _common->sendGetReq(stream, hostPath, _userAgent);
@@ -70,8 +72,9 @@ VkApiQueryMaker::makeArtistSearchQuery(const std::string &query, uint_fast32_t o
 std::string VkApiQueryMaker::addToMyAudios(int_fast32_t ownerId, uint_fast32_t fileId) {
     std::shared_ptr<HttpStreamCommon::Stream> stream;
     try {
-        std::string uri = "https://api.vk.com/method/audio.add?access_token=" +
-                _token + "&audio_id=" + std::to_string(fileId) + "&owner_id=" + std::to_string(ownerId) + "&v=5.71";
+        std::string uri = _vkSettings.apiUriPrefix + "/audio.add?access_token=" +
+                _token + "&audio_id=" + std::to_string(fileId) + "&owner_id=" + std::to_string(ownerId) +
+                "&v=" + _vkSettings.version;
         auto hostPath = _common->getHostPath(uri);
         stream = _common->connect(hostPath);
         _common->sendGetReq(stream, hostPath, _userAgent);
@@ -89,8 +92,9 @@ std::string VkApiQueryMaker::addToMyAudios(int_fast32_t ownerId, uint_fast32_t f
 std::string VkApiQueryMaker::deleteFromMyAudios(int_fast32_t ownerId, uint_fast32_t fileId) {
     std::shared_ptr<HttpStreamCommon::Stream> stream;
     try {
-        std::string uri = "https://api.vk.com/method/audio.delete?access_token=" +
-                          _token + "&audio_id=" + std::to_string(fileId) + "&owner_id=" + std::to_string(ownerId) + "&v=5.71";
+        std::string uri = _vkSettings.apiUriPrefix + "/audio.delete?access_token=" +
+                          _token + "&audio_id=" + std::to_string(fileId) + "&owner_id=" + std::to_string(ownerId) +
+                          "&v=" + _vkSettings.version;
         auto hostPath = _common->getHostPath(uri);
         stream = _common->connect(hostPath);
         _common->sendGetReq(stream, hostPath, _userAgent);
@@ -107,9 +111,9 @@ std::string VkApiQueryMaker::deleteFromMyAudios(int_fast32_t ownerId, uint_fast3
 std::string VkApiQueryMaker::makeMyPlaylistsQuery(uint_fast32_t ownerId, uint_fast32_t offset, uint_fast32_t count) {
     std::shared_ptr<HttpStreamCommon::Stream> stream;
     try {
-        std::string uri = "https://api.vk.com/method/audio.getPlaylists?access_token=" +
+        std::string uri = _vkSettings.apiUriPrefix + "/audio.getPlaylists?access_token=" +
                           _token + "&count=" + std::to_string(count) + "&offset=" + std::to_string(offset) +
-                          "&owner_id=" + std::to_string(ownerId) + "&v=5.71";
+                          "&owner_id=" + std::to_string(ownerId) + "&v=" + _vkSettings.version;
         auto hostPath = _common->getHostPath(uri);
         stream = _common->connect(hostPath);
         _common->sendGetReq(stream, hostPath, _userAgent);
@@ -125,7 +129,7 @@ std::string VkApiQueryMaker::makeMyPlaylistsQuery(uint_fast32_t ownerId, uint_fa
 std::string VkApiQueryMaker::getUserId() {
     std::shared_ptr<HttpStreamCommon::Stream> stream;
     try {
-        std::string uri = "https://api.vk.com/method/users.get?access_token=" + _token + "&v=5.71";
+        std::string uri = _vkSettings.apiUriPrefix + "/users.get?access_token=" + _token + "&v=" + _vkSettings.version;
         auto hostPath = _common->getHostPath(uri);
         stream = _common->connect(hostPath);
         _common->sendGetReq(stream, hostPath, _userAgent);
@@ -143,9 +147,9 @@ VkApiQueryMaker::getPlaylistAudios(const std::string &accessKey, int_fast32_t ow
                                    uint_fast32_t offset, uint_fast32_t cnt) {
     std::shared_ptr<HttpStreamCommon::Stream> stream;
     try {
-        std::string uri = "https://api.vk.com/method/audio.get?access_token=" + _token + "&access_key=" +
+        std::string uri = _vkSettings.apiUriPrefix + "/audio.get?access_token=" + _token + "&access_key=" +
                 accessKey + "&album_id=" + std::to_string(albumId) + "&offset=" + std::to_string(offset) +
-                "&count=" + std::to_string(cnt) + "&owner_id=" + std::to_string(ownerId) + "&v=5.71";
+                "&count=" + std::to_string(cnt) + "&owner_id=" + std::to_string(ownerId) + "&v=" + _vkSettings.version;
         auto hostPath = _common->getHostPath(uri);
         stream = _common->connect(hostPath);
         _common->sendGetReq(stream, hostPath, _userAgent);
