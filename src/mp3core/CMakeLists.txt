@@ -1,6 +1,7 @@
 project(mp3core)
 
 add_vmf_lib_test(mp3core
+        common_mp3core.h
         BlockingBuffer.cpp
         BlockingBuffer.h
         FileManager.cpp

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "FileCache.h"
+#include "File.h"
 #include <string>
 #include <fstream>
 #include <common/common.h>
@@ -20,17 +21,29 @@ namespace vk_music_fs {
 
         void setPrependSize(uint_fast32_t size);
 
-        uint_fast32_t getTotalSize();
+        uint_fast32_t getUriSize();
 
-        void write(ByteVect vect);
+        template <typename TBlock>
+        void write(TBlock block) {
+            std::scoped_lock <std::mutex> lock(_mutex);
+            _file.write(block);
+        }
+
+        template <typename TBlock>
+        void read(uint_fast32_t offset, const TBlock &block) {
+            std::scoped_lock <std::mutex> lock(_mutex);
+            if(!_closed) {
+                _file.read(offset, block);
+            }
+        }
 
         ByteVect read(uint_fast32_t offset, uint_fast32_t size);
-        
+
         void finish();
 
         void close();
 
-        uint_fast32_t getSize();
+        uint_fast32_t getSizeOnDisk();
 
     private:
         bool _closed;
@@ -38,8 +51,8 @@ namespace vk_music_fs {
         RemoteFile _remFile;
         std::shared_ptr<FileCache> _cache;
         std::mutex _mutex;
+        File _file;
         boost::nowide::fstream _fs;
-        std::atomic_uint_fast32_t _totalInitialSize;
         std::atomic_uint_fast32_t _totalUriSize;
         std::atomic_uint_fast32_t _prepSize;
     };

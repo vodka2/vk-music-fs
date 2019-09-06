@@ -16,7 +16,8 @@
 namespace di = boost::di;
 
 typedef vk_music_fs::Mp3Parser Mp3Parser;
-typedef vk_music_fs::FileProcessor<StreamM, FileM, Mp3Parser, ThreadPoolM> FileProcessor;
+using BlockingBuffer = vk_music_fs::BlockingBuffer<TestBlockCreator<10000>, FileM>;
+typedef vk_music_fs::FileProcessor<StreamM, FileM, Mp3Parser, ThreadPoolM, BlockingBuffer, TestBlockCreator<5>> FileProcessor;
 
 class FileProcessorMp3ParserT: public ::testing::Test {
 public:
@@ -39,14 +40,20 @@ public:
         data = std::make_shared<MusicData>(dataVect, 10);
         writer = std::make_shared<Writer>();
 
-        EXPECT_CALL(*inj.create<std::shared_ptr<StreamM>>(), read()).WillRepeatedly(testing::Invoke([&data = data] {
-            return data->readData();
-        }));
+        EXPECT_CALL(*inj.create<std::shared_ptr<StreamM>>(), read(testing::_)).WillRepeatedly(testing::Invoke(
+                [&data = data] (Block blk) {
+                    auto tmp = data->readData();
+                    if (tmp) {
+                        blk->arr() = *tmp;
+                        blk->curSize() = tmp->size();
+                    }
+                }
+        ));
         fp = inj.create<std::shared_ptr<FileProcessor>>();
         ON_CALL(*inj.create<std::shared_ptr<FileM>>(), write(testing::_)).WillByDefault(testing::Invoke([this] (auto data2){
-            writer->write(data2);
+            writer->write(data2->arr());
         }));
-        ON_CALL(*inj.create<std::shared_ptr<FileM>>(), getSize()).WillByDefault(testing::Invoke([this] (){
+        ON_CALL(*inj.create<std::shared_ptr<FileM>>(), getSizeOnDisk()).WillByDefault(testing::Invoke([this] (){
             return writer->getSize();
         }));
     }

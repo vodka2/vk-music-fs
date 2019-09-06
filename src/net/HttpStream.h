@@ -14,16 +14,25 @@ namespace vk_music_fs{
             HttpStream(const Mp3Uri &uri, const std::shared_ptr<HttpStreamCommon> &common,
                        const UserAgent &userAgent, const HttpTimeout &timeout);
 
-            void open(uint_fast32_t offset, uint_fast32_t totalSize);
+            template <typename T>
+            void read(T &block){
+                if (_parser.is_done() || _closed) {
+                    block->curSize() = 0;
+                    return;
+                }
+                _parser.get().body().data = block->addr();
+                _parser.get().body().size = block->maxSize();
+                block->curSize() = doRead(block->maxSize());
+            }
 
-            std::optional<ByteVect> read();
+            void open(uint_fast32_t offset, uint_fast32_t totalSize);
 
             ByteVect read(uint_fast32_t offset, uint_fast32_t length);
 
             void close();
 
         private:
-            const uint_fast32_t BUFFER_SIZE = 1024 * 64;
+            uint_fast32_t doRead(uint_fast32_t maxSize);
 
             bool _closed;
             uint_fast32_t _timeout;
@@ -35,7 +44,6 @@ namespace vk_music_fs{
             boost::beast::basic_flat_buffer<std::allocator<uint8_t>> _readBuffer;
             boost::beast::http::response_parser<boost::beast::http::buffer_body> _parser;
             uint_fast32_t _size;
-            ByteVect _returnBuffer;
         };
     }
 }

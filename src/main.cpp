@@ -26,12 +26,20 @@
 #include <fs/ctrl/SearchSongNameSongHelper.h>
 #include <diext/common_di.h>
 #include <fuse-utils/fuse_wrap.h>
+#include <boost/algorithm/string/predicate.hpp>
+#include <common/IOBlockCreator.h>
+#include <cache/FileBuffer.h>
 
 using namespace vk_music_fs;
 
 fuse_operations operations = {};
 
-typedef FileProcessor<net::HttpStream, MusicFile, Mp3Parser, ThreadPool> FileProcessorD;
+using BlockingBufferD = vk_music_fs::BlockingBuffer<vk_music_fs::IOBlockCreator<IOBlock<1024 * 128>>, vk_music_fs::FileBuffer>;
+
+typedef FileProcessor<
+        net::HttpStream, MusicFile, Mp3Parser, ThreadPool, BlockingBufferD,
+        vk_music_fs::IOBlockCreator<IOBlock<1024 * 64>>
+> FileProcessorD;
 typedef FileManager<FileCache, FileProcessorD, Reader> FileManagerD;
 typedef Application<
         FileManagerD,
@@ -50,6 +58,8 @@ auto commonInj = [] (const std::shared_ptr<ProgramOptions> &conf){ // NOLINT
             di::bind<FileProcessorD>.in(di::unique),
             di::bind<Reader>.in(di::unique),
             di::bind<TagSizeCalculator>.in(di::unique),
+            di::bind<vk_music_fs::FileBuffer>.in(di::unique),
+            di::bind<BlockingBufferD>.in(di::unique),
 
             di::bind<SizesCacheSize>.to(SizesCacheSize{conf->getSizesCacheSize()}),
             di::bind<FilesCacheSize>.to(FilesCacheSize{conf->getFilesCacheSize()}),

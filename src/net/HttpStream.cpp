@@ -9,14 +9,8 @@ using tcp = boost::asio::ip::tcp;
 namespace http = boost::beast::http;
 namespace ssl = boost::asio::ssl;
 
-std::optional<ByteVect> HttpStream::read() {
+uint_fast32_t HttpStream::doRead(uint_fast32_t maxSize) {
     try {
-        if (_parser.is_done() || _closed) {
-            return std::nullopt;
-        }
-        _returnBuffer.resize(BUFFER_SIZE);
-        _parser.get().body().data = &_returnBuffer[0];
-        _parser.get().body().size = BUFFER_SIZE;
         auto sizeFuture = http::async_read(*_stream, _readBuffer, _parser, boost::asio::use_future);
         if(sizeFuture.wait_for(std::chrono::milliseconds(_timeout)) == std::future_status::timeout){
             _stream->next_layer().cancel();
@@ -29,14 +23,12 @@ std::optional<ByteVect> HttpStream::read() {
             if(ex.code() != boost::beast::http::error::need_buffer){
                 throw;
             }
-            size = BUFFER_SIZE;
+            size = maxSize;
         }
-
-        _returnBuffer.resize(size);
         if (_parser.is_done()) {
             close();
         }
-        return _returnBuffer;
+        return size;
     } catch (const boost::system::system_error &ex){
         close();
         throw HttpException(std::string("Error reading uri ") + _uri + ". " + ex.what());

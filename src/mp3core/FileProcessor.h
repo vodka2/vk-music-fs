@@ -12,13 +12,14 @@
 
 namespace vk_music_fs {
     class FileProcessorInt{
+    public:
+        bool isFinished();
     protected:
         explicit FileProcessorInt();
-        bool addToBuffer(std::optional<ByteVect> vect);
         void waitForStopAppend();
         void notifyAppendStopped();
-        std::shared_ptr<BlockingBuffer> _buffer;
         std::atomic_bool _metadataWasRead;
+        std::atomic_bool _bufferSizeLimitReached;
         std::mutex _bufferAppendMutex;
         std::atomic_bool _closed;
         std::atomic_bool _finished;
@@ -33,20 +34,34 @@ namespace vk_music_fs {
         std::shared_future<void> _bufferAppendFuture;
     };
 
-    template <typename TStream, typename TFile, typename TMp3Parser, typename TPool>
-    class FileProcessor : private FileProcessorInt{
+    template <typename TStream, typename TFile, typename TMp3Parser, typename TPool, typename TBuffer, typename TBlockCreator>
+    class FileProcessor : public FileProcessorInt{
     public:
         FileProcessor(
                 const std::shared_ptr<TStream> &stream,
                 const std::shared_ptr<TFile> &file,
                 const std::shared_ptr<TPool> &pool,
-                const std::shared_ptr<TMp3Parser> &parser
+                const std::shared_ptr<TMp3Parser> &parser,
+                const std::shared_ptr<TBuffer> &buffer,
+                const std::shared_ptr<TBlockCreator> &blockCreator
         )
-        :FileProcessorInt(), _stream(stream), _file(file), _pool(pool), _parser(parser){
+        :FileProcessorInt(), _stream(stream), _file(file), _pool(pool), _parser(parser), _buffer(buffer),
+        _blockCreator(blockCreator){
         }
 
-        bool isFinished(){
-            return _finished;
+        template <typename T>
+        bool addToBuffer(T block) {
+            if (block->curSize() != 0) {
+                _buffer->append(block);
+                if (_metadataWasRead) {
+                    notifyAppendStopped();
+                }
+                return _metadataWasRead;
+            } else {
+                _buffer->setEOF();
+                notifyAppendStopped();
+                return true;
+            }
         }
 
         ByteVect read(uint_fast32_t start, uint_fast32_t size){
@@ -56,15 +71,21 @@ namespace vk_music_fs {
                     try {
                         try {
                             _stream->open(
-                                    _file->getSize() - _file->getPrependSize(),
-                                    _file->getTotalSize()
+                                    _file->getSizeOnDisk() - _file->getPrependSize(),
+                                    _file->getUriSize()
                             );
                             _file->open();
-                            if (_file->getSize() == 0) {
-                                _buffer->setSize(_file->getTotalSize());
+                            if (_file->getSizeOnDisk() == 0) {
+                                _buffer->setSize(_file->getUriSize());
                                 _pool->post([this] {
                                     try {
-                                        while (!addToBuffer(_stream->read())) {
+                                        auto block = _blockCreator->create();
+                                        while (true) {
+                                            _stream->read(block);
+                                            if (addToBuffer(block)) {
+                                                break;
+                                            }
+                                            block->reset();
                                             std::this_thread::sleep_for(std::chrono::milliseconds(30));
                                         }
                                     } catch (const MusicFsException &ex) {
@@ -77,7 +98,18 @@ namespace vk_music_fs {
                                 _prependSize = _buffer->getPrependSize();
                                 _file->setPrependSize(_prependSize);
                                 _file->write(std::move(_buffer->clearStart()));
-                                _file->write(std::move(_buffer->clearMain()));
+
+                                auto block = _blockCreator->create();
+                                uint_fast32_t offset = 0;
+                                while (true) {
+                                    _buffer->finalRead(offset, block);
+                                    if (block->curSize() == 0) {
+                                        break;
+                                    }
+                                    offset += block->curSize();
+                                    _file->write(block);
+                                    block->reset();
+                                }
                                 _buffer.reset();
                             } else {
                                 _prependSize = _file->getPrependSize();
@@ -87,18 +119,20 @@ namespace vk_music_fs {
                             throw;
                         }
                         _openedPromise->set_value();
+                        auto block = _blockCreator->create();
                         while (true) {
                             if (_closed) {
                                 _stream->close();
                                 break;
                             }
-                            auto buf = _stream->read();
-                            if (!buf) {
+                            _stream->read(block);
+                            if (block->curSize() == 0) {
                                 _finished = true;
                                 _file->finish();
                                 break;
                             }
-                            _file->write(std::move(*buf));
+                            _file->write(block);
+                            block->reset();
                         }
                         _threadPromise->set_value();
                     } catch (const MusicFsException &ex){
@@ -112,7 +146,7 @@ namespace vk_music_fs {
                 if (_error) {
                     _threadFinishedFuture.get();
                 }
-                auto fileSize = _file->getSize();
+                auto fileSize = _file->getSizeOnDisk();
                 if (start + size <= fileSize) {
                     return _file->read(start, size);
                 } else {
@@ -158,5 +192,7 @@ namespace vk_music_fs {
         std::shared_ptr<TFile> _file;
         std::shared_ptr<TPool> _pool;
         std::shared_ptr<TMp3Parser> _parser;
+        std::shared_ptr<TBuffer> _buffer;
+        std::shared_ptr<TBlockCreator> _blockCreator;
     };
 }

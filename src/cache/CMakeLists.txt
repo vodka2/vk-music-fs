@@ -1,6 +1,10 @@
 project(cache)
 
 add_vmf_lib_test(cache
+        File.cpp
+        File.h
+        FileBuffer.cpp
+        FileBuffer.h
         FileCache.cpp
         FileCache.h
         MusicFile.cpp
