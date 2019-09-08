@@ -4,13 +4,14 @@
 #include <common/common.h>
 #include <string>
 #include <common/ThreadPool.h>
+#include "Timer.h"
 
 namespace vk_music_fs {
     namespace net {
         class HttpStreamCommon {
         public:
-            const static uint_fast8_t HTTP_VERSION = 11;
-            const static uint_fast16_t SSL_PORT = 443;
+            constexpr const static uint_fast8_t HTTP_VERSION = 11;
+            constexpr const static uint_fast16_t SSL_PORT = 443;
 
             HttpStreamCommon(const std::shared_ptr<ThreadPool> &pool, const HttpTimeout &timeout);
 
@@ -25,6 +26,12 @@ namespace vk_music_fs {
             HostPath getHostPath(const std::string &uri);
 
             std::shared_ptr<Stream> connect(const HostPath &hostPath, uint_fast32_t port = SSL_PORT);
+            void connect(
+                    const HostPath &hostPath,
+                    std::function<void(std::shared_ptr<Stream>)> succHandler,
+                    std::function<void(std::exception_ptr)> errHandler,
+                    uint_fast32_t port = SSL_PORT
+            );
 
             void closeStream(const std::shared_ptr<HttpStreamCommon::Stream> &stream);
 
@@ -33,11 +40,20 @@ namespace vk_music_fs {
                             const std::string &userAgent
             );
 
+            void sendGetReq(const std::shared_ptr<HttpStreamCommon::Stream> &stream,
+                            const HostPath &hostPath,
+                            const std::string &userAgent,
+                            std::function<void()> succHandler,
+                            std::function<void(std::exception_ptr)> errHandler
+            );
+
             void sendPartialGetReq(const std::shared_ptr<HttpStreamCommon::Stream> &stream,
                                    const HostPath &hostPath,
                                    const std::string &userAgent,
                                    uint_fast32_t byteStart,
-                                   uint_fast32_t byteEnd
+                                   uint_fast32_t byteEnd,
+                                   std::function<void()> succHandler,
+                                   std::function<void(std::exception_ptr)> errHandler
             );
 
             void sendHeadReq(const std::shared_ptr<HttpStreamCommon::Stream> &stream,
@@ -63,7 +79,9 @@ namespace vk_music_fs {
             void readPartIntoBuffer(
                     const std::shared_ptr<HttpStreamCommon::Stream> &stream,
                     const std::string &uri,
-                    ByteVect &buf
+                    uint_fast32_t size,
+                    std::function<void(ByteVect)> succHandler,
+                    std::function<void(std::exception_ptr)> errHandler
             );
 
             ByteVect readIntoBuffer(
@@ -71,6 +89,17 @@ namespace vk_music_fs {
             );
 
             std::string fieldsToPostReq(const std::unordered_map<std::string, std::string> &map);
+
+            template<typename TSuccFunc, typename TErrFunc>
+            Timer<TSuccFunc, TErrFunc> createTimer(
+                    TSuccFunc succFunc,
+                    TErrFunc errFunc,
+                    const std::string &excString
+            ) {
+                return Timer{_ioc, _timeout, succFunc, errFunc, excString};
+            }
+
+            boost::asio::io_context & getIoContext();
 
         private:
             HttpTimeout _timeout;

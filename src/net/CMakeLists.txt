@@ -15,6 +15,7 @@ add_vmf_lib_test(net
         VkApiQueryMaker.h
         WrongSizeException.cpp
         WrongSizeException.h
+        Timer.h
 )
 
 target_link_libraries(

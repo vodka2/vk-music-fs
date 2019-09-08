@@ -1,5 +1,4 @@
 #include "HttpStreamCommon.h"
-#include "HttpException.h"
 #include "WrongSizeException.h"
 #include <regex>
 #include <boost/beast/http.hpp>
@@ -23,43 +22,81 @@ HttpStreamCommon::HostPath HttpStreamCommon::getHostPath(const std::string &uri)
 
 std::shared_ptr<HttpStreamCommon::Stream>
 HttpStreamCommon::connect(const HostPath &hostPath, uint_fast32_t port) {
-    auto resolverResultsFuture = _resolver.async_resolve(hostPath.host, std::to_string(port), boost::asio::use_future);
-    if(resolverResultsFuture.wait_for(std::chrono::milliseconds(_timeout)) == std::future_status::timeout){
-        throw HttpException("Resolving aborted on timeout");
-    }
-    auto resolverResults = resolverResultsFuture.get();
-    auto stream = std::make_shared<Stream>(_ioc, _sslCtx);
+    std::promise<std::shared_ptr<Stream>> prom;
+    connect(hostPath, [&prom] (auto strm) {
+        prom.set_value(strm);
+    }, [&prom] (auto ptr) {
+        prom.set_exception(ptr);
+    }, port);
+    return prom.get_future().get();
+}
 
-    if(!SSL_set_tlsext_host_name(stream->native_handle(), hostPath.host.c_str())) {
-        boost::system::error_code ec{static_cast<int>(::ERR_get_error()), boost::asio::error::get_ssl_category()};
-        throw boost::system::system_error{ec};
-    }
-
-    auto connectFuture = boost::asio::async_connect(stream->next_layer(), resolverResults.begin(), resolverResults.end(), boost::asio::use_future);
-    if (connectFuture.wait_for(std::chrono::milliseconds(_timeout)) == std::future_status::timeout) {
-        stream->next_layer().cancel();
-        closeStream(stream);
-        throw HttpException("Connection aborted on timeout");
-    }
-    connectFuture.get();
-    stream->handshake(ssl::stream_base::client);
-    return stream;
+void HttpStreamCommon::connect(
+        const HttpStreamCommon::HostPath &hostPath,
+        std::function<void(std::shared_ptr<Stream>)> succHandler,
+        std::function<void(std::exception_ptr)> errHandler,
+        uint_fast32_t port
+) {
+    auto afterConnectFunc = [succHandler] (auto stream) {
+        stream->handshake(ssl::stream_base::client);
+        succHandler(stream);
+    };
+    auto connectFunc = [this, hostPath, afterConnectFunc, errHandler] (auto resolverResults) {
+        auto stream = std::make_shared<Stream>(_ioc, _sslCtx);
+        if (!SSL_set_tlsext_host_name(stream->native_handle(), hostPath.host.c_str())) {
+            boost::system::error_code ec{static_cast<int>(::ERR_get_error()),
+                                         boost::asio::error::get_ssl_category()};
+            throw boost::system::system_error{ec};
+        }
+        boost::asio::async_connect(stream->next_layer(), resolverResults.begin(), resolverResults.end(), createTimer(
+                [afterConnectFunc, stream](...) {
+                    afterConnectFunc(stream);
+                },
+                [this, stream, errHandler](auto exc) {
+                    stream->next_layer().cancel();
+                    closeStream(stream);
+                    errHandler(exc);
+                }, "Connection aborted on timeout"
+        ));
+    };
+    auto resolveFunc = [this, hostPath, port, succHandler, errHandler, connectFunc] {
+        _resolver.async_resolve(hostPath.host, std::to_string(port), createTimer(
+                connectFunc, errHandler, "Resolving aborted on timeout"
+        ));
+    };
+    boost::asio::post(_ioc, resolveFunc);
 }
 
 void HttpStreamCommon::sendGetReq(
         const std::shared_ptr<HttpStreamCommon::Stream> &stream, const HostPath &hostPath,
         const std::string &userAgent
 ) {
-    http::request<http::string_body> req{http::verb::get, hostPath.path, HttpStreamCommon::HTTP_VERSION};
-    req.set(http::field::host, hostPath.host);
-    req.set(http::field::user_agent, userAgent);
-    auto writeFuture = http::async_write(*stream, req, boost::asio::use_future);
-    if(writeFuture.wait_for(std::chrono::milliseconds(_timeout)) == std::future_status::timeout){
-        stream->next_layer().cancel();
-        closeStream(stream);
-        throw HttpException("Get request aborted on timeout");
-    }
-    writeFuture.get();
+    std::promise<void> prom;
+    sendGetReq(stream, hostPath, userAgent, [&prom] () {
+        prom.set_value();
+    }, [&prom] (auto ptr) {
+        prom.set_exception(ptr);
+    });
+    return prom.get_future().get();
+}
+
+void HttpStreamCommon::sendGetReq(const std::shared_ptr<HttpStreamCommon::Stream> &stream,
+                                  const HttpStreamCommon::HostPath &hostPath, const std::string &userAgent,
+                                  std::function<void()> succHandler,
+                                  std::function<void(std::exception_ptr)> errHandler) {
+    auto writeFunc = [this, stream, succHandler, errHandler, hostPath, userAgent] {
+        auto req = std::make_shared<http::request<http::string_body>>(http::verb::get, hostPath.path, HttpStreamCommon::HTTP_VERSION);
+        req->set(http::field::host, hostPath.host);
+        req->set(http::field::user_agent, userAgent);
+        http::async_write(*stream, *req, createTimer(
+                [succHandler, req](...) { succHandler(); }, [this, errHandler, stream](auto exc) {
+                    stream->next_layer().cancel();
+                    closeStream(stream);
+                    errHandler(exc);
+                }, "Get request aborted on timeout"
+        ));
+    };
+    boost::asio::post(_ioc, writeFunc);
 }
 
 HttpStreamCommon::HttpStreamCommon(
@@ -67,9 +104,9 @@ HttpStreamCommon::HttpStreamCommon(
         const HttpTimeout &timeout
 ) :
 _resolver{_ioc}, _guard(boost::asio::make_work_guard(_ioc)),
-_sslCtx{boost::asio::ssl::context::tlsv12_client}, _timeout(timeout.t){
+_sslCtx{boost::asio::ssl::context::tlsv12_client}, _timeout(timeout.t) {
     _sslCtx.set_options(boost::asio::ssl::context::default_workarounds);
-    pool->post([&ioc = _ioc](){
+    pool->post([&ioc = _ioc]() {
         ioc.run();
     });
 }
@@ -80,7 +117,7 @@ void HttpStreamCommon::sendHeadReq(const std::shared_ptr<HttpStreamCommon::Strea
     req.set(http::field::host, hostPath.host);
     req.set(http::field::user_agent, userAgent);
     auto writeFuture = http::async_write(*stream, req, boost::asio::use_future);
-    if(writeFuture.wait_for(std::chrono::milliseconds(_timeout)) == std::future_status::timeout){
+    if (writeFuture.wait_for(std::chrono::milliseconds(_timeout)) == std::future_status::timeout) {
         stream->next_layer().cancel();
         closeStream(stream);
         throw HttpException("Head request aborted on timeout");
@@ -108,7 +145,7 @@ std::string HttpStreamCommon::uriEncode(const std::string &str) {
 }
 
 void HttpStreamCommon::closeStream(const std::shared_ptr<HttpStreamCommon::Stream> &stream) {
-    if(stream != nullptr) {
+    if (stream != nullptr) {
         boost::beast::error_code ec;
         stream->shutdown(ec);
     }
@@ -118,7 +155,7 @@ std::string HttpStreamCommon::readRespAsStr(const std::shared_ptr<HttpStreamComm
     boost::beast::basic_flat_buffer<std::allocator<uint8_t>> readBuffer;
     http::response_parser<http::string_body> parser;
     auto readHeaderFuture = http::async_read_header(*stream, readBuffer, parser, boost::asio::use_future);
-    if(readHeaderFuture.wait_for(std::chrono::milliseconds(_timeout)) == std::future_status::timeout){
+    if (readHeaderFuture.wait_for(std::chrono::milliseconds(_timeout)) == std::future_status::timeout) {
         stream->next_layer().cancel();
         closeStream(stream);
         throw HttpException("Reading headers aborted on timeout");
@@ -130,15 +167,15 @@ std::string HttpStreamCommon::readRespAsStr(const std::shared_ptr<HttpStreamComm
         );
     }
     auto readFuture = http::async_read(*stream, readBuffer, parser, boost::asio::use_future);
-    if(readFuture.wait_for(std::chrono::milliseconds(_timeout)) == std::future_status::timeout){
+    if (readFuture.wait_for(std::chrono::milliseconds(_timeout)) == std::future_status::timeout) {
         stream->next_layer().cancel();
         closeStream(stream);
         throw HttpException("Reading content aborted on timeout");
     }
     try {
         readFuture.get();
-    } catch (const boost::system::system_error &ex){
-        if(ex.code() != boost::beast::http::error::need_buffer){
+    } catch (const boost::system::system_error &ex) {
+        if (ex.code() != boost::beast::http::error::need_buffer) {
             throw;
         }
     }
@@ -150,44 +187,64 @@ std::string HttpStreamCommon::readRespAsStr(const std::shared_ptr<HttpStreamComm
 void HttpStreamCommon::readPartIntoBuffer(
         const std::shared_ptr<HttpStreamCommon::Stream> &stream,
         const std::string &uri,
-        ByteVect &buf
+        uint_fast32_t size,
+        std::function<void(ByteVect)> succHandler,
+        std::function<void(std::exception_ptr)> errHandler
 ) {
-    boost::beast::basic_flat_buffer<std::allocator<uint8_t>> readBuffer;
-    http::response_parser<http::buffer_body> parser;
-    auto readHeaderFuture = http::async_read_header(*stream, readBuffer, parser, boost::asio::use_future);
-    if(readHeaderFuture.wait_for(std::chrono::milliseconds(_timeout)) == std::future_status::timeout){
-        stream->next_layer().cancel();
-        closeStream(stream);
-        throw HttpException("Reading headers aborted on timeout");
-    }
-    readHeaderFuture.get();
-    if(parser.get().result() == http::status::range_not_satisfiable){
-        throw WrongSizeException(uri);
-    }
-    if (parser.get().result() != http::status::partial_content && parser.get().result() != http::status::ok) {
-        throw HttpException(
-                "Bad status code " + std::to_string(static_cast<uint_fast32_t>(parser.get().result())) +
-                "when reading part"
-        );
-    }
+    auto readIntoBufFunc = [this, succHandler, size, stream, errHandler] (auto parser, auto readBuffer) {
+        auto buf = std::make_shared<ByteVect>(size);
+        parser->get().body().data = (&(*buf)[0]);
+        parser->get().body().size = size;
+        http::async_read(*stream, *readBuffer, *parser, createTimer(
+                [this, succHandler, buf, stream, parser, readBuffer] (...) {
+                    closeStream(stream);
+                    succHandler(std::move(*buf));
+                }, [this, stream, errHandler, succHandler, buf] (auto exc) {
+                    closeStream(stream);
+                    try {
+                        std::rethrow_exception(exc);
+                    } catch (const boost::system::system_error &ex) {
+                        if (ex.code() != boost::beast::http::error::need_buffer) {
+                            stream->next_layer().cancel();
+                            errHandler(exc);
+                        } else {
+                            succHandler(std::move(*buf));
+                        }
+                    } catch (...) {
+                        stream->next_layer().cancel();
+                        errHandler(exc);
+                    }
+                },
+                "Reading content aborted on timeout"
+        ));
+    };
 
-    parser.get().body().data = &buf[0];
-    parser.get().body().size = buf.size();
+    auto readHeaderFunc = [this, stream, readIntoBufFunc, errHandler, uri] {
+        auto readBuffer = std::make_shared<boost::beast::basic_flat_buffer<std::allocator<uint8_t>>>();
+        auto parser = std::make_shared<http::response_parser<http::buffer_body>>();
+        http::async_read_header(*stream, *readBuffer, *parser, createTimer(
+                [readIntoBufFunc, uri, parser, readBuffer] (...) {
+                    if (parser->get().result() == http::status::range_not_satisfiable) {
+                        throw WrongSizeException(uri);
+                    }
+                    if (parser->get().result() != http::status::partial_content && parser->get().result() != http::status::ok) {
+                        throw HttpException(
+                                "Bad status code " + std::to_string(static_cast<uint_fast32_t>(parser->get().result())) +
+                                "when reading part"
+                        );
+                    }
+                    readIntoBufFunc(parser, readBuffer);
+                },
+                [this, stream, errHandler] (auto exc) {
+                    stream->next_layer().cancel();
+                    closeStream(stream);
+                    errHandler(exc);
+                },
+                "Reading headers aborted on timeout"
+        ));
+    };
 
-    auto readFuture = http::async_read(*stream, readBuffer, parser, boost::asio::use_future);
-    if(readFuture.wait_for(std::chrono::milliseconds(_timeout)) == std::future_status::timeout){
-        stream->next_layer().cancel();
-        closeStream(stream);
-        throw HttpException("Reading content aborted on timeout");
-    }
-    try {
-        readFuture.get();
-    } catch (const boost::system::system_error &ex){
-        if(ex.code() != boost::beast::http::error::need_buffer){
-            throw;
-        }
-    }
-    closeStream(stream);
+    boost::asio::post(_ioc, readHeaderFunc);
 }
 
 ByteVect HttpStreamCommon::readIntoBuffer(
@@ -196,7 +253,7 @@ ByteVect HttpStreamCommon::readIntoBuffer(
     boost::beast::basic_flat_buffer<std::allocator<uint8_t>> readBuffer;
     http::response_parser<http::vector_body<uint8_t>> parser;
     auto readHeaderFuture = http::async_read_header(*stream, readBuffer, parser, boost::asio::use_future);
-    if(readHeaderFuture.wait_for(std::chrono::milliseconds(_timeout)) == std::future_status::timeout){
+    if (readHeaderFuture.wait_for(std::chrono::milliseconds(_timeout)) == std::future_status::timeout) {
         stream->next_layer().cancel();
         closeStream(stream);
         throw HttpException("Reading headers aborted on timeout");
@@ -210,15 +267,15 @@ ByteVect HttpStreamCommon::readIntoBuffer(
     }
 
     auto readFuture = http::async_read(*stream, readBuffer, parser, boost::asio::use_future);
-    if(readFuture.wait_for(std::chrono::milliseconds(_timeout)) == std::future_status::timeout){
+    if (readFuture.wait_for(std::chrono::milliseconds(_timeout)) == std::future_status::timeout) {
         stream->next_layer().cancel();
         closeStream(stream);
         throw HttpException("Reading content aborted on timeout");
     }
     try {
         readFuture.get();
-    } catch (const boost::system::system_error &ex){
-        if(ex.code() != boost::beast::http::error::need_buffer){
+    } catch (const boost::system::system_error &ex) {
+        if (ex.code() != boost::beast::http::error::need_buffer) {
             throw;
         }
     }
@@ -232,19 +289,24 @@ void HttpStreamCommon::sendPartialGetReq(
         const HttpStreamCommon::HostPath &hostPath,
         const std::string &userAgent,
         uint_fast32_t byteStart,
-        uint_fast32_t byteEnd
+        uint_fast32_t byteEnd,
+        std::function<void()> succHandler,
+        std::function<void(std::exception_ptr)> errHandler
 ) {
-    http::request<http::string_body> req{http::verb::get, hostPath.path, HttpStreamCommon::HTTP_VERSION};
-    req.set(http::field::host, hostPath.host);
-    req.set(http::field::range, "bytes=" + std::to_string(byteStart) + "-" + std::to_string(byteEnd));
-    req.set(http::field::user_agent, userAgent);
-    auto writeFuture = http::async_write(*stream, req, boost::asio::use_future);
-    if(writeFuture.wait_for(std::chrono::milliseconds(_timeout)) == std::future_status::timeout){
-        stream->next_layer().cancel();
-        closeStream(stream);
-        throw HttpException("Partial get request aborted on timeout");
-    }
-    writeFuture.get();
+    auto writeFunc = [this, stream, succHandler, errHandler, hostPath, userAgent, byteStart, byteEnd] {
+        auto req = std::make_shared<http::request<http::string_body>>(http::verb::get, hostPath.path, HttpStreamCommon::HTTP_VERSION);
+        req->set(http::field::host, hostPath.host);
+        req->set(http::field::range, "bytes=" + std::to_string(byteStart) + "-" + std::to_string(byteEnd));
+        req->set(http::field::user_agent, userAgent);
+        http::async_write(*stream, *req, createTimer(
+                [succHandler, req](...) { succHandler(); }, [this, errHandler, stream](auto exc) {
+                    stream->next_layer().cancel();
+                    closeStream(stream);
+                    errHandler(exc);
+                }, "Partial get request aborted on timeout"
+        ));
+    };
+    boost::asio::post(_ioc, writeFunc);
 }
 
 uint_fast32_t HttpStreamCommon::readSize(const std::shared_ptr<HttpStreamCommon::Stream> &stream) {
@@ -252,7 +314,7 @@ uint_fast32_t HttpStreamCommon::readSize(const std::shared_ptr<HttpStreamCommon:
     boost::beast::basic_flat_buffer<std::allocator<uint8_t>> readBuffer;
     parser.skip(true);
     auto readFuture = http::async_read(*stream, readBuffer, parser, boost::asio::use_future);
-    if(readFuture.wait_for(std::chrono::milliseconds(_timeout)) == std::future_status::timeout){
+    if (readFuture.wait_for(std::chrono::milliseconds(_timeout)) == std::future_status::timeout) {
         stream->next_layer().cancel();
         closeStream(stream);
         throw HttpException("Reading content aborted on timeout");
@@ -279,7 +341,7 @@ void HttpStreamCommon::sendPostReq(const std::shared_ptr<HttpStreamCommon::Strea
     req.body().size = data.size();
     req.body().more = false;
     auto writeFuture = http::async_write(*stream, req, boost::asio::use_future);
-    if(writeFuture.wait_for(std::chrono::milliseconds(_timeout)) == std::future_status::timeout){
+    if (writeFuture.wait_for(std::chrono::milliseconds(_timeout)) == std::future_status::timeout) {
         stream->next_layer().cancel();
         closeStream(stream);
         throw HttpException("Post request aborted on timeout");
@@ -290,8 +352,8 @@ void HttpStreamCommon::sendPostReq(const std::shared_ptr<HttpStreamCommon::Strea
 std::string HttpStreamCommon::fieldsToPostReq(const std::unordered_map<std::string, std::string> &map) {
     std::ostringstream res;
     bool isFirst = true;
-    for(const auto &item: map){
-        if(!isFirst){
+    for(const auto &item: map) {
+        if (!isFirst) {
             res << "&";
         } else {
             isFirst = false;
@@ -299,4 +361,8 @@ std::string HttpStreamCommon::fieldsToPostReq(const std::unordered_map<std::stri
         res << item.first << "=" << uriEncode(item.second);
     }
     return res.str();
+}
+
+boost::asio::io_context &HttpStreamCommon::getIoContext() {
+    return _ioc;
 }
