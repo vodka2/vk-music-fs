@@ -86,7 +86,6 @@ namespace vk_music_fs {
                                                 break;
                                             }
                                             block->reset();
-                                            std::this_thread::sleep_for(std::chrono::milliseconds(30));
                                         }
                                     } catch (const MusicFsException &ex) {
                                         _buffer->setEOF();
