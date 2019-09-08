@@ -69,3 +69,7 @@ if(APPLE)
     find_library(CoreServices CoreServices)
     target_link_libraries(vk_music_fs ${CoreServices})
 endif(APPLE)
+
+set_target_properties(vk_music_fs PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}
+)
