@@ -2,4 +2,4 @@
 
 using namespace vk_music_fs;
 
-ThreadPool::ThreadPool() : _tp(20){}
+ThreadPool::ThreadPool() : _tp(10){}
