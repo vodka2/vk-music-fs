@@ -71,9 +71,9 @@ TEST_F(BlockingBufferT, readFromFileOnce) {
     });
 
     prepare6ElementBuffer();
+    waitForFinish();
 
     EXPECT_THAT(buffer->read(3, 3), testing::ElementsAre(4, 5, 6));
-    waitForFinish();
 }
 
 TEST_F(BlockingBufferT, readFromFileTwice) {
@@ -87,10 +87,10 @@ TEST_F(BlockingBufferT, readFromFileTwice) {
     });
 
     prepare6ElementBuffer();
+    waitForFinish();
 
     EXPECT_THAT(buffer->read(2, 1), testing::ElementsAre(3));
     EXPECT_THAT(buffer->read(3, 2), testing::ElementsAre(3, 4));
-    waitForFinish();
 }
 
 
@@ -102,6 +102,7 @@ TEST_F(BlockingBufferT, readFully) {
     });
 
     prepare6ElementBuffer();
-    EXPECT_THAT(buffer->read(0, 6), testing::ElementsAre(1, 2, 3, 4, 5, 6));
     waitForFinish();
+
+    EXPECT_THAT(buffer->read(0, 6), testing::ElementsAre(1, 2, 3, 4, 5, 6));
 }
