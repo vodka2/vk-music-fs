@@ -1,10 +1,10 @@
 language: cpp
-dist: trusty
+dist: bionic
 compiler: gcc
 env:
   global:
     - CMAKE_URL="https://cmake.org/files/v3.11/cmake-3.11.0-Linux-x86_64.tar.gz"
-    - COMPILER_EVAL="CC=gcc-8 && CXX=g++-8"
+    - COMPILER_EVAL="CC=gcc && CXX=g++"
 matrix:
   include:
   - env:
@@ -18,10 +18,7 @@ matrix:
     - ARCH_SUFFIX="x86_64"
     - ARCH_SUFFIX2="x86_64"
 install:
-  - sudo add-apt-repository 'deb http://us.archive.ubuntu.com/ubuntu/ xenial main'
-  - sudo apt-get update
-  - sudo apt-get install -y --allow-unauthenticated dpkg
-  - sudo add-apt-repository 'deb http://deb.debian.org/debian/ testing main'
+  - sudo add-apt-repository 'deb http://us.archive.ubuntu.com/ubuntu/ cosmic main'
   - sudo apt-get update
   - sudo apt-get install -o Dpkg::Options::="--force-all" -o APT::Force-LoopBreak=1 -y --allow-unauthenticated ${APT_DEPS}
   - DEPS_DIR="${HOME}/deps"
@@ -36,7 +33,7 @@ before_script:
   - cmake .. ${EXTRA_CMAKE_FLAGS} -DENABLE_TESTS=1 -DCMAKE_BUILD_TYPE=Release
 script:
   - cmake --build . --target AllTests
-  - ./tests/AllTests
+  - ./AllTests
   - cmake --build . --target vk_music_fs
   - mkdir -p appdir/usr/optional/ ; wget -c https://github.com/darealshinji/AppImageKit-checkrt/releases/download/continuous/exec-${ARCH_SUFFIX}.so -O ./appdir/usr/optional/exec.so
   - mkdir -p appdir/usr/optional/libstdc++/ ; cp /usr/lib/${ARCH_SUFFIX2}-linux-gnu/libstdc++.so.6 ./appdir/usr/optional/libstdc++/
@@ -44,6 +41,7 @@ script:
   - wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
   - chmod a+x linuxdeploy-x86_64.AppImage
   - OUTPUT="vk_music_fs-$ARCH_SUFFIX2.AppImage" ./linuxdeploy-x86_64.AppImage --appimage-extract-and-run -e vk_music_fs --appdir appdir -e vk_music_fs -i ../appimage/vk_music_fs-icon.svg -d ../appimage/vk_music_fs.desktop --output appimage
+  - md5sum vk_music_fs*.AppImage*
 git:
   submodules: true
   depth: 1
