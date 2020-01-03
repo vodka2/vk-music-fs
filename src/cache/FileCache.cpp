@@ -33,7 +33,7 @@ FNameCache FileCache::getFilename(const RemoteFile &file) {
     std::scoped_lock<std::mutex> lock(_initialSizesMutex);
     auto id = RemoteFileId{file};
     _openedFiles.insert(id);
-    if(_initialSizesCache.exists(id)){
+    if(_initialSizesCache.exists(id) && bfs::exists(_cacheSaver->constructFilename(id))){
         return {_cacheSaver->constructFilename(id), (_initialSizesCache.get(id).totalSize == getFileSize(file))};
     } else {
         std::string name = _cacheSaver->constructFilename(id);
