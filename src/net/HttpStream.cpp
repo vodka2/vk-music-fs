@@ -16,16 +16,16 @@ uint_fast32_t HttpStream::doRead(uint_fast32_t maxSize) {
         auto errFunc = [&prom] (auto exc) {
             prom.set_exception(exc);
         };
-        auto succFunc = [this, &prom] (auto size) {
+        auto succFunc = [this, &prom, maxSize] () {
             if (_parser.is_done()) {
                 close();
             }
-            prom.set_value(size);
+            prom.set_value(maxSize - _parser.get().body().size);
         };
         auto getSizeFunc = [this, succFunc, errFunc, maxSize] {
             http::async_read(*_stream, _readBuffer, _parser, _common->createTimer(
-                    [this, succFunc] (uint_fast32_t size) {
-                        succFunc(size);
+                    [this, succFunc] (uint_fast32_t) {
+                        succFunc();
                     },
                     [errFunc, maxSize, succFunc] (auto exc) {
                         try {
@@ -34,7 +34,7 @@ uint_fast32_t HttpStream::doRead(uint_fast32_t maxSize) {
                             if(ex.code() != boost::beast::http::error::need_buffer) {
                                 errFunc(std::current_exception());
                             } else {
-                                succFunc(maxSize);
+                                succFunc();
                             }
                         } catch (...) {
                             errFunc(std::current_exception());
@@ -56,7 +56,7 @@ uint_fast32_t HttpStream::doRead(uint_fast32_t maxSize) {
 
 ByteVect HttpStream::read(uint_fast32_t offset, uint_fast32_t length) {
     try {
-        if (offset >= _size || _closed) {
+        if (offset >= _size) {
             return {};
         }
         std::promise<ByteVect> prom;
