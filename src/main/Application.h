@@ -32,6 +32,15 @@ namespace vk_music_fs {
             }
         }
 
+        void createFile(const std::string &filename){
+            try {
+                _audioFs->createFile(filename);
+            } catch (const MusicFsException &exc){
+                _logger->logException(exc);
+                throw;
+            }
+        }
+
         ByteVect read(uint_fast32_t id, uint_fast32_t offset, uint_fast32_t size){
             try {
                 return _fileManager->read(id, offset, size);

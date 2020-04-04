@@ -29,6 +29,8 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <common/IOBlockCreator.h>
 #include <cache/FileBuffer.h>
+#include <fs/AsyncFsManager.h>
+#include <common/RealFs.h>
 
 using namespace vk_music_fs;
 
@@ -43,7 +45,9 @@ typedef FileProcessor<
 typedef FileManager<FileCache, FileProcessorD, Reader> FileManagerD;
 typedef Application<
         FileManagerD,
-        AudioFs<fs::CtrlTuple<fs::FsUtils, fs::FileObtainer<net::VkApiQueryMaker>, FileManagerD>>,
+        AudioFs<
+                fs::CtrlTuple<fs::FsUtils, fs::FileObtainer<net::VkApiQueryMaker>, FileManagerD,
+                fs::AsyncFsManager<fs::FsUtils, FileCache, RealFs>>>,
         ErrLogger, net::HttpStreamCommon
 > ApplicationD;
 
@@ -72,7 +76,9 @@ auto commonInj = [] (const std::shared_ptr<ProgramOptions> &conf){ // NOLINT
             di::bind<LogErrorsToFile>.to(LogErrorsToFile{conf->logErrorsToFile()}),
             di::bind<ErrLogFile>.to(ErrLogFile{conf->getErrLogFile()}),
             di::bind<HttpTimeout>.to(HttpTimeout{conf->getHttpTimeout()}),
+            di::bind<fs::UseAsyncNotifier>.to(fs::UseAsyncNotifier{true}),
             di::bind<net::VkSettings>.to(net::VkSettings{"https://api.vk.com/method", "5.71"}),
+            di::bind<fs::PathToFs>.to(fs::PathToFs{conf->getMountPoint()}),
             di::bind<di::extension::iextfactory<FileProcessorD,
                     Artist,
                     Title,
@@ -183,7 +189,7 @@ int main(int argc, char* argv[]) {
                 return 0;
             }
         } catch (...){
-            return -EACCES;
+            return -ENOENT;
         }
         return -ENOENT;
     };
@@ -205,6 +211,15 @@ int main(int argc, char* argv[]) {
         }
         return 0;
     };
+    operations.create = [] (const char *filename, fuse_mode_t, struct fuse_file_info *) {
+        auto app = reinterpret_cast<ApplicationD*>(fuse_get_context()->private_data);
+        try {
+            app->createFile(std::string{filename});
+        } catch (...){
+            return -EIO;
+        }
+        return 0;
+    };
     operations.read = [](const char *path, char *buf, size_t size, fuse_off_t off, struct fuse_file_info *fi) {
         auto app = reinterpret_cast<ApplicationD*>(fuse_get_context()->private_data);
         try {
@@ -219,6 +234,10 @@ int main(int argc, char* argv[]) {
         }
     };
     operations.release = [](const char *path, struct fuse_file_info *fi){
+        // Sometimes the file is closed after create operation
+        if (fi->fh == 0) {
+            return 0;
+        }
         auto app = reinterpret_cast<ApplicationD*>(fuse_get_context()->private_data);
         app->close(static_cast<uint_fast32_t>(fi->fh));
         return 0;
@@ -258,7 +277,11 @@ int main(int argc, char* argv[]) {
         return 1;
     }
     if(opts->needHelp()){
-        boost::nowide::cerr << "Usage " << argv[0] << " mountpoint [options]\n" << std::endl;
+        boost::nowide::cerr
+            << "Usage " << argv[0] << " mountpoint [options]\n"
+            << " mountpoint must be either the first argument or\n"
+            << " before all options passed to FUSE"
+            << std::endl;
         boost::nowide::cerr << opts->getHelpString() << std::endl;
     } else {
         if (opts->needObtainToken()) {

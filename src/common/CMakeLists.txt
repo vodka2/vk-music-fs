@@ -12,6 +12,8 @@ add_vmf_lib_test(
         MusicFsException.h
         ThreadPool.cpp
         ThreadPool.h
+        RealFs.cpp
+        RealFs.h
         )
 
 target_link_libraries(common nowide)

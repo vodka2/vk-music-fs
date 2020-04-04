@@ -1,6 +1,7 @@
 #pragma once
 
 #include <common/common.h>
+#include "common_fs.h"
 
 namespace vk_music_fs {
     namespace fs {
@@ -9,7 +10,9 @@ namespace vk_music_fs {
             FsSettings(
                     const NumSearchFiles &numSearchFiles,
                     const Mp3Extension &mp3Ext,
-                    const CreateDummyDirs &createDummyDirs
+                    const CreateDummyDirs &createDummyDirs,
+                    const PathToFs &pathToFs,
+                    const UseAsyncNotifier &useAsyncNotifier
             );
 
             uint_fast32_t getNumSearchFiles() const;
@@ -18,10 +21,16 @@ namespace vk_music_fs {
 
             bool isCreateDummyDirs() const;
 
+            const std::string getPathToFs() const;
+
+            bool isUseAsyncNotifier() const;
+
         private:
             uint_fast32_t _numSearchFiles;
             std::string _mp3Ext;
+            std::string _pathToFs;
             bool _createDummyDirs;
+            bool _useAsyncNotifier;
         };
     }
 }

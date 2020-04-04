@@ -2,6 +2,10 @@
 
 #include <fs/common_fs.h>
 #include <fs/FsPath.h>
+#include <fs/DirOrFile.h>
+#include <fs/Dir.h>
+#include <fs/File.h>
+#include <fs/FsException.h>
 #include "RedirectCtrl.h"
 
 namespace vk_music_fs {
@@ -23,13 +27,29 @@ namespace vk_music_fs {
             int_fast32_t open(const std::string &filename){
                 FsPath fsPath = _fsUtils->findPath(_ctrl->getCtrlDir(), _ctrl->transformPath(filename));
                 FsPathUnlocker unlocker{fsPath};
+                if (!fsPath.isPathMatched() || fsPath.getLast().isDir() || fsPath.getLast().file()->isHidden()) {
+                    throw FsException("File " + filename + " does not exist");
+                }
                 auto remoteFile = _fsUtils->getRemoteFile(fsPath, filename);
                 return _fileManager->open(remoteFile, filename);
+            }
+
+            void createFile(const std::string &filename) {
+                FsPath fsPath = _fsUtils->findPath(_ctrl->getCtrlDir(), _ctrl->transformPath(filename), FsPath::WITH_PARENT_DIR);
+                FsPathUnlocker unlocker{fsPath};
+                if (!fsPath.isPathMatched() || fsPath.getLast().isDir() || !fsPath.getLast().file()->isHidden()) {
+                    throw FsException("File " + filename + " does not exist");
+                }
+                FilePtr file = fsPath.getParent().dir()->getItem(fsPath.getStringParts().back()).file();
+                file->setHidden(false);
             }
 
             uint_fast32_t getFileSize(const std::string &filename){
                 FsPath fsPath = _fsUtils->findPath(_ctrl->getCtrlDir(), _ctrl->transformPath(filename));
                 FsPathUnlocker unlocker{fsPath};
+                if (!fsPath.isPathMatched() || fsPath.getLast().isDir() || fsPath.getLast().file()->isHidden()) {
+                    throw FsException("File " + filename + " does not exist");
+                }
                 auto remoteFile = _fsUtils->getRemoteFile(fsPath, filename);
                 return _fileManager->getFileSize(remoteFile, filename);
             }

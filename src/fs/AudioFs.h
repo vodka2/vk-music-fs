@@ -43,6 +43,20 @@ namespace vk_music_fs {
                 }
             }
 
+            void createFile(const std::string &fileName) {
+                try {
+                    for_each(_ctrlTuple, [fileName](auto &&arg) {
+                        if (arg->supports(fileName)) {
+                            arg->createFile(fileName);
+                            return true;
+                        }
+                        return false;
+                    });
+                } catch (const MusicFsException &ex){
+                    throw FsException(std::string("Error creating file. ") + ex.what());
+                }
+            }
+
             void rename(const std::string &oldPath, const std::string &newPath){
                 try {
                     for_each(_ctrlTuple, [oldPath, newPath](auto &&arg) {

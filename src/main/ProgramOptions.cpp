@@ -9,6 +9,7 @@
 #include <codecvt>
 #include <boost/nowide/iostream.hpp>
 #include <boost/nowide/fstream.hpp>
+#include <regex>
 
 using namespace vk_music_fs;
 
@@ -31,8 +32,8 @@ _argvCreated(false), _creds(std::nullopt){
     po::variables_map vm;
     try {
         auto opts = po::command_line_parser(static_cast<int>(argc), argv)
-                .options(allDesc).
-                allow_unregistered().run();
+                .options(allDesc)
+                .allow_unregistered().run();
         additionalParameters = po::collect_unrecognized(opts.options, po::include_positional);
         po::store(opts, vm);
         po::notify(vm);
@@ -65,6 +66,7 @@ _argvCreated(false), _creds(std::nullopt){
         return;
     }
 
+    parseMountPoint(additionalParameters);
     createFuseArgv(argv, additionalParameters);
 
     if(_needHelp){
@@ -273,4 +275,18 @@ bool ProgramOptions::needObtainToken() {
 
 bool ProgramOptions::needClearCache() {
     return _needClearCache;
+}
+
+void ProgramOptions::parseMountPoint(const std::vector<std::string> &opts) {
+    if (!_needHelp) {
+        if (opts.empty()) {
+            throw MusicFsException("No mount point specified");
+        }
+        _mountPoint = opts[0];
+        std::regex_replace(_mountPoint, std::regex{R"(/+$)"}, "");
+    }
+}
+
+std::string ProgramOptions::getMountPoint() {
+    return _mountPoint;
 }

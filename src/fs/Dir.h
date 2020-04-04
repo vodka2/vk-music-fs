@@ -39,6 +39,7 @@ namespace vk_music_fs {
             void lock();
             void unlock();
             uint_fast32_t getTime() const;
+            std::string getAbsolutePath() const;
         private:
             std::string _name;
             uint_fast32_t _id;

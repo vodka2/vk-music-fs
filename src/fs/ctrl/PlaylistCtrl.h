@@ -12,7 +12,7 @@
 
 namespace vk_music_fs {
     namespace fs {
-        template <typename TFsUtils, typename TFileObtainer>
+        template <typename TFsUtils, typename TFileObtainer, typename TAsyncFsManager>
         class PlaylistCtrl : public ThrowExCtrl{
         public:
             PlaylistCtrl(
@@ -20,9 +20,10 @@ namespace vk_music_fs {
                     const std::shared_ptr<TFileObtainer> &fileObtainer,
                     const std::shared_ptr<FsSettings> &settings,
                     const std::shared_ptr<IdGenerator> &idGenerator,
-                    const ActTuple<TFsUtils> &acts
+                    const ActTuple<TFsUtils> &acts,
+                    const std::shared_ptr<TAsyncFsManager> &asyncFsManager
             ) : _fsUtils(utils), _fileObtainer(fileObtainer), _idGenerator(idGenerator),
-                _settings(settings), _acts(acts){
+                _settings(settings), _acts(acts), _asyncFsManager(asyncFsManager) {
             }
 
             DirPtr getCtrlDir(){
@@ -93,14 +94,12 @@ namespace vk_music_fs {
                                         [this, parent] (uint_fast32_t offset, uint_fast32_t cnt) {
                                             OffsetCntPlaylist curOffsetCntPlaylist = std::get<OffsetCntPlaylist>(*parent->getDirExtra());
                                             auto playlist = curOffsetCntPlaylist.getPlaylist();
-                                            _fsUtils->addFilesToDir(
+                                            _asyncFsManager->createFiles(
                                                     parent,
                                                     _fileObtainer->getPlaylistAudios(
                                                             playlist.accessKey, playlist.ownerId, playlist.albumId,
                                                             offset, cnt
-                                                    ),
-                                                    _idGenerator,
-                                                    _settings->getMp3Ext()
+                                                    )
                                             );
                                         }
                                 );
@@ -114,14 +113,12 @@ namespace vk_music_fs {
                                 OffsetCntPlaylist curOffsetCntPlaylist = std::get<OffsetCntPlaylist>(
                                         *parent->getDirExtra());
                                 auto playlist = curOffsetCntPlaylist.getPlaylist();
-                                _fsUtils->addFilesToDir(
+                                _asyncFsManager->createFiles(
                                         parent,
                                         _fileObtainer->getPlaylistAudios(
                                                 playlist.accessKey, playlist.ownerId,
                                                 playlist.albumId, offset, cnt
-                                        ),
-                                        _idGenerator,
-                                        _settings->getMp3Ext()
+                                        )
                                 );
                             }
                         );
@@ -160,6 +157,7 @@ namespace vk_music_fs {
             std::shared_ptr<TFileObtainer> _fileObtainer;
             std::shared_ptr<IdGenerator> _idGenerator;
             std::shared_ptr<FsSettings> _settings;
+            std::shared_ptr<TAsyncFsManager> _asyncFsManager;
             DirPtr _ctrlDir;
             ActTuple<TFsUtils> _acts;
         };

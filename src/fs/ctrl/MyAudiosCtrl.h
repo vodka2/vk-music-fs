@@ -12,11 +12,12 @@
 #include <mp3core/RemoteFile.h>
 #include <regex>
 #include <fs/actions/act.h>
+#include <boost/algorithm/string/join.hpp>
 #include "ThrowExCtrl.h"
 
 namespace vk_music_fs {
     namespace fs {
-        template <typename TFsUtils, typename TFileObtainer>
+        template <typename TFsUtils, typename TFileObtainer, typename TAsyncFsManager>
         class MyAudiosCtrl : public ThrowExCtrl{
         public:
             MyAudiosCtrl(
@@ -24,9 +25,10 @@ namespace vk_music_fs {
                     const std::shared_ptr<TFileObtainer> &fileObtainer,
                     const std::shared_ptr<FsSettings> &settings,
                     const std::shared_ptr<IdGenerator> &idGenerator,
+                    const std::shared_ptr<TAsyncFsManager> &asyncFsManager,
                     const ActTuple<TFsUtils> &acts
             ) : _fsUtils(utils), _fileObtainer(fileObtainer), _idGenerator(idGenerator),
-                _settings(settings), _acts(acts){
+                _settings(settings), _acts(acts), _asyncFsManager(asyncFsManager) {
             }
 
             DirPtr getCtrlDir(){
@@ -59,12 +61,7 @@ namespace vk_music_fs {
                                     _ctrlDir, dirName, query,
                                     _fsUtils->getAllDeleter(),
                                     [this] (uint_fast32_t offset, uint_fast32_t cnt) {
-                                        _fsUtils->addFilesToDir(
-                                                _ctrlDir,
-                                                _fileObtainer->getMyAudios(offset, cnt),
-                                                _idGenerator,
-                                                _settings->getMp3Ext()
-                                        );
+                                        _asyncFsManager->createFiles(_ctrlDir,_fileObtainer->getMyAudios(offset, cnt));
                                     }
                             );
                         }
@@ -75,11 +72,8 @@ namespace vk_music_fs {
                          dirName,
                          _fsUtils->template getCounterDirLeaver<OffsetCnt>(),
                          [this] (uint_fast32_t offset, uint_fast32_t cnt) {
-                            _fsUtils->addFilesToDir(
-                                    _ctrlDir,
-                                    _fileObtainer->getMyAudios(offset, cnt),
-                                    _idGenerator,
-                                    _settings->getMp3Ext()
+                            _asyncFsManager->createFiles(
+                                    _ctrlDir, _fileObtainer->getMyAudios(offset, cnt)
                             );
                         }
                     );
@@ -109,6 +103,7 @@ namespace vk_music_fs {
             std::shared_ptr<TFileObtainer> _fileObtainer;
             std::shared_ptr<IdGenerator> _idGenerator;
             std::shared_ptr<FsSettings> _settings;
+            std::shared_ptr<TAsyncFsManager> _asyncFsManager;
             DirPtr _ctrlDir;
             ActTuple<TFsUtils> _acts;
         };

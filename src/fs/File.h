@@ -30,6 +30,10 @@ namespace vk_music_fs {
 
             FileExtra& getExtra();
 
+            bool isHidden();
+
+            void setHidden(bool hidden);
+
         private:
             std::string _name;
             DirWPtr _parent;
@@ -37,6 +41,7 @@ namespace vk_music_fs {
             uint_fast32_t _time;
             uint_fast32_t _id;
             FileExtra _extra;
+            bool _hidden;
         };
     }
 }

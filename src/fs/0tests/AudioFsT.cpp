@@ -17,7 +17,10 @@
 #include <fs/ctrl/RootCtrl.h>
 #include <fs/ctrl/SingleDirCtrl.h>
 #include <fs/actions/act.h>
+#include <fs/AsyncFsManager.h>
 #include "data/FileManagerM.h"
+#include "data/FileCacheM.h"
+#include "data/RealFsM.h"
 
 namespace di = boost::di;
 
@@ -45,14 +48,19 @@ public:
     uint_fast32_t numSearchFiles = 3;
 
     typedef vk_music_fs::AudioFs<
-            vk_music_fs::fs::CtrlTuple<vk_music_fs::fs::FsUtils, vk_music_fs::fs::FileObtainer<QueryMakerM>, FileManagerM>
+            vk_music_fs::fs::CtrlTuple<
+                    vk_music_fs::fs::FsUtils, vk_music_fs::fs::FileObtainer<QueryMakerM>, FileManagerM,
+                    vk_music_fs::fs::AsyncFsManager<vk_music_fs::fs::FsUtils, FileCacheM, RealFsM>
+                    >
     > AudioFs;
 
     auto makeInj(bool createDummyDirs){
         return vk_music_fs::makeStorageInj(
                 di::bind<vk_music_fs::Mp3Extension>.to(vk_music_fs::Mp3Extension{".mp3"}),
                 di::bind<vk_music_fs::NumSearchFiles>.to(vk_music_fs::NumSearchFiles{numSearchFiles}),
-                di::bind<vk_music_fs::CreateDummyDirs>.to(vk_music_fs::CreateDummyDirs{createDummyDirs})
+                di::bind<vk_music_fs::CreateDummyDirs>.to(vk_music_fs::CreateDummyDirs{createDummyDirs}),
+                di::bind<vk_music_fs::fs::UseAsyncNotifier>.to(vk_music_fs::fs::UseAsyncNotifier{false}),
+                di::bind<vk_music_fs::fs::PathToFs>.to(vk_music_fs::fs::PathToFs{"/"})
         );
     }
 

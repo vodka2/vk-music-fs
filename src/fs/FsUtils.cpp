@@ -78,7 +78,9 @@ FsUtils::FsUtils() {
 std::vector<std::string> FsUtils::getEntries(const DirPtr &dir) {
     std::vector<std::string> ret;
     for (const auto &item : dir->getContents()) {
-        ret.push_back(item.first);
+        if (!dir->getItem(item.first).isFile() || !dir->getItem(item.first).file()->isHidden()) {
+            ret.push_back(item.first);
+        }
     }
     return ret;
 }
@@ -129,12 +131,13 @@ QueryParams FsUtils::parseQuery(const std::string &dirName) {
     }
 }
 
-void FsUtils::addFilesToDir(
+std::vector<FilePtr> FsUtils::addFilesToDir(
         const DirPtr &dir, const std::vector<RemoteFile> &files,
         const std::shared_ptr<IdGenerator> &idGenerator, const std::string &extension
 ) {
     auto curTime = dir->getNumFiles();
-    for(const auto &file: files){
+    std::vector<FilePtr> createdFiles;
+    for(const auto &file: files) {
         Mp3FileName fname(file.getArtist(), file.getTitle(), extension);
         while (dir->hasItem(fname.getFilename())) {
             fname.increaseNumberSuffix();
@@ -147,8 +150,10 @@ void FsUtils::addFilesToDir(
                 dir
         );
         dir->addItem(newFile);
+        createdFiles.push_back(newFile);
         curTime++;
     }
+    return createdFiles;
 }
 
 RemoteFile FsUtils::getRemoteFile(FsPath &fsPath, const std::string &fullPath) {

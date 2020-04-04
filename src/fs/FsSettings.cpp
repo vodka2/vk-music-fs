@@ -18,6 +18,18 @@ bool FsSettings::isCreateDummyDirs() const {
 FsSettings::FsSettings(
         const NumSearchFiles &numSearchFiles,
         const Mp3Extension &mp3Ext,
-        const CreateDummyDirs &createDummyDirs
-) : _numSearchFiles(numSearchFiles), _mp3Ext(mp3Ext), _createDummyDirs(createDummyDirs){
+        const CreateDummyDirs &createDummyDirs,
+        const PathToFs &pathToFs,
+        const UseAsyncNotifier &useAsyncNotifier
+) :
+_numSearchFiles(numSearchFiles), _mp3Ext(mp3Ext), _pathToFs(pathToFs),
+_createDummyDirs(createDummyDirs), _useAsyncNotifier(useAsyncNotifier){
+}
+
+const std::string FsSettings::getPathToFs() const {
+    return _pathToFs;
+}
+
+bool FsSettings::isUseAsyncNotifier() const {
+    return _useAsyncNotifier;
 }

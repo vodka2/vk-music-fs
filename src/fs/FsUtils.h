@@ -24,7 +24,7 @@ namespace vk_music_fs {
             FileOrDirMeta getMeta(const DirPtr &rootDir, const std::string &path);
             std::string stripPathPrefix(std::string path, const std::string &prefix);
             QueryParams parseQuery(const std::string &dirName);
-            void addFilesToDir(
+            std::vector<FilePtr> addFilesToDir(
                     const DirPtr &dir, const std::vector<RemoteFile> &files,
                     const std::shared_ptr<IdGenerator> &idGenerator, const std::string &extension
             );

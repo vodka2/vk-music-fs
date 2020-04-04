@@ -3,7 +3,10 @@
 #include <fs/ctrl/PlaylistCtrl.h>
 #include <diext/common_di.h>
 #include <fs/FsUtils.h>
+#include <fs/AsyncFsManager.h>
 #include "data/FsHelper.h"
+#include "data/FileCacheM.h"
+#include "data/RealFsM.h"
 
 namespace di = boost::di;
 
@@ -25,13 +28,18 @@ typedef testing::NiceMock<FileObtainerM0> FileObtainerM;
 
 class PlaylistCtrlT: public ::testing::Test, public FsHelper {
 public:
-    using PlaylistCtrl = vk_music_fs::fs::PlaylistCtrl<vk_music_fs::fs::FsUtils, FileObtainerM>;
+    using PlaylistCtrl = vk_music_fs::fs::PlaylistCtrl<
+            vk_music_fs::fs::FsUtils, FileObtainerM,
+            vk_music_fs::fs::AsyncFsManager<vk_music_fs::fs::FsUtils, FileCacheM, RealFsM>
+            >;
     using OffsetCntPlaylist = vk_music_fs::fs::OffsetCntPlaylist;
 
     auto_init(inj, (vk_music_fs::makeStorageInj(
             di::bind<vk_music_fs::Mp3Extension>.to(vk_music_fs::Mp3Extension{".mp3"}),
             di::bind<vk_music_fs::NumSearchFiles>.to(vk_music_fs::NumSearchFiles{5}),
-            di::bind<vk_music_fs::CreateDummyDirs>.to(vk_music_fs::CreateDummyDirs{false})
+            di::bind<vk_music_fs::CreateDummyDirs>.to(vk_music_fs::CreateDummyDirs{false}),
+            di::bind<vk_music_fs::fs::UseAsyncNotifier>.to(vk_music_fs::fs::UseAsyncNotifier{false}),
+            di::bind<vk_music_fs::fs::PathToFs>.to(vk_music_fs::fs::PathToFs{"/"})
             )));
     std::shared_ptr<PlaylistCtrl> ctrl;
     std::shared_ptr<vk_music_fs::fs::FsUtils> fsUtils;

@@ -126,7 +126,8 @@ TEST_F(FileManagerT, OpenFileCache){ //NOLINT
     EXPECT_CALL(*inj.create<std::shared_ptr<FileCacheM>>(), getFilename(rf))
         .WillOnce(testing::Return(FNameCache{cachedFile, true}));
     EXPECT_CALL(*inj.create<std::shared_ptr<FileCacheM>>(), getTagSize(rf)).Times(0);
-    t->close(static_cast<uint_fast32_t>(t->open(rf, file)));
+    auto id = t->open(rf, file);
+    t->close(static_cast<uint_fast32_t>(id));
 }
 
 TEST_F(FileManagerT, OpenFileNoCache){ //NOLINT

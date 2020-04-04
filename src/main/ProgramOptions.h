@@ -22,6 +22,7 @@ namespace vk_music_fs {
         std::string getMp3Extension();
         std::string getCacheDir();
         std::string getErrLogFile();
+        std::string getMountPoint();
         bool createDummyDirs();
         bool logErrorsToFile();
         uint_fast32_t getFilesCacheSize();
@@ -42,6 +43,7 @@ namespace vk_music_fs {
         bool createDummyDirsDefault();
         void parseOptions(boost::program_options::variables_map &vm);
         void parseCommonOptions(boost::program_options::variables_map &vm);
+        void parseMountPoint(const std::vector<std::string> &opts);
         std::optional<VkCredentials> _creds;
         std::string _helpStr;
         std::string _errLogFile;
@@ -56,6 +58,7 @@ namespace vk_music_fs {
         std::string _token;
         std::string _mp3Ext;
         std::string _cacheDir;
+        std::string _mountPoint;
         uint_fast32_t _filesCacheSize;
         uint_fast32_t _sizesCacheSize;
         uint_fast32_t _numSearchFiles;

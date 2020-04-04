@@ -73,3 +73,8 @@ Dir::Dir(
 ) : _name(std::move(name)), _parent(parent), _id(id), _extra(extra), _time(time){
 
 }
+
+std::string Dir::getAbsolutePath() const {
+    return (getParent() != nullptr && getParent()->getName() != "/") ?
+        getParent()->getAbsolutePath() + "/" + _name : _name;
+}

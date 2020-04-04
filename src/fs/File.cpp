@@ -12,7 +12,7 @@ File::File(
         const DirWPtr &parent
 )
         : _name(std::move(name)),
-        _time(time), _parent(parent), _id(id), _extra(std::move(extra)) {
+        _time(time), _parent(parent), _id(id), _extra(std::move(extra)), _hidden(false) {
 }
 
 const std::string File::getName() const {
@@ -41,4 +41,12 @@ uint_fast32_t File::getId() const {
 
 FileExtra& File::getExtra() {
     return _extra;
+}
+
+bool File::isHidden() {
+    return _hidden;
+}
+
+void File::setHidden(bool hidden) {
+    _hidden = hidden;
 }

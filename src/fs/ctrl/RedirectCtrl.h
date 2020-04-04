@@ -31,6 +31,11 @@ namespace vk_music_fs {
             }
 
             template<typename... Args>
+            auto createFile(Args&&... args){
+                return _ctrl->createFile(std::forward<Args>(args)...);
+            }
+
+            template<typename... Args>
             auto supports(Args&&... args){
                 return _ctrl->supports(std::forward<Args>(args)...);
             }

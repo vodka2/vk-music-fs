@@ -33,6 +33,8 @@ add_vmf_lib_test(fs
         OffsetCntPlaylist.h
         VkException.cpp
         VkException.h
+        AsyncFsManager.cpp
+        AsyncFsManager.h
 
         actions/act.h
         actions/NumberAct.cpp
@@ -68,7 +70,7 @@ add_vmf_lib_test(fs
 
 target_link_libraries(
         fs
-        common mp3core Boost::filesystem Boost::thread Boost::program_options Boost::system
+        common mp3core Boost::filesystem Boost::thread
 )
 
 add_subdirectory(0tests)

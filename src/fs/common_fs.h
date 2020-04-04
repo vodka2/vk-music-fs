@@ -8,6 +8,9 @@
 namespace vk_music_fs{
     class RemoteFile;
     namespace fs{
+        //NOLINT
+        BOOST_STRONG_TYPEDEF(std::string, PathToFs)
+        BOOST_STRONG_TYPEDEF(bool, UseAsyncNotifier)
         class Dir;
         class File;
         class DirOrFile;

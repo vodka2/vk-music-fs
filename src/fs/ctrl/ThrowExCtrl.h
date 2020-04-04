@@ -8,7 +8,7 @@ namespace vk_music_fs {
     namespace fs {
         class ThrowExCtrl {
         public:
-            ThrowExCtrl() {}
+            ThrowExCtrl() = default;
 
             void setRootDir(const DirPtr &dir) {}
 
@@ -16,6 +16,10 @@ namespace vk_music_fs {
 
             void createDir(const std::string &dirPath) {
                 throw FsException("Can't create dir - not supported");
+            }
+
+            void createFile(const std::string &file) {
+                throw FsException("Can't create file - not supported");
             }
 
             void rename(const std::string &oldPath, const std::string &newPath) {

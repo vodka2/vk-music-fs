@@ -12,10 +12,10 @@
 
 namespace vk_music_fs {
     namespace fs {
-        template<typename TFsUtils, typename TQueryMaker>
+        template<typename TFsUtils, typename TQueryMaker, typename TAsyncFsManager>
         class MyAudiosCtrl;
 
-        template<typename TFsUtils, typename TQueryMaker, typename THelper>
+        template<typename TFsUtils, typename TQueryMaker, typename THelper, typename TAsyncFsManager>
         class SearchSongNameCtrl;
 
         template<typename TCtrl, typename TFsUtils>
@@ -34,13 +34,13 @@ namespace vk_music_fs {
 
         class SearchSongNameArtistHelper;
 
-        template<typename TFsUtils, typename TFileObtainer, typename TFileManager>
+        template<typename TFsUtils, typename TFileObtainer, typename TFileManager, typename TAsyncFsManager>
         using CtrlTuple = std::tuple<
                 std::shared_ptr<
                         DummyDirWrapper<
                                 RemoteFileWrapper<
                                         SingleDirCtrl<
-                                                MyAudiosCtrl<TFsUtils, TFileObtainer>,
+                                                MyAudiosCtrl<TFsUtils, TFileObtainer, TAsyncFsManager>,
                                                 TFsUtils
                                         >,
                                         TFsUtils,
@@ -53,7 +53,10 @@ namespace vk_music_fs {
                         DummyDirWrapper<
                                 RemoteFileWrapper<
                                         SingleDirCtrl<
-                                                SearchSongNameCtrl<TFsUtils, TFileObtainer, SearchSongNameArtistHelper>,
+                                                SearchSongNameCtrl<
+                                                        TFsUtils, TFileObtainer,
+                                                        SearchSongNameArtistHelper, TAsyncFsManager
+                                                        >,
                                                 TFsUtils
                                         >,
                                         TFsUtils,
@@ -66,7 +69,10 @@ namespace vk_music_fs {
                         DummyDirWrapper<
                                 RemoteFileWrapper<
                                         SingleDirCtrl<
-                                                SearchSongNameCtrl<TFsUtils, TFileObtainer, SearchSongNameSongHelper>,
+                                                SearchSongNameCtrl<
+                                                        TFsUtils, TFileObtainer,
+                                                        SearchSongNameSongHelper, TAsyncFsManager
+                                                        >,
                                                 TFsUtils
                                         >,
                                         TFsUtils,
@@ -79,7 +85,7 @@ namespace vk_music_fs {
                         DummyDirWrapper<
                                 RemoteFileWrapper<
                                         SingleDirCtrl<
-                                                PlaylistCtrl<TFsUtils, TFileObtainer>,
+                                                PlaylistCtrl<TFsUtils, TFileObtainer, TAsyncFsManager>,
                                                 TFsUtils
                                         >,
                                         TFsUtils,

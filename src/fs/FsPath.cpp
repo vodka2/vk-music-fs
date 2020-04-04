@@ -1,4 +1,6 @@
 #include "FsPath.h"
+
+#include <utility>
 #include "DirOrFile.h"
 
 using namespace vk_music_fs;
@@ -32,7 +34,9 @@ DirOrFile FsPath::getLast() {
     return _parts.back();
 }
 
-FsPath::FsPath(const std::vector<std::string> &stringParts, int_fast16_t pathSize) : _stringParts(stringParts), _pathSize(pathSize){
+FsPath::FsPath(
+        std::vector<std::string> stringParts, int_fast16_t pathSize
+) : _stringParts(std::move(stringParts)), _pathSize(pathSize){
 }
 
 std::vector<std::string> &FsPath::getStringParts() {
@@ -55,9 +59,15 @@ bool FsPath::isPathDir() {
     return _parts.back().isDir();
 }
 
+DirOrFile FsPath::getParent() {
+    auto iter = _parts.cend();
+    std::advance(iter, -2);
+    return *iter;
+}
+
 FsPathUnlocker::~FsPathUnlocker() {
-    for(auto &el: _els){
-        el.unlock();
+    for(auto it = _els.rbegin(); it != _els.rend(); ++it){
+        (*it).unlock();
     }
 }
 
