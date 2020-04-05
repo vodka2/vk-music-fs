@@ -5,6 +5,8 @@ add_vmf_lib_test(main
         Application.h
         ProgramOptions.cpp
         ProgramOptions.h
+        NoReportException.cpp
+        NoReportException.h
 )
 
 target_link_libraries(
