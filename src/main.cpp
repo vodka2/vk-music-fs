@@ -47,7 +47,7 @@ typedef Application<
         FileManagerD,
         AudioFs<
                 fs::CtrlTuple<fs::FsUtils, fs::FileObtainer<net::VkApiQueryMaker>, FileManagerD,
-                fs::AsyncFsManager<fs::FsUtils, FileCache, RealFs>>>,
+                fs::AsyncFsManager<fs::FsUtils, FileCache, RealFs, ThreadPool>>>,
         ErrLogger, net::HttpStreamCommon
 > ApplicationD;
 

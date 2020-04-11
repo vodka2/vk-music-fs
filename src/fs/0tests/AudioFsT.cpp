@@ -21,6 +21,7 @@
 #include "data/FileManagerM.h"
 #include "data/FileCacheM.h"
 #include "data/RealFsM.h"
+#include "data/ThreadPoolM.h"
 
 namespace di = boost::di;
 
@@ -50,7 +51,7 @@ public:
     typedef vk_music_fs::AudioFs<
             vk_music_fs::fs::CtrlTuple<
                     vk_music_fs::fs::FsUtils, vk_music_fs::fs::FileObtainer<QueryMakerM>, FileManagerM,
-                    vk_music_fs::fs::AsyncFsManager<vk_music_fs::fs::FsUtils, FileCacheM, RealFsM>
+                    vk_music_fs::fs::AsyncFsManager<vk_music_fs::fs::FsUtils, FileCacheM, RealFsM, ThreadPoolM>
                     >
     > AudioFs;
 

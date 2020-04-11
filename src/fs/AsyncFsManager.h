@@ -1,23 +1,22 @@
 #pragma once
 
-#include <common/ThreadPool.h>
-
 #include <utility>
 #include "common_fs.h"
 #include <mp3core/RemoteFile.h>
 #include "Dir.h"
+#include "File.h"
 #include "IdGenerator.h"
 #include "Mp3FileName.h"
 #include "FsSettings.h"
 
 namespace vk_music_fs {
     namespace fs {
-        template <typename TFsUtils, typename TFileCache, typename TRealFs>
+        template <typename TFsUtils, typename TFileCache, typename TRealFs, typename TPool>
         class AsyncFsManager {
         public:
             AsyncFsManager(
                     std::shared_ptr<TFsUtils> fsUtils,
-                    std::shared_ptr<ThreadPool> threadPool,
+                    std::shared_ptr<TPool> threadPool,
                     std::shared_ptr<IdGenerator> idGenerator,
                     std::shared_ptr<TFileCache> cache,
                     std::shared_ptr<TRealFs> realFs,
@@ -47,7 +46,7 @@ namespace vk_music_fs {
 
         private:
             std::shared_ptr<TFsUtils> _fsUtils;
-            std::shared_ptr<ThreadPool> _threadPool;
+            std::shared_ptr<TPool> _threadPool;
             std::shared_ptr<IdGenerator> _idGenerator;
             std::shared_ptr<TFileCache> _cache;
             std::shared_ptr<FsSettings> _fsSettings;

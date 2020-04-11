@@ -7,6 +7,7 @@
 #include "data/FsHelper.h"
 #include "data/FileCacheM.h"
 #include "data/RealFsM.h"
+#include "data/ThreadPoolM.h"
 
 namespace di = boost::di;
 
@@ -30,7 +31,7 @@ class PlaylistCtrlT: public ::testing::Test, public FsHelper {
 public:
     using PlaylistCtrl = vk_music_fs::fs::PlaylistCtrl<
             vk_music_fs::fs::FsUtils, FileObtainerM,
-            vk_music_fs::fs::AsyncFsManager<vk_music_fs::fs::FsUtils, FileCacheM, RealFsM>
+            vk_music_fs::fs::AsyncFsManager<vk_music_fs::fs::FsUtils, FileCacheM, RealFsM, ThreadPoolM>
             >;
     using OffsetCntPlaylist = vk_music_fs::fs::OffsetCntPlaylist;
 
