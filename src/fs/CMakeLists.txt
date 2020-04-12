@@ -31,6 +31,8 @@ add_vmf_lib_test(fs
         OffsetCntName.h
         OffsetCntPlaylist.cpp
         OffsetCntPlaylist.h
+        OffsetCntRemoteFile.cpp
+        OffsetCntRemoteFile.h
         VkException.cpp
         VkException.h
         AsyncFsManager.cpp
@@ -66,6 +68,7 @@ add_vmf_lib_test(fs
         ctrl/SingleDirCtrl.h
         ctrl/ThrowExCtrl.cpp
         ctrl/ThrowExCtrl.h
+        ctrl/SimilarCtrl.h
 )
 
 target_link_libraries(

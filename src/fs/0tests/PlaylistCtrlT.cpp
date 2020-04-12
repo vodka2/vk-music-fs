@@ -8,24 +8,9 @@
 #include "data/FileCacheM.h"
 #include "data/RealFsM.h"
 #include "data/ThreadPoolM.h"
+#include "data/FileObtainerM.h"
 
 namespace di = boost::di;
-
-class FileObtainerM0{
-public:
-    template <typename... T>
-    FileObtainerM0(T&&... args){}//NOLINT
-    MOCK_CONST_METHOD2(getMyPlaylists, std::vector<vk_music_fs::fs::PlaylistData>(uint_fast32_t offset, uint_fast32_t));
-    MOCK_CONST_METHOD5(
-            getPlaylistAudios,
-            std::vector<vk_music_fs::RemoteFile>(
-               const std::string &, int_fast32_t, uint_fast32_t, uint_fast32_t, uint_fast32_t
-            )
-    );
-
-};
-
-typedef testing::NiceMock<FileObtainerM0> FileObtainerM;
 
 class PlaylistCtrlT: public ::testing::Test, public FsHelper {
 public:

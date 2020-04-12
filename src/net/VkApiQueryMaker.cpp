@@ -163,3 +163,23 @@ VkApiQueryMaker::getPlaylistAudios(const std::string &accessKey, int_fast32_t ow
         );
     }
 }
+
+std::string VkApiQueryMaker::searchSimilar(const std::string &fileId, uint_fast32_t offset, uint_fast32_t cnt) {
+    std::shared_ptr<HttpStreamCommon::Stream> stream;
+    try {
+        std::string uri = _vkSettings.apiUriPrefix + "/audio.getRecommendations?access_token=" + _token +
+                            "&offset=" + std::to_string(offset) + "&count=" + std::to_string(cnt) +
+                            "&target_audio=" + fileId + "&v=" + _vkSettings.version;
+        auto hostPath = _common->getHostPath(uri);
+        stream = _common->connect(hostPath);
+        _common->sendGetReq(stream, hostPath, _userAgent);
+        return _common->readRespAsStr(stream);
+    } catch (const boost::system::system_error &ex){
+        _common->closeStream(stream);
+        throw HttpException(
+                std::string("Error searching similar ") +
+                " target_audio:" + fileId + "." +
+                ex.what()
+        );
+    }
+}

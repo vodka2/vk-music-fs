@@ -5,6 +5,7 @@
 #include "OffsetCntName.h"
 #include "OffsetCnt.h"
 #include "OffsetCntPlaylist.h"
+#include "OffsetCntRemoteFile.h"
 
 namespace vk_music_fs {
     namespace fs {

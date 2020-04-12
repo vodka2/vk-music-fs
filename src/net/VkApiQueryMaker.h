@@ -21,6 +21,8 @@ namespace vk_music_fs {
 
             std::string makeMyAudiosQuery(uint_fast32_t offset, uint_fast32_t count);
 
+            std::string searchSimilar(const std::string &fileId, uint_fast32_t offset, uint_fast32_t count);
+
             std::string makeMyPlaylistsQuery(uint_fast32_t ownerId, uint_fast32_t offset, uint_fast32_t count);
 
             std::string addToMyAudios(int_fast32_t ownerId, uint_fast32_t fileId);

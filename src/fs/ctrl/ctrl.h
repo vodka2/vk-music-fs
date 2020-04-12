@@ -8,6 +8,7 @@
 #include "SearchSongNameArtistHelper.h"
 #include "SearchSongNameSongHelper.h"
 #include "PlaylistCtrl.h"
+#include "SimilarCtrl.h"
 #include "RootCtrl.h"
 
 namespace vk_music_fs {
@@ -38,58 +39,79 @@ namespace vk_music_fs {
         using CtrlTuple = std::tuple<
                 std::shared_ptr<
                         DummyDirWrapper<
-                                RemoteFileWrapper<
-                                        SingleDirCtrl<
-                                                MyAudiosCtrl<TFsUtils, TFileObtainer, TAsyncFsManager>,
-                                                TFsUtils
+                                SimilarCtrl<
+                                        RemoteFileWrapper<
+                                                SingleDirCtrl<
+                                                        MyAudiosCtrl<TFsUtils, TFileObtainer, TAsyncFsManager>,
+                                                        TFsUtils
+                                                >,
+                                                TFsUtils,
+                                                TFileManager
                                         >,
                                         TFsUtils,
-                                        TFileManager
+                                        TFileObtainer,
+                                        TAsyncFsManager
                                 >,
                                 TFsUtils
                         >
                 >,
                 std::shared_ptr<
                         DummyDirWrapper<
-                                RemoteFileWrapper<
-                                        SingleDirCtrl<
-                                                SearchSongNameCtrl<
-                                                        TFsUtils, TFileObtainer,
-                                                        SearchSongNameArtistHelper, TAsyncFsManager
+                                SimilarCtrl<
+                                        RemoteFileWrapper<
+                                                SingleDirCtrl<
+                                                        SearchSongNameCtrl<
+                                                                TFsUtils, TFileObtainer,
+                                                                SearchSongNameArtistHelper, TAsyncFsManager
                                                         >,
-                                                TFsUtils
+                                                        TFsUtils
+                                                >,
+                                                TFsUtils,
+                                                TFileManager
                                         >,
                                         TFsUtils,
-                                        TFileManager
+                                        TFileObtainer,
+                                        TAsyncFsManager
                                 >,
                                 TFsUtils
                         >
                 >,
                 std::shared_ptr<
                         DummyDirWrapper<
-                                RemoteFileWrapper<
-                                        SingleDirCtrl<
-                                                SearchSongNameCtrl<
-                                                        TFsUtils, TFileObtainer,
-                                                        SearchSongNameSongHelper, TAsyncFsManager
+                                SimilarCtrl<
+                                        RemoteFileWrapper<
+                                                SingleDirCtrl<
+                                                        SearchSongNameCtrl<
+                                                                TFsUtils,
+                                                                TFileObtainer,
+                                                                SearchSongNameSongHelper, TAsyncFsManager
                                                         >,
-                                                TFsUtils
+                                                        TFsUtils
+                                                >,
+                                                TFsUtils,
+                                                TFileManager
                                         >,
                                         TFsUtils,
-                                        TFileManager
+                                        TFileObtainer,
+                                        TAsyncFsManager
                                 >,
                                 TFsUtils
                         >
                 >,
                 std::shared_ptr<
                         DummyDirWrapper<
-                                RemoteFileWrapper<
-                                        SingleDirCtrl<
-                                                PlaylistCtrl<TFsUtils, TFileObtainer, TAsyncFsManager>,
-                                                TFsUtils
+                                SimilarCtrl<
+                                        RemoteFileWrapper<
+                                                SingleDirCtrl<
+                                                        PlaylistCtrl<TFsUtils, TFileObtainer, TAsyncFsManager>,
+                                                        TFsUtils
+                                                        >,
+                                                TFsUtils,
+                                                TFileManager
                                         >,
                                         TFsUtils,
-                                        TFileManager
+                                        TFileObtainer,
+                                        TAsyncFsManager
                                 >,
                                 TFsUtils
                         >

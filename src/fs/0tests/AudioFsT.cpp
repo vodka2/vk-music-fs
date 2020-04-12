@@ -38,6 +38,7 @@ public:
     MOCK_CONST_METHOD5(getPlaylistAudios, std::string(std::string, int_fast32_t, uint_fast32_t, uint_fast32_t, uint_fast32_t));
     MOCK_CONST_METHOD2(addToMyAudios, std::string(int_fast32_t, uint_fast32_t));
     MOCK_CONST_METHOD2(deleteFromMyAudios, std::string(int_fast32_t, uint_fast32_t));
+    MOCK_CONST_METHOD3(searchSimilar, std::string(const std::string &, uint_fast32_t, uint_fast32_t));
     MOCK_CONST_METHOD0(getUserId, std::string());
 };
 
@@ -69,6 +70,10 @@ public:
     di::injector<std::shared_ptr<AudioFs>, std::shared_ptr<QueryMakerM>, std::shared_ptr<FileManagerM>> dummyInj;
     AudioFsT(): inj(makeInj(false)), dummyInj(makeInj(true)){
         setCreateDummyDirs(false);
+    }
+
+    auto vectToSet(const std::vector<std::string> &vect) {
+        return std::set<std::string>{vect.cbegin(), vect.cend()};
     }
 
     std::shared_ptr<QueryMakerM> queryMakerM;
@@ -263,6 +268,20 @@ public:
 
     void initMyPlaylistsAudiosQuery(){
         ON_CALL(*queryMakerM, getPlaylistAudios("7", -5, 11, 0, 2)).WillByDefault(testing::Return(
+                R"(
+                        {"response": {
+                           "count": 2,
+                           "items": [
+                               {"id": 1, "owner_id": 2, "artist":"Artist1", "title":"Song1", "url":"https:\/\/uri1"},
+                               {"id": 2, "owner_id": 3, "artist":"Artist2", "title":"Song2", "url":"https:\/\/uri2"}
+                           ]
+                        }}
+                        )"
+        ));
+    }
+
+    void initSimilarQuery(){
+        ON_CALL(*queryMakerM, searchSimilar("2_1", 0, 3)).WillByDefault(testing::Return(
                 R"(
                         {"response": {
                            "count": 2,
@@ -564,4 +583,32 @@ TEST_F(AudioFsT, LoadPlaylistAudios){ //NOLINT
     };
     std::sort(dirs.begin(), dirs.end());
     EXPECT_EQ(dirs, expData);
+}
+
+TEST_F(AudioFsT, CreateMyAudiosSimilarRefresh){ //NOLINT
+    auto api = inj.create<std::shared_ptr<AudioFs>>();
+    initMyAudiosQuery();
+    initSimilarQuery();
+    api->createDir("/My audios/3");
+    api->rename("/My audios/Artist1 - Song1.mp3", "/My audios/Artist1 - Song1_s.mp3");
+    api->createDir("/My audios/r");
+    std::set<std::string> expFiles = {
+            "3", "Artist1 - Song1.mp3", "Artist2 - Song2.mp3",
+            "Artist3 - Song3.mp3", "Artist1 - Song1", "r"
+    };
+    EXPECT_EQ(expFiles, vectToSet(api->getEntries("/My audios")));
+}
+
+TEST_F(AudioFsT, CreateMyAudiosSimilarCounter){ //NOLINT
+    auto api = inj.create<std::shared_ptr<AudioFs>>();
+    initMyAudiosQuery();
+    initSimilarQuery();
+    api->createDir("/My audios/3");
+    api->rename("/My audios/Artist1 - Song1.mp3", "/My audios/Artist1 - Song1_s.mp3");
+    api->createDir("/My audios/0-3");
+    std::set<std::string> expFiles = {
+            "0-3", "Artist1 - Song1.mp3", "Artist2 - Song2.mp3",
+            "Artist3 - Song3.mp3", "Artist1 - Song1"
+    };
+    EXPECT_EQ(expFiles, vectToSet(api->getEntries("/My audios")));
 }

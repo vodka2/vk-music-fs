@@ -18,6 +18,10 @@ namespace vk_music_fs {
                 throw FsException("Can't create dir - not supported");
             }
 
+            void createDir(FsPath &path) {
+                throw FsException("Can't create dir - not supported");
+            }
+
             void createFile(const std::string &file) {
                 throw FsException("Can't create file - not supported");
             }

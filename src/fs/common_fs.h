@@ -17,9 +17,12 @@ namespace vk_music_fs{
         class OffsetCnt;
         class OffsetCntName;
         class OffsetCntPlaylist;
+        class OffsetCntRemoteFile;
         class DummyDirMarker{};
 
-        typedef std::optional<std::variant<OffsetCnt, OffsetCntName, OffsetCntPlaylist, DummyDirMarker>> DirExtra;
+        typedef std::optional<std::variant<
+                OffsetCnt, OffsetCntName, OffsetCntPlaylist, DummyDirMarker, OffsetCntRemoteFile
+                >> DirExtra;
         typedef std::optional<std::variant<RemoteFile>> FileExtra;
 
         typedef std::shared_ptr<Dir> DirPtr;

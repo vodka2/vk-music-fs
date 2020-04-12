@@ -84,7 +84,7 @@ namespace vk_music_fs {
                 auto origFname = boost::filesystem::change_extension(oldPath.getStringParts().back(), "").string();
                 if(newPath.getStringParts().back() !=  origFname + "_a" + _settings->getMp3Ext()){
                     throw FsException(
-                            "Currently only adding _a suffix is supported, not " +
+                            "Unsupported renaming " +
                             oldPath.getAll().back().getName() + " to " + newPath.getAll().back().getName()
                     );
                 }

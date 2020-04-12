@@ -58,7 +58,10 @@ namespace vk_music_fs {
                 }
             }
             auto getAllDeleter(){
-                return [](...){return true;};
+                return [](const DirOrFile &item){
+                    return !(item.isDir() && item.dir()->getDirExtra() &&
+                             std::holds_alternative<OffsetCntRemoteFile>(*item.dir()->getDirExtra()));
+                };
             }
             template <typename TExtra>
             auto getCounterDirLeaver(){
@@ -67,6 +70,9 @@ namespace vk_music_fs {
                         return true;
                     }
                     DirPtr dir = item.dir();
+                    if (dir->getDirExtra() && std::holds_alternative<OffsetCntRemoteFile>(*dir->getDirExtra())) {
+                        return false;
+                    }
                     auto extra = std::get<TExtra>(*dir->getParent()->getDirExtra());
                     return !(extra.getCounterDir() == dir);
                 };

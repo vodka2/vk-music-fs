@@ -34,6 +34,15 @@ namespace vk_music_fs {
             return getFilenames(parseJson(_queryMaker->makeMyAudiosQuery(offset, count)));
         }
 
+        std::vector<RemoteFile> searchSimilar(RemoteFileId fileId, uint_fast32_t offset, uint_fast32_t count) {
+            if(count == 0){
+                return {};
+            }
+            return getFilenames(parseJson(_queryMaker->searchSimilar(
+                    std::to_string(fileId.getOwnerId()) + "_" + std::to_string(fileId.getFileId()), offset, count
+            )));
+        }
+
         void addToMyAudios(int_fast32_t ownerId, uint_fast32_t fileId){
             parseJson(_queryMaker->addToMyAudios(ownerId, fileId));
         }
