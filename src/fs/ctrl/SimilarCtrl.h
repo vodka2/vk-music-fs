@@ -89,6 +89,9 @@ namespace vk_music_fs {
                     return;
                 }
                 auto dir = oldPath.getAll().front().dir();
+                if (dir->hasItem(origFname)) {
+                    throw FsException("Directory with name " + origFname + " already exists");
+                }
                 auto prevFile = dir->getItem(oldPath.getStringParts().back()).file();
                 auto remFile = std::get<RemoteFile>(*prevFile->getExtra());
                 dir->removeItem(oldPath.getStringParts().back());
