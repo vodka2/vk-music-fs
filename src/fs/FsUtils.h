@@ -13,6 +13,7 @@ namespace vk_music_fs {
         class FsUtils {
         public:
             FsUtils();
+            bool isRefreshDir(const std::string &dir);
             FsPath findPath(
                     const DirPtr &dir, const std::string &path, uint_fast32_t pathSize = 1
             );

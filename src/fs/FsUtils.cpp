@@ -177,4 +177,8 @@ bool FsUtils::isPathElementLocked(const DirOrFile &element, const std::vector<Fs
     return false;
 }
 
+bool FsUtils::isRefreshDir(const std::string &dir) {
+    return std::regex_match(dir, std::regex{"^(r|refresh)[0-9]*$"});
+}
+
 

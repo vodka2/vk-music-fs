@@ -69,7 +69,7 @@ namespace vk_music_fs {
                                 );
                             }
                         );
-                    } else if(std::regex_match(dirName, std::regex{"^(r|refresh)[0-9]*$"})){
+                    } else if(_fsUtils->isRefreshDir(dirName)){
                         getAct<RefreshAct>(_acts)->template doAction<OffsetCnt>(
                             _ctrlDir, dirName,
                             _fsUtils->template getCounterDirLeaver<OffsetCnt>(),
@@ -105,7 +105,7 @@ namespace vk_music_fs {
                                 );
                             }
                         );
-                    } else if(std::regex_match(dirName, std::regex{"^(r|refresh)[0-9]*$"})){
+                    } else if(_fsUtils->isRefreshDir(dirName)){
                         getAct<RefreshAct>(_acts)->template doAction<OffsetCntPlaylist>(
                             parent, dirName,
                             _fsUtils->template getCounterDirLeaver<OffsetCntPlaylist>(),
