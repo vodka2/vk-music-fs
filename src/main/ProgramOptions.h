@@ -25,6 +25,7 @@ namespace vk_music_fs {
         std::string getMountPoint();
         bool createDummyDirs();
         bool logErrorsToFile();
+        bool enableAsyncCreation();
         uint_fast32_t getFilesCacheSize();
         uint_fast32_t getSizesCacheSize();
         uint_fast32_t getNumSearchFiles();
@@ -49,6 +50,7 @@ namespace vk_music_fs {
         std::string _errLogFile;
         bool _logErrorsToFile;
         bool _createDummyDirs;
+        bool _enableAsyncCreation;
         bool _needHelp;
         bool _needClearCache;
         bool _argvCreated;

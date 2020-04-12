@@ -154,6 +154,7 @@ void ProgramOptions::parseCommonOptions(boost::program_options::variables_map &v
     _cacheDir = vm["cache_dir"].as<std::string>();
     _errLogFile = vm["err_log"].as<std::string>();
     _createDummyDirs = vm["create_dummy_dirs"].as<bool>();
+    _enableAsyncCreation = vm["enable_async_creation"].as<bool>();
     _logErrorsToFile = vm["log_err_to_file"].as<bool>();
     _numSizeRetries = vm["num_size_retries"].as<uint_fast32_t>();
     _httpTimeout = vm["http_timeout"].as<uint_fast32_t>();
@@ -233,6 +234,8 @@ void ProgramOptions::addCommonOpts(boost::program_options::options_description &
                     (bfs::path(getUserConfigDir(appName)) / "ErrorLog.txt").string()
             ), "set error log file name")
             ("log_err_to_file", po::value<bool>()->default_value(false), "log errors to file")
+            ("enable_async_creation", po::value<bool>()->default_value(true),
+                    "enable asynchronous audio files and directories creation")
             ("http_timeout", po::value<uint_fast32_t>()->default_value(12000),
              "set HTTP requests timeout in milliseconds");
 }
@@ -289,4 +292,8 @@ void ProgramOptions::parseMountPoint(const std::vector<std::string> &opts) {
 
 std::string ProgramOptions::getMountPoint() {
     return _mountPoint;
+}
+
+bool ProgramOptions::enableAsyncCreation() {
+    return _enableAsyncCreation;
 }
