@@ -11,6 +11,11 @@ namespace vk_music_fs {
             RedirectCtrl(const std::shared_ptr<TCtrl> &ctrl) : _ctrl(ctrl){}
 
             template<typename... Args>
+            auto getDirName(Args&&... args) {
+                return _ctrl->getDirName(std::forward<Args>(args)...);
+            }
+
+            template<typename... Args>
             auto getCtrlDir(Args&&... args){
                 return _ctrl->getCtrlDir(std::forward<Args>(args)...);
             }

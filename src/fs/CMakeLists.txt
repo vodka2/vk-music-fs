@@ -44,6 +44,8 @@ add_vmf_lib_test(fs
         actions/RefreshAct.cpp
         actions/RefreshAct.h
         actions/RemoveRefreshDirAct.h
+        actions/DeleteDirAct.h
+        actions/DeleteFileAct.h
 
         ctrl/ctrl.h
         ctrl/DummyDirWrapper.cpp

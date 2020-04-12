@@ -28,11 +28,7 @@ namespace vk_music_fs {
 
             void createDir(FsPath &path) {
                 auto parent = path.getAll().front();
-                if (
-                        !parent.isDir() ||
-                        !parent.dir()->getDirExtra() ||
-                        !std::holds_alternative<OffsetCntRemoteFile>(*parent.dir()->getDirExtra())
-                ) {
+                if (!isSimilarDir(parent)) {
                     _ctrl->createDir(path);
                     return;
                 }
@@ -56,6 +52,30 @@ namespace vk_music_fs {
                 } else {
                     throw FsException("Can't create dir " + dirName);
                 }
+            }
+
+            void deleteDir(const std::string &path) {
+                FsPath fsPath = _fsUtils->findPath(
+                        _ctrl->getCtrlDir(), _fsUtils->stripPathPrefix(path, _ctrl->getDirName()),
+                        FsPath::WITH_PARENT_DIR
+                );
+                FsPathUnlocker unlocker{fsPath};
+                if (!isSimilarDir(fsPath.getAll().back()) && !isSimilarDir(fsPath.getAll().front())) {
+                    _ctrl->deleteDir(fsPath);
+                }
+                getAct<DeleteDirAct>(_acts)->template doAction(fsPath, [&fsPath, this] () {return false;});
+            }
+
+            void deleteFile(const std::string &path) {
+                FsPath fsPath = _fsUtils->findPath(
+                        _ctrl->getCtrlDir(), _fsUtils->stripPathPrefix(path, _ctrl->getDirName()),
+                        FsPath::WITH_PARENT_DIR
+                );
+                FsPathUnlocker unlocker{fsPath};
+                if (!isSimilarDir(fsPath.getAll().front())) {
+                    _ctrl->deleteFile(fsPath);
+                }
+                getAct<DeleteFileAct>(_acts)->template doAction(fsPath);
             }
 
             void rename(FsPath& oldPath, FsPath &newPath) {
@@ -92,6 +112,14 @@ namespace vk_music_fs {
             }
 
         private:
+            bool isSimilarDir(DirOrFile dirOrFile) {
+                return (
+                        dirOrFile.isDir() &&
+                        dirOrFile.dir()->getDirExtra() &&
+                        std::holds_alternative<OffsetCntRemoteFile>(*dirOrFile.dir()->getDirExtra())
+                );
+            }
+
             std::shared_ptr<TCtrl> _ctrl;
             std::shared_ptr<TFsUtils> _fsUtils;
             std::shared_ptr<TAsyncFsManager> _asyncFsManager;

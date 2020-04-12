@@ -3,6 +3,8 @@
 #include "RefreshAct.h"
 #include "NumberAct.h"
 #include "RemoveRefreshDirAct.h"
+#include "DeleteDirAct.h"
+#include "DeleteFileAct.h"
 #include <tuple>
 
 namespace vk_music_fs{
@@ -12,7 +14,9 @@ namespace vk_music_fs{
         using ActTuple = std::tuple<
                 std::shared_ptr<RefreshAct<TFsUtils>>,
                 std::shared_ptr<NumberAct<TFsUtils>>,
-                std::shared_ptr<RemoveRefreshDirAct>
+                std::shared_ptr<RemoveRefreshDirAct>,
+                std::shared_ptr<DeleteDirAct<TFsUtils>>,
+                std::shared_ptr<DeleteFileAct<TFsUtils>>
         >;
 
 

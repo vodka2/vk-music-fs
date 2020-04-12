@@ -9,6 +9,8 @@ namespace vk_music_fs {
             template<typename... T>
             CtrlM0(T &&... args) {} //NOLINT
             MOCK_CONST_METHOD2(rename, void(FsPath&, FsPath&));
+            MOCK_CONST_METHOD0(getDirName, std::string());
+            MOCK_CONST_METHOD0(getCtrlDir, DirPtr());
         };
     }
 }

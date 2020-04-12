@@ -82,11 +82,9 @@ namespace vk_music_fs {
                 }
             }
 
-            void deleteFile(const std::string &path) {
-                FsPath fsPath = _fsUtils->findPath(_ctrlDir, _fsUtils->stripPathPrefix(path, DIR_NAME), FsPath::WITH_PARENT_DIR);
-                FsPathUnlocker unlocker{fsPath};
+            void deleteFile(FsPath &fsPath) {
                 if(!fsPath.isPathMatched() || !fsPath.getAll().back().isFile()){
-                    throw FsException("File does not exist " + path);
+                    throw FsException("File does not exist " + fsPath.getStringParts().back());
                 }
                 auto file = fsPath.getAll().back();
                 auto remoteFile = std::get<RemoteFile>(*file.file()->getExtra());

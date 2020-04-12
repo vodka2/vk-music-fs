@@ -42,8 +42,16 @@ namespace vk_music_fs {
                 throw FsException("Can't get file meta - not supported");
             }
 
+            void deleteDir(FsPath &fsPath) {
+                throw FsException("Can't delete dir - not supported");
+            }
+
             void deleteDir(const std::string &path) {
                 throw FsException("Can't delete dir - not supported");
+            }
+
+            void deleteFile(FsPath &fsPath) {
+                throw FsException("Can't delete file - not supported");
             }
 
             void deleteFile(const std::string &path) {
