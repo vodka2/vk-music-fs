@@ -30,14 +30,18 @@ namespace vk_music_fs {
                 auto createdFiles = _fsUtils->addFilesToDir(dir, remoteFiles, _idGenerator, _fsSettings->getMp3Ext());
                 if (_fsSettings->isUseAsyncNotifier()) {
                     std::vector<std::string> createdFileNames;
+                    std::vector<RemoteFile> createdRemoteFiles;
+                    createdFileNames.reserve(createdFiles.size());
+                    createdRemoteFiles.reserve(createdFiles.size());
                     for (auto &file: createdFiles) {
                         file->setHidden(true);
                         createdFileNames.push_back(file->getName());
+                        createdRemoteFiles.push_back(std::get<RemoteFile>(*file->getExtra()));
                     }
                     std::string dirPath = dir->getAbsolutePath();
-                    _threadPool->post([this, createdFileNames, remoteFiles, dirPath]() {
-                        for (uint_fast32_t i = 0; i < remoteFiles.size(); i++) {
-                            _cache->getFileSize(remoteFiles[i]);
+                    _threadPool->post([this, createdFileNames, createdRemoteFiles, dirPath]() {
+                        for (uint_fast32_t i = 0; i < createdRemoteFiles.size(); i++) {
+                            _cache->getFileSize(createdRemoteFiles[i]);
                             _realFs->createFile(_fsSettings->getPathToFs() + "/" + dirPath + "/" + createdFileNames[i]);
                         }
                     });
