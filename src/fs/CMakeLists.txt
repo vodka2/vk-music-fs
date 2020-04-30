@@ -71,6 +71,7 @@ add_vmf_lib_test(fs
         ctrl/ThrowExCtrl.cpp
         ctrl/ThrowExCtrl.h
         ctrl/SimilarCtrl.h
+        ctrl/AddToMyAudiosCtrl.h
 )
 
 target_link_libraries(
