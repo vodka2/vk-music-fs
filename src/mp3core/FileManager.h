@@ -42,24 +42,24 @@ namespace vk_music_fs {
         int_fast32_t open(const RemoteFile &remFile, const std::string &filename){
             namespace di = boost::di;
             std::scoped_lock<std::mutex> readersLock(_readersMutex);
-            std::scoped_lock<std::mutex> procsLock(_procsMutex);
             uint_fast32_t retId = (_lastId++);
             try{
                 auto remFileId = remFile.getId();
                 _idToRemFile.insert(std::make_pair<>(retId, remFile));
                 try {
-                    if (_procs.find(remFileId) != _procs.end()) {
-                        _procs[remFileId].ids.insert(retId);
-                        _readers[remFileId].ids.insert(std::make_pair<>(retId, _procs[remFileId].proc));
+                    auto fname = _fileCache->getFilename(remFile);
+                    if (fname.inCache) {
+                        _readers[remFileId].processor = std::nullopt;
+                        std::shared_ptr<TReader> reader = _readersFact->createShared(
+                                CachedFilename{fname.data}, FileSize{_fileCache->getFileSize(remFile)}
+                        );
+                        _readers[remFileId].ids.insert(std::make_pair<>(retId, reader));
                     } else {
-                        auto fname = _fileCache->getFilename(remFile);
-                        if (fname.inCache) {
-                            std::shared_ptr<TReader> reader = _readersFact->createShared(
-                                    CachedFilename{fname.data}, FileSize{_fileCache->getFileSize(remFile)}
-                            );
-                            _readers[remFileId].ids.insert(std::make_pair<>(retId, reader));
+                        if (_readers[remFileId].processor) {
+                            _readers[remFileId].ids.insert(std::make_pair<>(retId, *_readers[remFileId].processor));
+                            _readers[remFileId].usages[*_readers[remFileId].processor]++;
                         } else {
-                            _procs[remFileId].proc = _procsFact->createShared(
+                            auto proc = _procsFact->createShared(
                                     Artist{remFile.getArtist()},
                                     Title{remFile.getTitle()},
                                     Mp3Uri{remFile.getUri()},
@@ -67,11 +67,12 @@ namespace vk_music_fs {
                                     RemoteFile(remFile),
                                     CachedFilename{fname.data}
                             );
-                            _readers[remFileId].ids.insert(std::make_pair<>(retId, _procs[remFileId].proc));
-                            _procs[remFileId].ids.insert(retId);
+                            _readers[remFileId].ids.insert(std::make_pair<>(retId, proc));
+                            _readers[remFileId].processor = proc;
+                            _readers[remFileId].usages[proc]++;
                         }
-                        _readers[remFileId].fname = fname.data;
                     }
+                    _readers[remFileId].fname = fname.data;
                 } catch (const net::WrongSizeException &ex) {
                     _fileCache->removeSize(remFileId);
                     closeNoLock(retId);
@@ -85,26 +86,32 @@ namespace vk_music_fs {
         }
         ByteVect read(uint_fast32_t id, uint_fast32_t offset, uint_fast32_t size){
             ByteVect ret;
-            std::scoped_lock<std::mutex> readersLock(_readersMutex);
-            if(_idToRemFile.find(id) != _idToRemFile.end()) {
-                auto remFileId = _idToRemFile.find(id)->second.getId();
+            std::string fname;
+            std::optional<RemoteFileId> remoteFileId;
+            std::variant<std::shared_ptr<TReader>, std::shared_ptr<TFileProcessor>> reader;
+            {
+                std::scoped_lock<std::mutex> readersLock(_readersMutex);
+                if(_idToRemFile.find(id) != _idToRemFile.end()) {
+                    remoteFileId = _idToRemFile.find(id)->second.getId();
+                    fname = _readers[*remoteFileId].fname;
+                    reader = _readers[*remoteFileId].ids.find(id)->second;
+                }
+            }
+            if(remoteFileId) {
                 try {
-                    auto reader = _readers[remFileId].ids.find(id)->second;
                     std::visit([id, offset, size, &ret](auto &&el) {
                         ret = std::move(el->read(offset, size));
                     }, reader);
                     return std::move(ret);
                 } catch (const net::WrongSizeException &ex) {
-                    _fileCache->removeSize(remFileId);
-                    auto fname = _readers[remFileId].fname;
-                    closeNoLock(id);
+                    _fileCache->removeSize(*remoteFileId);
+                    close(id);
                     throw RemoteException("Error getting size from " + fname + ". " + ex.what());
                 } catch (const net::HttpException &ex){
-                    auto fname = _readers[remFileId].fname;
-                    closeNoLock(id);
+                    close(id);
                     throw RemoteException("Error reading from " + fname + ". " + ex.what());
                 } catch (const RemoteException &ex){
-                    closeNoLock(id);
+                    close(id);
                     throw;
                 }
             }
@@ -112,7 +119,6 @@ namespace vk_music_fs {
         }
         void close(uint_fast32_t id){
             std::scoped_lock<std::mutex> readersLock(_readersMutex);
-            std::scoped_lock<std::mutex> procsLock(_procsMutex);
             closeNoLock(id);
         }
 
@@ -145,14 +151,15 @@ namespace vk_music_fs {
             if(_idToRemFile.find(id) != _idToRemFile.end()) {
                 auto remFile = _idToRemFile.find(id)->second;
                 auto remFileId = remFile.getId();
-                if (_procs.find(remFileId) != _procs.end()) {
-                    _procs[remFileId].ids.erase(id);
-                    if (_procs[remFileId].ids.size() == 0) {
-                        _procs[remFileId].proc->close();
-                        _procs.erase(remFileId);
-                    }
-                }
                 if (_readers.find(remFileId) != _readers.end()) {
+                    auto reader = _readers[remFileId].ids.find(id)->second;
+                    if (_readers[remFileId].usages[reader] <= 1) {
+                        std::visit([](auto &&el) {
+                            el->close();
+                        }, reader);
+                    } else {
+                        _readers[remFileId].usages[reader]--;
+                    }
                     _readers[remFileId].ids.erase(id);
                     if (_readers[remFileId].ids.size() == 0) {
                         _readers.erase(remFileId);
@@ -162,13 +169,9 @@ namespace vk_music_fs {
             }
         }
 
-        struct ProcMapEntry{
-            std::shared_ptr<TFileProcessor> proc;
-            std::unordered_set<uint_fast32_t> ids;
-        };
-        std::unordered_map<RemoteFileId, ProcMapEntry, RemoteFileIdHasher> _procs;
-
         struct ReadMapEntry{
+            std::optional<std::shared_ptr<TFileProcessor>> processor;
+            std::unordered_map<std::variant<std::shared_ptr<TReader>, std::shared_ptr<TFileProcessor>>, uint_fast32_t> usages;
             std::unordered_map<uint_fast32_t, std::variant<std::shared_ptr<TReader>, std::shared_ptr<TFileProcessor>>> ids;
             std::string fname;
         };
@@ -178,7 +181,6 @@ namespace vk_music_fs {
 
         std::atomic_uint_fast32_t _lastId;
 
-        std::mutex _procsMutex;
         std::mutex _readersMutex;
     };
 }

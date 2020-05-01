@@ -11,10 +11,12 @@ namespace vk_music_fs {
         Reader(const CachedFilename &fname, const FileSize &size);
         ByteVect read(uint_fast32_t offset, uint_fast32_t size);
         ~Reader();
+        void close();
     private:
         uint_fast32_t _size;
         boost::nowide::ifstream _strm;
         bool _isOpened;
+        bool _isClosed;
         std::string _fname;
         std::mutex _readMutex;
     };

@@ -100,7 +100,7 @@ namespace vk_music_fs {
 
                                 auto block = _blockCreator->create();
                                 uint_fast32_t offset = 0;
-                                while (true) {
+                                while (!_closed) {
                                     _buffer->finalRead(offset, block);
                                     if (block->curSize() == 0) {
                                         break;

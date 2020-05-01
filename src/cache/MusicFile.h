@@ -26,13 +26,15 @@ namespace vk_music_fs {
         template <typename TBlock>
         void write(TBlock block) {
             std::scoped_lock <std::mutex> lock(_mutex);
-            _file.write(block);
+            if(_opened && !_closed) {
+                _file.write(block);
+            }
         }
 
         template <typename TBlock>
         void read(uint_fast32_t offset, const TBlock &block) {
             std::scoped_lock <std::mutex> lock(_mutex);
-            if(!_closed) {
+            if(_opened && !_closed) {
                 _file.read(offset, block);
             }
         }
@@ -47,6 +49,7 @@ namespace vk_music_fs {
 
     private:
         bool _closed;
+        bool _opened;
         std::string _name;
         RemoteFile _remFile;
         std::shared_ptr<FileCache> _cache;

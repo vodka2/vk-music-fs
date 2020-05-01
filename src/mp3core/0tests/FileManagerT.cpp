@@ -34,6 +34,7 @@ class ReaderM0{
 public:
     template <typename... T>
     ReaderM0(T&&... args){} //NOLINT
+    MOCK_CONST_METHOD0(close, void());
     MOCK_CONST_METHOD2(read, ByteVect(uint_fast32_t offset, uint_fast32_t size));
 };
 

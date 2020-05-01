@@ -5,7 +5,7 @@
 using namespace vk_music_fs;
 
 MusicFile::MusicFile(const CachedFilename &name, const RemoteFile &remFile, const std::shared_ptr<FileCache> &cache)
-: _closed(false), _name(name.t), _remFile(remFile), _cache(cache), _file(_fs) {
+: _closed(false), _opened(false), _name(name.t), _remFile(remFile), _cache(cache), _file(_fs) {
     auto t = _cache->getInitialSize(_remFile.getId());
     _file.setSizeOnDisk(t.totalSize);
     _prepSize = t.prependSize;
@@ -14,7 +14,7 @@ MusicFile::MusicFile(const CachedFilename &name, const RemoteFile &remFile, cons
 
 ByteVect MusicFile::read(uint_fast32_t offset, uint_fast32_t size) {
     std::scoped_lock <std::mutex> lock(_mutex);
-    if(!_closed) {
+    if(_opened && !_closed) {
         return _file.read(offset, size);
     }
     return {};
@@ -22,7 +22,7 @@ ByteVect MusicFile::read(uint_fast32_t offset, uint_fast32_t size) {
 
 void MusicFile::close() {
     std::scoped_lock <std::mutex> lock(_mutex);
-    if(!_closed) {
+    if(_opened && !_closed) {
         _closed = true;
         _cache->fileClosed(_remFile, {_file.getSizeOnDisk(), _prepSize});
         _fs.close();
@@ -37,10 +37,15 @@ uint_fast32_t MusicFile::getSizeOnDisk() {
 }
 
 void MusicFile::open() {
+    std::scoped_lock <std::mutex> lock(_mutex);
+    if (_opened || _closed) {
+        return;
+    }
     if(_file.getSizeOnDisk() == 0) {
         boost::nowide::ofstream{_name.c_str()};
     }
     _fs.open(_name.c_str(), std::ios::binary | std::ios::in | std::ios::out);
+    _opened = true;
 }
 
 uint_fast32_t MusicFile::getUriSize() {
@@ -52,5 +57,8 @@ uint_fast32_t MusicFile::getPrependSize() {
 }
 
 void MusicFile::setPrependSize(uint_fast32_t size) {
-    _prepSize = size;
+    std::scoped_lock <std::mutex> lock(_mutex);
+    if(_opened && !_closed) {
+        _prepSize = size;
+    }
 }
