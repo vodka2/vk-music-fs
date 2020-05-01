@@ -47,19 +47,43 @@ uint_fast32_t FileCache::getTagSize(const RemoteFile &file) {
 }
 
 uint_fast32_t FileCache::getFileSize(const RemoteFile &file) {
-    std::scoped_lock<std::mutex> lock(_sizesMutex);
-    if(_sizesCache.exists(file.getId())){
-        return _sizesCache.get(file.getId());
-    } else {
-        auto size =
-                _sizeObtainer->getSize(file.getUri()) +
-                _tagSizeCalc->getTagSize(file)
-        ;
-        _sizesCache.put(
-                file.getId(),
-                size
-        );
-        return size;
+    while (true) {
+        bool isObtainingSize = false;
+        {
+            std::scoped_lock<std::mutex> lock(_sizesMutex);
+            if (_sizesCache.exists(file.getId())) {
+                auto valInCache = _sizesCache.get(file.getId());
+                if (valInCache != OBTAINING_FILE_SIZE) {
+                    return _sizesCache.get(file.getId());
+                } else {
+                    isObtainingSize = true;
+                }
+            } else {
+                _sizesCache.put(file.getId(), OBTAINING_FILE_SIZE);
+            }
+        }
+        if (isObtainingSize) {
+            std::unique_lock<std::mutex> lock(_sizesCondVarMutex);
+            _sizesCondVar.wait(lock);
+        } else {
+            uint_fast32_t size;
+            try {
+                size = _sizeObtainer->getSize(file.getUri()) + _tagSizeCalc->getTagSize(file);
+            } catch (...) {
+                {
+                    std::scoped_lock<std::mutex> lock(_sizesMutex);
+                    _sizesCache.remove(file.getId());
+                }
+                _sizesCondVar.notify_all();
+                throw;
+            }
+            {
+                std::scoped_lock<std::mutex> lock(_sizesMutex);
+                _sizesCache.put(file.getId(), size);
+            }
+            _sizesCondVar.notify_all();
+            return size;
+        }
     }
 }
 

@@ -28,12 +28,15 @@ namespace vk_music_fs{
         TotalPrepSizes getInitialSize(const RemoteFileId &file);
         void fileClosed(const RemoteFile &file, const TotalPrepSizes &sizes);
     private:
+        static constexpr int_fast32_t OBTAINING_FILE_SIZE = -1;
         std::mutex _initialSizesMutex;
         std::mutex _sizesMutex;
+        std::mutex _sizesCondVarMutex;
+        std::condition_variable _sizesCondVar;
         std::shared_ptr<CacheSaver> _cacheSaver;
         std::shared_ptr<TagSizeCalculator> _tagSizeCalc;
         std::shared_ptr<net::Mp3SizeObtainer> _sizeObtainer;
-        cache::lru_cache<RemoteFileId, uint_fast32_t, RemoteFileIdHasher> _sizesCache;
+        cache::lru_cache<RemoteFileId, int_fast32_t, RemoteFileIdHasher> _sizesCache;
         cache::lru_cache<RemoteFileId, TotalPrepSizes, RemoteFileIdHasher> _initialSizesCache;
         std::unordered_set<RemoteFileId, RemoteFileIdHasher> _openedFiles;
     };
