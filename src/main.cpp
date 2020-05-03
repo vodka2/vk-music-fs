@@ -31,6 +31,7 @@
 #include <cache/FileBuffer.h>
 #include <fs/AsyncFsManager.h>
 #include <common/RealFs.h>
+#include <main/FakeFs.h>
 
 using namespace vk_music_fs;
 
@@ -43,13 +44,10 @@ typedef FileProcessor<
         vk_music_fs::IOBlockCreator<IOBlock<1024 * 64>>
 > FileProcessorD;
 typedef FileManager<FileCache, FileProcessorD, Reader> FileManagerD;
-typedef Application<
-        FileManagerD,
-        AudioFs<
-                fs::CtrlTuple<fs::FsUtils, fs::FileObtainer<net::VkApiQueryMaker>, FileManagerD,
-                fs::AsyncFsManager<fs::FsUtils, FileCache, RealFs, ThreadPool>>>,
-        ErrLogger, net::HttpStreamCommon
-> ApplicationD;
+typedef AudioFs<
+        fs::CtrlTuple<fs::FsUtils, fs::FileObtainer<net::VkApiQueryMaker>, FileManagerD,
+                fs::AsyncFsManager<fs::FsUtils, FileCache, RealFs, ThreadPool>>> AFs;
+typedef Application<FileManagerD, AFs, ErrLogger, net::HttpStreamCommon, FakeFs<AFs>> ApplicationD;
 
 auto curTime = static_cast<uint_fast32_t>(time(nullptr)); //NOLINT
 
@@ -183,9 +181,9 @@ int main(int argc, char* argv[]) {
             if (meta.type == FileOrDirMeta::Type::DIR_ENTRY) {
                 stbuf->st_mode = static_cast<uint_fast32_t>(S_IFDIR) | 0777u;
                 return 0;
-            } else if (meta.type == FileOrDirMeta::Type::FILE_ENTRY) {
+            } else if (meta.type == FileOrDirMeta::Type::FILE_ENTRY || meta.type == FileOrDirMeta::Type::FILE_ENTRY_NO_SIZE) {
                 stbuf->st_mode = static_cast<uint_fast32_t>(S_IFREG) | 0777u;
-                stbuf->st_size = app->getFileSize(path);
+                stbuf->st_size = (meta.type == FileOrDirMeta::Type::FILE_ENTRY) ? app->getFileSize(path) : 0;
                 return 0;
             }
         } catch (...){

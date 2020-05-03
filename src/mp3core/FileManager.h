@@ -36,7 +36,7 @@ namespace vk_music_fs {
                         FileSize
                 >> readersFact
         ) : _fileCache(fileCache),
-        _procsFact(procsFact), _readersFact(readersFact), _lastId(1){
+        _procsFact(procsFact), _readersFact(readersFact), _lastId(100){
         }
 
         int_fast32_t open(const RemoteFile &remFile, const std::string &filename){

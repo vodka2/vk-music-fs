@@ -21,6 +21,7 @@ namespace vk_music_fs{
     struct FileOrDirMeta{
         enum class Type{
             FILE_ENTRY,
+            FILE_ENTRY_NO_SIZE,
             DIR_ENTRY,
             NOT_EXISTS
         } type;

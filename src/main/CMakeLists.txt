@@ -7,6 +7,7 @@ add_vmf_lib_test(main
         ProgramOptions.h
         NoReportException.cpp
         NoReportException.h
+        FakeFs.h
 )
 
 target_link_libraries(

@@ -5,17 +5,18 @@
 #include <common/MusicFsException.h>
 
 namespace vk_music_fs {
-    template <typename TFileManager, typename TAudioFs, typename TLogger, typename THttpCommon>
+    template <typename TFileManager, typename TAudioFs, typename TLogger, typename THttpCommon, typename TFakeFs>
     class Application {
     public:
         Application(
                 const std::shared_ptr<TAudioFs> &api, const std::shared_ptr<TFileManager> &fileManager,
                 const std::shared_ptr<THttpCommon> &httpCommon,
                 const std::shared_ptr<TLogger> &logger,
+                const std::shared_ptr<TFakeFs> &fakeFs,
                 std::shared_ptr<ProgramOptions> options
         )
         :
-        _httpCommon(httpCommon), _options(options),
+        _httpCommon(httpCommon), _options(options), _fakeFs(fakeFs),
         _audioFs(api), _fileManager(fileManager), _logger(logger){
         }
 
@@ -25,7 +26,7 @@ namespace vk_music_fs {
 
         int_fast32_t open(const std::string &filename){
             try {
-                return _audioFs->open(filename);
+                return _fakeFs->open(filename);
             } catch (const MusicFsException &exc){
                 _logger->logException(exc);
                 throw;
@@ -61,7 +62,7 @@ namespace vk_music_fs {
 
         std::vector<std::string> getEntries(const std::string &dirPath){
             try {
-                return _audioFs->getEntries(dirPath);
+                return _fakeFs->getEntries(dirPath);
             } catch (const MusicFsException &exc){
                 _logger->logException(exc);
                 throw;
@@ -70,7 +71,7 @@ namespace vk_music_fs {
 
         FileOrDirMeta getMeta(const std::string &path){
             try {
-                return _audioFs->getMeta(path);
+                return _fakeFs->getMeta(path);
             } catch (const MusicFsException &exc){
                 _logger->logException(exc);
                 throw;
@@ -97,7 +98,7 @@ namespace vk_music_fs {
 
         uint_fast32_t getFileSize(const std::string &path){
             try {
-                return _audioFs->getFileSize(path);
+                return _fakeFs->getFileSize(path);
             } catch (const MusicFsException &exc){
                 _logger->logException(exc);
                 throw;
@@ -122,6 +123,7 @@ namespace vk_music_fs {
             }
         }
     private:
+        std::shared_ptr<TFakeFs> _fakeFs;
         std::shared_ptr<THttpCommon> _httpCommon;
         std::shared_ptr<ProgramOptions> _options;
         std::shared_ptr<TAudioFs> _audioFs;
