@@ -36,17 +36,10 @@ namespace vk_music_fs {
                     return;
                 }
                 auto dir = oldPath.getAll().front().dir();
-                auto prevFile = dir->getItem(oldPath.getStringParts().back()).file();
-                auto remFile = std::get<RemoteFile>(*prevFile->getExtra());
-                _fileObtainer->addToMyAudios(remFile.getOwnerId(), remFile.getFileId());
-                dir->removeItem(oldPath.getStringParts().back());
-                dir->addItem(std::make_shared<File>(
-                        newPath.getStringParts().back(),
-                        _idGenerator->getNextId(),
-                        prevFile->getTime(),
-                        remFile,
-                        dir
-                ));
+                auto remoteFile = std::get<RemoteFile>(*dir->getItem(oldPath.getStringParts().back()).file()->getExtra());
+                _fileObtainer->addToMyAudios(remoteFile.getOwnerId(), remoteFile.getFileId());
+                dir->renameFile(oldPath.getStringParts().back(), newPath.getStringParts().back(),
+                                               _idGenerator->getNextId());
             }
 
         private:

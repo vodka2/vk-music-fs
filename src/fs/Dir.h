@@ -10,7 +10,7 @@
 namespace vk_music_fs {
     namespace fs {
         typedef std::unordered_map<std::string, DirOrFile> ContentsMap;
-        class Dir {
+        class Dir : public std::enable_shared_from_this<Dir>{
         public:
             Dir(
                     std::string name,
@@ -41,6 +41,7 @@ namespace vk_music_fs {
             void unlock();
             uint_fast32_t getTime() const;
             std::string getAbsolutePath() const;
+            FilePtr renameFile(const std::string &oldName, const std::string &newName, uint_fast32_t newId);
         private:
             std::string _name;
             uint_fast32_t _id;

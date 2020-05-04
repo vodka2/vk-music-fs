@@ -78,3 +78,18 @@ std::string Dir::getAbsolutePath() const {
     return (getParent() != nullptr && getParent()->getName() != "/") ?
         getParent()->getAbsolutePath() + "/" + _name : _name;
 }
+
+FilePtr Dir::renameFile(const std::string &oldName, const std::string &newName, uint_fast32_t newId) {
+    auto prevFile = getItem(oldName).file();
+    auto remFile = std::get<RemoteFile>(*prevFile->getExtra());
+    removeItem(prevFile->getName());
+    auto newFile = std::make_shared<File>(
+            newName,
+            newId,
+            prevFile->getTime(),
+            remFile,
+            shared_from_this()
+    );
+    addItem(newFile);
+    return newFile;
+}

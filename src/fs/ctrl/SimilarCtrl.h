@@ -84,34 +84,32 @@ namespace vk_music_fs {
                     return;
                 }
                 auto origFname = boost::filesystem::change_extension(oldPath.getStringParts().back(), "").string();
-                if(newPath.getStringParts().back() != origFname + "_s" + _settings->getMp3Ext()){
+                auto newFname = boost::filesystem::change_extension(newPath.getStringParts().back(), "").string();
+                if (newFname + "_s" == origFname) {
+                    auto dir = oldPath.getAll().front().dir();
+                    auto newFile = dir->renameFile(oldPath.getStringParts().back(), newPath.getStringParts().back(),
+                            _idGenerator->getNextId());
+                } else if(newFname == origFname + "_s") {
+                    auto dir = oldPath.getAll().front().dir();
+                    if (dir->hasItem(origFname)) {
+                        throw FsException("Directory with name " + origFname + " already exists");
+                    }
+                    auto remoteFile = std::get<RemoteFile>(*dir->getItem(oldPath.getStringParts().back()).file()->getExtra());
+                    auto newFiles =
+                            _fileObtainer->searchSimilar(RemoteFileId{remoteFile}, 0, _settings->getNumSearchFiles());
+                    dir->renameFile(oldPath.getStringParts().back(), newPath.getStringParts().back(),
+                            _idGenerator->getNextId());
+                    auto similarDir = std::make_shared<Dir>(
+                            origFname, _idGenerator->getNextId(),
+                            OffsetCntRemoteFile{0, _settings->getNumSearchFiles(), DirWPtr{},
+                                                RemoteFileId{remoteFile}},
+                            dir
+                    );
+                    dir->addItem(similarDir);
+                    _asyncFsManager->createFiles(similarDir, newFiles);
+                } else {
                     _ctrl->rename(oldPath, newPath);
-                    return;
                 }
-                auto dir = oldPath.getAll().front().dir();
-                if (dir->hasItem(origFname)) {
-                    throw FsException("Directory with name " + origFname + " already exists");
-                }
-                auto prevFile = dir->getItem(oldPath.getStringParts().back()).file();
-                auto remFile = std::get<RemoteFile>(*prevFile->getExtra());
-                dir->removeItem(oldPath.getStringParts().back());
-                dir->addItem(std::make_shared<File>(
-                        newPath.getStringParts().back(),
-                        _idGenerator->getNextId(),
-                        prevFile->getTime(),
-                        remFile,
-                        dir
-                ));
-                auto similarDir = std::make_shared<Dir>(
-                        origFname, _idGenerator->getNextId(),
-                        OffsetCntRemoteFile{0, _settings->getNumSearchFiles(), DirWPtr{}, RemoteFileId{remFile}},
-                        dir
-                );
-                dir->addItem(similarDir);
-                _asyncFsManager->createFiles(
-                        similarDir,
-                        _fileObtainer->searchSimilar(RemoteFileId{remFile}, 0, _settings->getNumSearchFiles())
-                );
             }
 
         private:
