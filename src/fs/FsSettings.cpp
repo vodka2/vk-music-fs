@@ -11,7 +11,7 @@ const std::string FsSettings::getMp3Ext() const {
     return _mp3Ext;
 }
 
-bool FsSettings::isCreateDummyDirs() const {
+bool FsSettings::isCreateDummyDirs() {
     return _createDummyDirs;
 }
 
@@ -30,6 +30,6 @@ const std::string FsSettings::getPathToFs() const {
     return _pathToFs;
 }
 
-bool FsSettings::isUseAsyncNotifier() const {
+bool FsSettings::isUseAsyncNotifier() {
     return _useAsyncNotifier;
 }

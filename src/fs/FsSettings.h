@@ -19,18 +19,18 @@ namespace vk_music_fs {
 
             const std::string getMp3Ext() const;
 
-            bool isCreateDummyDirs() const;
+            bool isCreateDummyDirs();
 
             const std::string getPathToFs() const;
 
-            bool isUseAsyncNotifier() const;
+            bool isUseAsyncNotifier();
 
         private:
             uint_fast32_t _numSearchFiles;
             std::string _mp3Ext;
             std::string _pathToFs;
-            bool _createDummyDirs;
-            bool _useAsyncNotifier;
+            CreateDummyDirs _createDummyDirs;
+            UseAsyncNotifier _useAsyncNotifier;
         };
     }
 }

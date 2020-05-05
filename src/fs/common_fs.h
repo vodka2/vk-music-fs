@@ -4,13 +4,14 @@
 #include <unordered_map>
 #include <variant>
 #include <memory>
+#include <common/OverridableSetting.h>
 
 namespace vk_music_fs{
     class RemoteFile;
     namespace fs{
         //NOLINT
         BOOST_STRONG_TYPEDEF(std::string, PathToFs)
-        BOOST_STRONG_TYPEDEF(bool, UseAsyncNotifier)
+        OVERRIDABLE_SETTING(bool, UseAsyncNotifier)
         class Dir;
         class File;
         class DirOrFile;

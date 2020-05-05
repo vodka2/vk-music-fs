@@ -14,6 +14,7 @@ add_vmf_lib_test(
         ThreadPool.h
         RealFs.cpp
         RealFs.h
+        OverridableSetting.h
         )
 
 target_link_libraries(common nowide)

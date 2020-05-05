@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <boost/serialization/strong_typedef.hpp>
+#include "OverridableSetting.h"
 
 namespace vk_music_fs{
     typedef std::vector<uint8_t> ByteVect;
@@ -47,7 +48,7 @@ namespace vk_music_fs{
     BOOST_STRONG_TYPEDEF(std::string, Mp3CacheSize); //NOLINT
     BOOST_STRONG_TYPEDEF(std::string, ErrLogFile); //NOLINT
     BOOST_STRONG_TYPEDEF(uint_fast32_t, SizesCacheSize); //NOLINT
-    BOOST_STRONG_TYPEDEF(bool, CreateDummyDirs); //NOLINT
+    OVERRIDABLE_SETTING(bool, CreateDummyDirs); //NOLINT
     BOOST_STRONG_TYPEDEF(bool, LogErrorsToFile); //NOLINT
     BOOST_STRONG_TYPEDEF(uint_fast32_t, VkUserId); //NOLINT
     BOOST_STRONG_TYPEDEF(uint_fast32_t, FilesCacheSize); //NOLINT

@@ -80,7 +80,7 @@ namespace vk_music_fs {
 
         void createDir(const std::string &dirPath){
             try {
-                _audioFs->createDir(dirPath);
+                _fakeFs->createDir(dirPath);
             } catch (const MusicFsException &exc){
                 _logger->logException(exc);
                 throw;
@@ -89,7 +89,7 @@ namespace vk_music_fs {
 
         void rename(const std::string &oldPath, const std::string &newPath){
             try {
-                _audioFs->rename(oldPath, newPath);
+                _fakeFs->rename(oldPath, newPath);
             } catch (const MusicFsException &exc){
                 _logger->logException(exc);
                 throw;

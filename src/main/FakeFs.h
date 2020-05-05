@@ -8,7 +8,10 @@ namespace vk_music_fs {
     template <typename TAudioFs>
     class FakeFs {
     public:
-        FakeFs(std::shared_ptr<TAudioFs> realFs, Mp3Extension mp3Ext) : _realFs(realFs), _mp3Ext(mp3Ext.t){}
+        FakeFs(
+                std::shared_ptr<TAudioFs> realFs, Mp3Extension mp3Ext,
+                CreateDummyDirs createDummyDirs, fs::UseAsyncNotifier useAsyncNotifier
+        ) : _realFs(realFs), _mp3Ext(mp3Ext.t), _createDummyDirs(createDummyDirs), _useAsyncNotifier(useAsyncNotifier) {}
 
         int_fast32_t open(const std::string &filename){
             auto fakeDirData = isFakeDir(filename);
@@ -37,7 +40,11 @@ namespace vk_music_fs {
                     }
                     return meta;
                 } else {
-                    return FileOrDirMeta{FileOrDirMeta::Type::DIR_ENTRY, 0};
+                    auto meta = _realFs->getMeta(fakeDirData->realPath);
+                    if (meta.type == FileOrDirMeta::Type::FILE_ENTRY) {
+                        meta.type = FileOrDirMeta::Type::DIR_ENTRY;
+                    }
+                    return meta;
                 }
             } else {
                 return _realFs->getMeta(path);
@@ -59,6 +66,32 @@ namespace vk_music_fs {
                 return std::move(_realFs->getEntries(fakeDirData->realPath));
             } else {
                 return std::move(_realFs->getEntries(dirPath));
+            }
+        }
+
+        void createDir(const std::string &dirPath) {
+            auto fakeDirData = isFakeDir(dirPath);
+            if (fakeDirData && fakeDirData->type == FakeDirData::FakeType::OTHER) {
+                TempOverride dummyDirsLock{_createDummyDirs, false};
+                TempOverride useAsyncNotifierLock{_useAsyncNotifier, false};
+                return _realFs->createDir(fakeDirData->realPath);
+            } else {
+                return _realFs->createDir(dirPath);
+            }
+        }
+
+        void rename(const std::string &oldPath, const std::string &newPath){
+            auto fakeDirOldData = isFakeDir(oldPath);
+            auto fakeDirNewData = isFakeDir(newPath);
+            if (
+                    fakeDirOldData && fakeDirOldData->type == FakeDirData::FakeType::OTHER &&
+                    fakeDirNewData && fakeDirNewData->type == FakeDirData::FakeType::OTHER
+            ) {
+                TempOverride dummyDirsLock{_createDummyDirs, false};
+                TempOverride useAsyncNotifierLock{_useAsyncNotifier, false};
+                return _realFs->rename(fakeDirOldData->realPath, fakeDirNewData->realPath);
+            } else {
+                return _realFs->rename(oldPath, newPath);
             }
         }
     private:
@@ -94,5 +127,7 @@ namespace vk_music_fs {
         }
         std::shared_ptr<TAudioFs> _realFs;
         std::string _mp3Ext;
+        CreateDummyDirs _createDummyDirs;
+        fs::UseAsyncNotifier _useAsyncNotifier;
     };
 }
