@@ -18,7 +18,7 @@ matrix:
     - ARCH_SUFFIX="x86_64"
     - ARCH_SUFFIX2="x86_64"
 install:
-  - sudo add-apt-repository 'deb http://us.archive.ubuntu.com/ubuntu/ cosmic main'
+  - sudo add-apt-repository 'deb http://us.archive.ubuntu.com/ubuntu/ focal main'
   - sudo apt-get update
   - sudo apt-get install -o Dpkg::Options::="--force-all" -o APT::Force-LoopBreak=1 -y --allow-unauthenticated ${APT_DEPS}
   - DEPS_DIR="${HOME}/deps"
