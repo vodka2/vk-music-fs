@@ -91,13 +91,13 @@ namespace vk_music_fs {
             }
 
             void deleteDir(FsPath &fsPath) {
-                getAct<DeleteDirAct>(_acts)->template doAction(fsPath, [&fsPath, this] () {
+                getAct<DeleteDirAct>(_acts)->doAction(fsPath, [&fsPath, this] () {
                     return fsPath.getAll().back().getId() == _ctrlDir->getId();
                 });
             }
 
             void deleteFile(FsPath &fsPath) {
-                getAct<DeleteFileAct>(_acts)->template doAction(fsPath);
+                getAct<DeleteFileAct>(_acts)->doAction(fsPath);
             }
 
             std::string getDirName(){

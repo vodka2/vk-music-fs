@@ -63,7 +63,7 @@ namespace vk_music_fs {
                 if (!isSimilarDir(fsPath.getAll().back()) && !isSimilarDir(fsPath.getAll().front())) {
                     _ctrl->deleteDir(fsPath);
                 }
-                getAct<DeleteDirAct>(_acts)->template doAction(fsPath, [&fsPath, this] () {return false;});
+                getAct<DeleteDirAct>(_acts)->doAction(fsPath, [&fsPath, this] () {return false;});
             }
 
             void deleteFile(const std::string &path) {
@@ -75,7 +75,7 @@ namespace vk_music_fs {
                 if (!isSimilarDir(fsPath.getAll().front())) {
                     _ctrl->deleteFile(fsPath);
                 }
-                getAct<DeleteFileAct>(_acts)->template doAction(fsPath);
+                getAct<DeleteFileAct>(_acts)->doAction(fsPath);
             }
 
             void rename(FsPath& oldPath, FsPath &newPath) {

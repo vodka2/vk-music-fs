@@ -49,7 +49,7 @@ void HttpStreamCommon::connect(
             throw boost::system::system_error{ec};
         }
         boost::asio::async_connect(stream->next_layer(), resolverResults.begin(), resolverResults.end(), createTimer(
-                [afterConnectFunc, stream](...) {
+                [afterConnectFunc, stream](auto &&...) {
                     afterConnectFunc(stream);
                 },
                 [this, stream, errHandler](auto exc) {
