@@ -131,6 +131,22 @@ namespace vk_music_fs {
                 }
             }
 
+            std::vector<FileInfo> getFileInfos(const std::string &dirname){
+                std::optional<std::vector<FileInfo>> ret;
+                try {
+                    for_each(_ctrlTuple, [dirname, &ret] (auto &&arg){
+                        if(arg->supports(dirname)){
+                            ret = arg->getFileInfos(dirname);
+                            return true;
+                        }
+                        return false;
+                    });
+                } catch (const MusicFsException &ex){
+                    throw FsException(std::string("Error opening file. ") + ex.what());
+                }
+                return *ret;
+            }
+
             int_fast32_t open(const std::string &filename){
                 std::optional<int_fast32_t> ret;
                 try {

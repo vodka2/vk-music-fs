@@ -14,4 +14,5 @@ target_link_libraries(
         main
         common json
         tag ${ZLIB_LIBRARY_RESULT} cpp-lru-cache di cfgpath
+        json
 )

@@ -7,6 +7,7 @@
 #include <fs/File.h>
 #include <fs/FsException.h>
 #include <main/NoReportException.h>
+#include <fs/FileInfo.h>
 #include "RedirectCtrl.h"
 
 namespace vk_music_fs {
@@ -23,6 +24,27 @@ namespace vk_music_fs {
 
             std::string transformPath(const std::string &path){
                 return _ctrl->transformPath(path);
+            }
+
+            std::vector<FileInfo> getFileInfos(const std::string &dirname) {
+                FsPath fsPath = _fsUtils->findPath(_ctrl->getCtrlDir(), _ctrl->transformPath(dirname));
+                FsPathUnlocker unlocker{fsPath};
+                if (!fsPath.isPathMatched() || !fsPath.getLast().isDir()) {
+                    throw FsException("Dir " + dirname + " does not exist");
+                }
+                DirPtr dir = fsPath.getLast().dir();
+                std::vector<FileInfo> retVector;
+                for(auto &item: dir->getContents()) {
+                    if (item.second.isFile()) {
+                        auto extra = std::get<RemoteFile>(*item.second.file()->getExtra());
+                        retVector.emplace_back(extra.getArtist(), extra.getTitle(),
+                                dirname + "/" + item.second.getName(), item.second.getTime());
+                    }
+                }
+                sort(retVector.begin(), retVector.end(), [](const auto &a, const auto &b) {
+                    return a.getTime() < b.getTime();
+                });
+                return retVector;
             }
 
             int_fast32_t open(const std::string &filename){

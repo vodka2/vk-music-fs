@@ -37,6 +37,8 @@ add_vmf_lib_test(fs
         VkException.h
         AsyncFsManager.cpp
         AsyncFsManager.h
+        FileInfo.cpp
+        FileInfo.h
 
         actions/act.h
         actions/NumberAct.cpp

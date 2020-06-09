@@ -44,7 +44,12 @@ namespace vk_music_fs {
 
         ByteVect read(uint_fast32_t id, uint_fast32_t offset, uint_fast32_t size){
             try {
-                return _fileManager->read(id, offset, size);
+                auto fakeRead = _fakeFs->read(id, offset, size);
+                if (fakeRead) {
+                    return *fakeRead;
+                } else {
+                    return _fileManager->read(id, offset, size);
+                }
             } catch (const MusicFsException &exc){
                 _logger->logException(exc);
                 throw;
@@ -53,7 +58,10 @@ namespace vk_music_fs {
 
         void close(uint_fast32_t id){
             try {
-                _fileManager->close(id);
+                auto fakeClose = _fakeFs->close(id);
+                if (!fakeClose) {
+                    _fileManager->close(id);
+                }
             } catch (const MusicFsException &exc){
                 _logger->logException(exc);
                 throw;

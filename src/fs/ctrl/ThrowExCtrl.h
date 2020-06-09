@@ -3,6 +3,7 @@
 #include <fs/common_fs.h>
 #include <fs/FsException.h>
 #include <fs/FsPath.h>
+#include <fs/FileInfo.h>
 
 namespace vk_music_fs {
     namespace fs {
@@ -32,6 +33,10 @@ namespace vk_music_fs {
 
             void rename(FsPath& oldPath, FsPath &newPath) {
                 throw FsException("Can't rename - not supported");
+            }
+
+            std::vector<FileInfo> getFileInfos(const std::string &dirname) {
+                throw FsException("Can't get file infos - not supported");
             }
 
             std::vector<std::string> getEntries(const std::string &path) {

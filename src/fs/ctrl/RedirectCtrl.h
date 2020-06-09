@@ -76,6 +76,11 @@ namespace vk_music_fs {
             }
 
             template<typename... Args>
+            auto getFileInfos(Args&&... args) {
+                return _ctrl->getFileInfos(std::forward<Args>(args)...);
+            }
+
+            template<typename... Args>
             auto open(Args&&... args){
                 return _ctrl->open(std::forward<Args>(args)...);
             }
