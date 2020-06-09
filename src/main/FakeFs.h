@@ -23,7 +23,7 @@ namespace vk_music_fs {
             if (offset >= str.length()) {
                 return ByteVect{};
             }
-            ByteVect data(str.cbegin(), str.cbegin() + std::min(str.length() - offset, size));
+            ByteVect data(str.cbegin(), str.cbegin() + std::min(static_cast<uint_fast32_t>(str.length() - offset), size));
             return data;
         }
 

@@ -43,15 +43,16 @@ add_subdirectory(cache)
 add_executable(vk_music_fs main.cpp)
 
 if(DEFINED MINGW_W64)
-    find_path(FUSE_INCLUDE_DIR fuse.h ${PROJECT_SOURCE_DIR}/winfsp/include/fuse NO_DEFAULT_PATH)
+    find_path(FUSE_INCLUDE_DIR fuse.h ${CMAKE_SOURCE_DIR}/winfsp/include/fuse NO_DEFAULT_PATH)
     if("${CMAKE_SIZEOF_VOID_P}" STREQUAL "4")
         set(WINFSP_NAME winfsp-x86)
     else()
         set(WINFSP_NAME winfsp-x64)
     endif()
+    set(CMAKE_FIND_LIBRARY_SUFFIXES .a;.dll)
     find_library(FUSE_LIBRARIES
             NAMES ${WINFSP_NAME}
-            PATHS ${CMAKE_CURRENT_SOURCE_DIR}/winfsp ${CMAKE_CURRENT_SOURCE_DIR}
+            PATHS ${CMAKE_SOURCE_DIR}/winfsp ${CMAKE_SOURCE_DIR}
             )
     target_include_directories(vk_music_fs PRIVATE ${FUSE_INCLUDE_DIR})
 else()
@@ -62,8 +63,7 @@ else()
 endif()
 message(STATUS "Found fuse ${FUSE_LIBRARIES}")
 
-target_link_libraries(vk_music_fs ${FUSE_LIBRARIES})
-target_link_libraries(vk_music_fs net mp3core fuse-utils common fs main token cache)
+target_link_libraries(vk_music_fs net mp3core fuse-utils common fs main token cache ${FUSE_LIBRARIES})
 target_include_directories(vk_music_fs PRIVATE ${ROOT_DIR})
 if(APPLE)
     find_library(CoreServices CoreServices)
