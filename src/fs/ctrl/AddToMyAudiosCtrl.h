@@ -31,15 +31,21 @@ namespace vk_music_fs {
                     return;
                 }
                 auto origFname = boost::filesystem::change_extension(oldPath.getStringParts().back(), "").string();
-                if(newPath.getStringParts().back() != origFname + "_a" + _settings->getMp3Ext()){
+                auto newFname = boost::filesystem::change_extension(newPath.getStringParts().back(), "").string();
+                if (newFname + "_a" == origFname) {
+                    auto dir = oldPath.getAll().front().dir();
+                    auto newFile = dir->renameFile(oldPath.getStringParts().back(), newPath.getStringParts().back(),
+                                                   _idGenerator->getNextId());
+                } else if (newFname == origFname + "_a") {
+                    auto dir = oldPath.getAll().front().dir();
+                    auto remoteFile = std::get<RemoteFile>(
+                            *dir->getItem(oldPath.getStringParts().back()).file()->getExtra());
+                    _fileObtainer->addToMyAudios(remoteFile.getOwnerId(), remoteFile.getFileId());
+                    dir->renameFile(oldPath.getStringParts().back(), newPath.getStringParts().back(),
+                                    _idGenerator->getNextId());
+                } else {
                     _ctrl->rename(oldPath, newPath);
-                    return;
                 }
-                auto dir = oldPath.getAll().front().dir();
-                auto remoteFile = std::get<RemoteFile>(*dir->getItem(oldPath.getStringParts().back()).file()->getExtra());
-                _fileObtainer->addToMyAudios(remoteFile.getOwnerId(), remoteFile.getFileId());
-                dir->renameFile(oldPath.getStringParts().back(), newPath.getStringParts().back(),
-                                               _idGenerator->getNextId());
             }
 
         private:
