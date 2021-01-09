@@ -2,6 +2,7 @@
 
 #include <boost/filesystem.hpp>
 #include <mp3core/common_mp3core.h>
+#include <atomic>
 #include <boost/nowide/fstream.hpp>
 
 namespace vk_music_fs {

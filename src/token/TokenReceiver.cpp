@@ -167,7 +167,7 @@ std::string TokenReceiver::gmsRegister(uint_fast32_t id, const std::string &scop
                                                  {"info", "IwSu2g51cjoRUO6eTSP7b7VIl0qkOxY"},
                                                  {"gcm_ver", "9452480"}
                                          });
-    req.set(http::field::content_length, data.size());
+    req.set(http::field::content_length, std::to_string(data.size()));
     req.body() = data;
     auto writeFuture = http::async_write(*stream, req, boost::asio::use_future);
     if(writeFuture.wait_for(std::chrono::milliseconds(_timeout)) == std::future_status::timeout){

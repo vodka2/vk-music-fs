@@ -336,7 +336,7 @@ void HttpStreamCommon::sendPostReq(const std::shared_ptr<HttpStreamCommon::Strea
     req.set(http::field::host, hostPath.host);
     req.set(http::field::user_agent, userAgent);
     req.set(http::field::content_type, contentType);
-    req.set(http::field::content_length, data.size());
+    req.set(http::field::content_length, std::to_string(data.size()));
     req.body().data = (void *) &data[0];
     req.body().size = data.size();
     req.body().more = false;
