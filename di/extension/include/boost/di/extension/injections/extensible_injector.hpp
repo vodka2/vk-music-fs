@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2012-2019 Kanstantsin Chernik
+// Copyright (c) 2012-2020 Kanstantsin Chernik
 //
 // Distributed under the Boost Software License, Version 1.0.
 // (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -29,7 +29,6 @@ class dependency_proxy : core::dependency_base,
   dependency_proxy(dependency_proxy& other) noexcept : orig_dependency_(other.orig_dependency_) {}
   dependency_proxy(dependency_proxy&& other) noexcept : orig_dependency_(other.orig_dependency_) {}
 
- protected:
   using scope_t = typename scope::template scope<expected, given>;
 
   template <class T, class TConfig>

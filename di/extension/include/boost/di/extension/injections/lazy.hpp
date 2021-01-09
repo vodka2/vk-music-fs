@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2012-2019 Kris Jusiak (kris at jusiak dot net)
+// Copyright (c) 2012-2020 Kris Jusiak (kris at jusiak dot net)
 //
 // Distributed under the Boost Software License, Version 1.0.
 // (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -25,7 +25,7 @@ class lazy {
   template <class TInjector>
   explicit lazy(const TInjector &i) noexcept : injector_((void *)&i), f(create<TInjector>) {}
 
-  T get() const noexcept { return (*f)(injector_); }
+  T get() const { return (*f)(injector_); }
 
  private:
   const void *injector_ = nullptr;

@@ -5,6 +5,7 @@ option(ENABLE_TESTS "Enable tests" OFF)
 
 set(OLD_CXX_FLAGS ${CMAKE_CXX_FLAGS})
 set(CMAKE_VERBOSE_MAKEFILE 1)
+set(CMAKE_NO_SYSTEM_FROM_IMPORTED 1)
 
 if(${ENABLE_TESTS})
     add_library(testlib INTERFACE)
