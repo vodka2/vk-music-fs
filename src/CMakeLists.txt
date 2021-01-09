@@ -6,6 +6,10 @@ if(DEFINED MINGW_W64)
     SET(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
 endif()
 
+if(${CMAKE_BUILD_TYPE} STREQUAL "Release" AND NOT APPLE)
+    set(Boost_USE_STATIC_LIBS ON)
+endif()
+
 find_package(Boost REQUIRED COMPONENTS filesystem thread program_options system)
 
 set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
