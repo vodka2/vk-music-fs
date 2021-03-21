@@ -12,11 +12,13 @@ matrix:
     - APT_DEPS="g++-multilib libssl-dev:i386 libfuse-dev:i386 libboost-system-dev:i386 libboost-thread-dev:i386 libboost-filesystem-dev:i386 libboost-program-options-dev:i386 zlib1g-dev:i386"
     - ARCH_SUFFIX="i686"
     - ARCH_SUFFIX2="i386"
+    - REPLACE_CHECKRT="//i386"
   - env:
     - EXTRA_CMAKE_FLAGS=""
     - APT_DEPS="g++ libssl-dev libfuse-dev libboost-system-dev libboost-thread-dev libboost-filesystem-dev libboost-program-options-dev zlib1g-dev"
     - ARCH_SUFFIX="x86_64"
     - ARCH_SUFFIX2="x86_64"
+    - REPLACE_CHECKRT="x86_64"
 install:
   - sudo add-apt-repository 'deb http://us.archive.ubuntu.com/ubuntu/ focal main'
   - sudo apt-get update
@@ -37,7 +39,7 @@ script:
   - cmake --build . --target vk_music_fs
   - mkdir appdir
   - wget https://github.com/linuxdeploy/linuxdeploy-plugin-checkrt/releases/download/continuous/linuxdeploy-plugin-checkrt-${ARCH_SUFFIX}.sh
-  - sed -i "s/x86_64/${ARCH_SUFFIX2}/g" linuxdeploy-plugin-checkrt-${ARCH_SUFFIX}.sh
+  - sed -i "s/x86_64/${REPLACE_CHECKRT}/g" linuxdeploy-plugin-checkrt-${ARCH_SUFFIX}.sh
   - chmod a+x linuxdeploy-plugin-checkrt-${ARCH_SUFFIX}.sh
   - wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
   - chmod a+x linuxdeploy-x86_64.AppImage
