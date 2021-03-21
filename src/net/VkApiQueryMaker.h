@@ -29,6 +29,8 @@ namespace vk_music_fs {
 
             std::string deleteFromMyAudios(int_fast32_t ownerId, uint_fast32_t fileId);
 
+            std::string deletePlaylist(int_fast32_t ownerId, uint_fast32_t playlistId);
+
             std::string getUserId();
 
             std::string getPlaylistAudios(

@@ -38,6 +38,7 @@ public:
     MOCK_CONST_METHOD5(getPlaylistAudios, std::string(std::string, int_fast32_t, uint_fast32_t, uint_fast32_t, uint_fast32_t));
     MOCK_CONST_METHOD2(addToMyAudios, std::string(int_fast32_t, uint_fast32_t));
     MOCK_CONST_METHOD2(deleteFromMyAudios, std::string(int_fast32_t, uint_fast32_t));
+    MOCK_CONST_METHOD2(deletePlaylist, std::string(int_fast32_t, uint_fast32_t));
     MOCK_CONST_METHOD3(searchSimilar, std::string(const std::string &, uint_fast32_t, uint_fast32_t));
     MOCK_CONST_METHOD0(getUserId, std::string());
 };

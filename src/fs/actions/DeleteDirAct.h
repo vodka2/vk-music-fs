@@ -20,6 +20,9 @@ namespace vk_music_fs {
                 if(!fsPath.isPathMatched() || !fsPath.isPathDir() || func()){
                     throw FsException("Directory does not exist " + fsPath.getStringParts().back());
                 }
+                if (func()) {
+                    throw FsException("Can't delete dir " + fsPath.getStringParts().back());
+                }
                 fsPath.getAll().front().dir()->removeItem(fsPath.getAll().back().getName());
             }
 

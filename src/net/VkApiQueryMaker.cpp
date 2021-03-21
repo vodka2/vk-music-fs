@@ -183,3 +183,23 @@ std::string VkApiQueryMaker::searchSimilar(const std::string &fileId, uint_fast3
         );
     }
 }
+
+std::string VkApiQueryMaker::deletePlaylist(int_fast32_t ownerId, uint_fast32_t playlistId) {
+    std::shared_ptr<HttpStreamCommon::Stream> stream;
+    try {
+        std::string uri = _vkSettings.apiUriPrefix + "/audio.deletePlaylist?access_token=" + _token +
+                          "&owner_id=" + std::to_string(ownerId) + "&playlist_id=" + std::to_string(playlistId) +
+                          "&v=" + _vkSettings.version;
+        auto hostPath = _common->getHostPath(uri);
+        stream = _common->connect(hostPath);
+        _common->sendGetReq(stream, hostPath, _userAgent);
+        return _common->readRespAsStr(stream);
+    } catch (const boost::system::system_error &ex){
+        _common->closeStream(stream);
+        throw HttpException(
+                std::string("Error deleting playlist ") +
+                "owner_id: " + std::to_string(ownerId) + " playlist_id: " + std::to_string(playlistId) +
+                ex.what()
+        );
+    }
+}

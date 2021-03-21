@@ -128,6 +128,25 @@ namespace vk_music_fs {
                 }
             }
 
+            void deleteFile(FsPath &fsPath) {
+                getAct<DeleteFileAct>(_acts)->doAction(fsPath);
+            }
+
+            void deleteDir(FsPath &fsPath) {
+                if(!fsPath.isPathMatched() || !fsPath.getAll().back().isDir()){
+                    throw FsException("Dir does not exist " + fsPath.getStringParts().back());
+                }
+                auto dir = fsPath.getAll().back();
+                auto dirName = fsPath.getStringParts().back();
+                auto parent = dir.dir()->getParent();
+                if (parent->getId() == _ctrlDir->getId()) {
+                    OffsetCntPlaylist curOffsetCntPlaylist = std::get<OffsetCntPlaylist>(*dir.dir()->getDirExtra());
+                    auto playlist = curOffsetCntPlaylist.getPlaylist();
+                    _fileObtainer->deletePlaylist(playlist.ownerId, playlist.albumId);
+                }
+                getAct<DeleteDirAct>(_acts)->doAction(fsPath, [] () {return false;});
+            }
+
             std::string getDirName(){
                 return DIR_NAME;
             }

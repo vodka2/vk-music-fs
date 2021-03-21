@@ -18,6 +18,10 @@ namespace vk_music_fs {
                         const std::string &, int_fast32_t, uint_fast32_t, uint_fast32_t, uint_fast32_t
                     )
             );
+            MOCK_CONST_METHOD2(
+                    deletePlaylist,
+                    std::vector<vk_music_fs::RemoteFile>(int_fast32_t, uint_fast32_t)
+            );
             MOCK_CONST_METHOD3(searchSimilar,
                     std::vector<RemoteFile>(RemoteFileId, uint_fast32_t, uint_fast32_t)
             );

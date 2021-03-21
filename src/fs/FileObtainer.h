@@ -51,6 +51,10 @@ namespace vk_music_fs {
             parseJson(_queryMaker->deleteFromMyAudios(ownerId, fileId));
         }
 
+        void deletePlaylist(int_fast32_t ownerId, uint_fast32_t playlistId){
+            parseJson(_queryMaker->deletePlaylist(ownerId, playlistId));
+        }
+
         std::vector<RemoteFile> searchBySongName(
                 const std::string &searchName,
                 uint_fast32_t offset, uint_fast32_t count

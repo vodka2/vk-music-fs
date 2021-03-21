@@ -41,6 +41,14 @@ protected:
         ctrl->setRootDir(rootDir);
         ctrlDir = ctrl->getCtrlDir();
     }
+
+public:
+    auto createDir(const vk_music_fs::fs::DirPtr &dir, const std::string &path, uint_fast32_t pathSize) {
+        auto fsPath = fsUtils->findPath(ctrlDir, path, pathSize);
+        ctrl->createDir(fsPath);
+        fsPath.unlockAll();
+        return fsPath;
+    }
 };
 
 TEST_F(PlaylistCtrlT, CreatePlaylistDir) {
@@ -64,13 +72,9 @@ TEST_F(PlaylistCtrlT, CreatePlaylistDirDuplicates) {
 TEST_F(PlaylistCtrlT, CreateFewerPlaylistDirs) {
     std::vector<vk_music_fs::fs::PlaylistData> plData{{3, 1, "11", "pl1"}, {12, 15, "12", "pl1"}, {1, 56, "13", "pl1"}};
     ON_CALL(*obtainer, getMyPlaylists(0, 10)).WillByDefault(testing::Return(plData));
-    auto fullPath = fsUtils->findPath(ctrlDir, "10", vk_music_fs::fs::FsPath::WITH_PARENT_DIR);
-    ctrl->createDir(fullPath);
-    fullPath.unlockAll();
-    auto samePath = fsUtils->findPath(ctrlDir, "3", vk_music_fs::fs::FsPath::WITH_PARENT_DIR);
-    ctrl->createDir(samePath);
-    samePath.unlockAll();
-    auto fewerPath = fsUtils->findPath(ctrlDir, "1", vk_music_fs::fs::FsPath::WITH_PARENT_DIR);
+    createDir(ctrlDir, "10", vk_music_fs::fs::FsPath::WITH_PARENT_DIR);
+    createDir(ctrlDir, "3", vk_music_fs::fs::FsPath::WITH_PARENT_DIR);
+    auto fewerPath = createDir(ctrlDir, "1", vk_music_fs::fs::FsPath::WITH_PARENT_DIR);
     ctrl->createDir(fewerPath);
     fewerPath.unlockAll();
 
@@ -83,12 +87,8 @@ TEST_F(PlaylistCtrlT, RefreshPlaylistDir) {
     std::vector<vk_music_fs::fs::PlaylistData> plData{{3, 1, "11", "pl1"}, {12, 15, "12", "pl1"}};
     std::vector<vk_music_fs::fs::PlaylistData> plRefreshData{{31, 21, "12", "pl8"}, {178, 17, "13", "pl9"}};
     EXPECT_CALL(*obtainer, getMyPlaylists(0, 10)).WillOnce(testing::Return(plData)).WillOnce(testing::Return(plRefreshData));
-    auto fullPath = fsUtils->findPath(ctrlDir, "10", vk_music_fs::fs::FsPath::WITH_PARENT_DIR);
-    ctrl->createDir(fullPath);
-    fullPath.unlockAll();
-    auto refreshPath = fsUtils->findPath(ctrlDir, "refresh", vk_music_fs::fs::FsPath::WITH_PARENT_DIR);
-    ctrl->createDir(refreshPath);
-    refreshPath.unlockAll();
+    createDir(ctrlDir, "10", vk_music_fs::fs::FsPath::WITH_PARENT_DIR);
+    auto refreshPath = createDir(ctrlDir, "refresh", vk_music_fs::fs::FsPath::WITH_PARENT_DIR);
 
     std::set<std::string> exp = {"refresh", "10", "pl8", "pl9"};
     EXPECT_EQ(listContents(refreshPath.getLast().dir()), exp);
@@ -102,12 +102,8 @@ TEST_F(PlaylistCtrlT, CreatePlaylistAudiosDir) {
     std::vector<vk_music_fs::RemoteFile> files{{"http://url1", 1, 2, "Art 1", "Title1"}, {"http://url2", 6, 7, "Art 2", "Title 2"}};
     EXPECT_CALL(*obtainer, getMyPlaylists(0, 10)).WillOnce(testing::Return(plData));
     EXPECT_CALL(*obtainer, getPlaylistAudios("12", 12, 15, 0, 7)).WillOnce(testing::Return(files));
-    auto path = fsUtils->findPath(ctrlDir, "10", vk_music_fs::fs::FsPath::WITH_PARENT_DIR);
-    ctrl->createDir(path);
-    path.unlockAll();
-    auto filesPath = fsUtils->findPath(ctrlDir, "pl2/7", vk_music_fs::fs::FsPath::WITH_PARENT_DIR);
-    ctrl->createDir(filesPath);
-    filesPath.unlockAll();
+    createDir(ctrlDir, "10", vk_music_fs::fs::FsPath::WITH_PARENT_DIR);
+    auto filesPath = createDir(ctrlDir, "pl2/7", vk_music_fs::fs::FsPath::WITH_PARENT_DIR);
 
     std::set<std::string> exp = {"7", "Art 1 - Title1.mp3", "Art 2 - Title 2.mp3"};
     EXPECT_EQ(listContents(filesPath.getLast().dir()), exp);
@@ -125,15 +121,9 @@ TEST_F(PlaylistCtrlT, CreatePlaylistAudiosDirTwice) {
     EXPECT_CALL(*obtainer, getMyPlaylists(0, 10)).WillOnce(testing::Return(plData));
     EXPECT_CALL(*obtainer, getPlaylistAudios("12", 12, 15, 0, 2)).WillOnce(testing::Return(files));
     EXPECT_CALL(*obtainer, getPlaylistAudios("12", 12, 15, 2, 1)).WillOnce(testing::Return(files2));
-    auto path = fsUtils->findPath(ctrlDir, "10", vk_music_fs::fs::FsPath::WITH_PARENT_DIR);
-    ctrl->createDir(path);
-    path.unlockAll();
-    auto filesPath = fsUtils->findPath(ctrlDir, "pl2/2", vk_music_fs::fs::FsPath::WITH_PARENT_DIR);
-    ctrl->createDir(filesPath);
-    filesPath.unlockAll();
-    auto files2Path = fsUtils->findPath(ctrlDir, "pl2/3", vk_music_fs::fs::FsPath::WITH_PARENT_DIR);
-    ctrl->createDir(files2Path);
-    files2Path.unlockAll();
+    createDir(ctrlDir, "10", vk_music_fs::fs::FsPath::WITH_PARENT_DIR);
+    createDir(ctrlDir, "pl2/2", vk_music_fs::fs::FsPath::WITH_PARENT_DIR);
+    auto files2Path = createDir(ctrlDir, "pl2/3", vk_music_fs::fs::FsPath::WITH_PARENT_DIR);
 
     std::set<std::string> exp = {"3", "Art 1 - Title1.mp3", "Art 2 - Title 2.mp3", "Art 3 - Title 3.mp3"};
     EXPECT_EQ(listContents(files2Path.getLast().dir()), exp);
@@ -145,15 +135,9 @@ TEST_F(PlaylistCtrlT, RefreshPlaylistAudiosDir) {
     std::vector<vk_music_fs::RemoteFile> files2{{"http://url3", 13, 21, "Art 3", "Title 3"}};
     EXPECT_CALL(*obtainer, getMyPlaylists(0, 10)).WillOnce(testing::Return(plData));
     EXPECT_CALL(*obtainer, getPlaylistAudios("11", 3, 1, 1, 5)).WillOnce(testing::Return(files)).WillOnce(testing::Return(files2));
-    auto path = fsUtils->findPath(ctrlDir, "10", vk_music_fs::fs::FsPath::WITH_PARENT_DIR);
-    ctrl->createDir(path);
-    path.unlockAll();
-    auto filesPath = fsUtils->findPath(ctrlDir, "pl1/1-5", vk_music_fs::fs::FsPath::WITH_PARENT_DIR);
-    ctrl->createDir(filesPath);
-    filesPath.unlockAll();
-    auto refreshPath = fsUtils->findPath(ctrlDir, "pl1/r", vk_music_fs::fs::FsPath::WITH_PARENT_DIR);
-    ctrl->createDir(refreshPath);
-    refreshPath.unlockAll();
+    createDir(ctrlDir, "10", vk_music_fs::fs::FsPath::WITH_PARENT_DIR);
+    createDir(ctrlDir, "pl1/1-5", vk_music_fs::fs::FsPath::WITH_PARENT_DIR);
+    auto refreshPath = createDir(ctrlDir, "pl1/r", vk_music_fs::fs::FsPath::WITH_PARENT_DIR);
 
     std::set<std::string> exp = {"1-5", "r", "Art 3 - Title 3.mp3"};
     EXPECT_EQ(listContents(refreshPath.getLast().dir()), exp);
@@ -168,20 +152,37 @@ TEST_F(PlaylistCtrlT, RefreshPlaylistAudiosDirThenReload) {
     EXPECT_CALL(*obtainer, getMyPlaylists(0, 10)).WillOnce(testing::Return(plData));
     EXPECT_CALL(*obtainer, getPlaylistAudios("11", 3, 1, 1, 5)).WillOnce(testing::Return(files)).WillOnce(testing::Return(files2));
     EXPECT_CALL(*obtainer, getPlaylistAudios("11", 3, 1, 2, 4)).WillOnce(testing::Return(files));
-    auto path = fsUtils->findPath(ctrlDir, "10", vk_music_fs::fs::FsPath::WITH_PARENT_DIR);
-    ctrl->createDir(path);
-    path.unlockAll();
-    auto filesPath = fsUtils->findPath(ctrlDir, "pl1/1-5", vk_music_fs::fs::FsPath::WITH_PARENT_DIR);
-    ctrl->createDir(filesPath);
-    filesPath.unlockAll();
-    auto refreshPath = fsUtils->findPath(ctrlDir, "pl1/r", vk_music_fs::fs::FsPath::WITH_PARENT_DIR);
-    ctrl->createDir(refreshPath);
-    refreshPath.unlockAll();
-    auto files2Path = fsUtils->findPath(ctrlDir, "pl1/2-4", vk_music_fs::fs::FsPath::WITH_PARENT_DIR);
-    ctrl->createDir(files2Path);
-    files2Path.unlockAll();
+    createDir(ctrlDir, "10", vk_music_fs::fs::FsPath::WITH_PARENT_DIR);
+    createDir(ctrlDir, "pl1/1-5", vk_music_fs::fs::FsPath::WITH_PARENT_DIR);
+    createDir(ctrlDir, "pl1/r", vk_music_fs::fs::FsPath::WITH_PARENT_DIR);
+    auto files2Path = createDir(ctrlDir, "pl1/2-4", vk_music_fs::fs::FsPath::WITH_PARENT_DIR);
 
     std::set<std::string> exp = {"2-4", "Art 1 - Title1.mp3", "Art 2 - Title 2.mp3"};
     EXPECT_EQ(listContents(files2Path.getLast().dir()), exp);
     EXPECT_EQ(std::get<OffsetCntPlaylist>(*ctrlDir->getItem("pl1").dir()->getDirExtra()).getRefreshDir(), nullptr);
+}
+
+TEST_F(PlaylistCtrlT, DeletePlaylist) {
+    std::vector<vk_music_fs::fs::PlaylistData> plData{{3, 1, "11", "pl1"}, {12, 15, "12", "pl2"}, {12, 15, "12", "pl3"}};
+    std::vector<vk_music_fs::RemoteFile> files{{"http://url1", 1, 2, "Art 1", "Title1"}, {"http://url2", 6, 7, "Art 2", "Title 2"}};
+    std::vector<vk_music_fs::RemoteFile> files2{{"http://url3", 13, 21, "Art 3", "Title 3"}};
+    EXPECT_CALL(*obtainer, getMyPlaylists(0, 10)).WillOnce(testing::Return(plData));
+    EXPECT_CALL(*obtainer, getPlaylistAudios("11", 3, 1, 1, 5)).WillOnce(testing::Return(files)).WillOnce(testing::Return(files2));
+    EXPECT_CALL(*obtainer, deletePlaylist(3, 1));
+    createDir(ctrlDir, "10", vk_music_fs::fs::FsPath::WITH_PARENT_DIR);
+    createDir(ctrlDir, "pl1/1-5", vk_music_fs::fs::FsPath::WITH_PARENT_DIR);
+    auto refreshPath = createDir(ctrlDir, "pl1/r", vk_music_fs::fs::FsPath::WITH_PARENT_DIR);
+
+    auto data = listContents(refreshPath.getLast().dir());
+    for (const auto& item: data) {
+        auto path = fsUtils->findPath(ctrlDir, "pl1/" + item, vk_music_fs::fs::FsPath::WITH_PARENT_DIR);
+        if (path.isPathDir()) {
+            ctrl->deleteDir(path);
+        } else {
+            ctrl->deleteFile(path);
+        }
+        path.unlockAll();
+    }
+    auto playlistPath = fsUtils->findPath(ctrlDir, "pl1", vk_music_fs::fs::FsPath::WITH_PARENT_DIR);
+    ctrl->deleteDir(playlistPath);
 }
