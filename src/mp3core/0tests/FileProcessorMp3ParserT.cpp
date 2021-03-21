@@ -21,12 +21,10 @@ typedef vk_music_fs::FileProcessor<StreamM, FileM, Mp3Parser, ThreadPoolM, Block
 
 class FileProcessorMp3ParserT: public ::testing::Test {
 public:
-    vk_music_fs::Artist artist{"Justin Bieber"};
-    vk_music_fs::Title title{"Baby"};
+    vk_music_fs::SongData songData{"Justin Bieber", "Baby", std::optional<std::string>{"Album name"}};
     vk_music_fs::TagSize prevTagSize{4096};
     auto_init(inj, (vk_music_fs::makeStorageInj(
-        di::bind<vk_music_fs::Artist>.to(artist),
-        di::bind<vk_music_fs::Title>.to(title),
+        di::bind<vk_music_fs::SongData>.to(songData),
         di::bind<vk_music_fs::TagSize>.to(prevTagSize)
     )));
 
@@ -83,6 +81,7 @@ TEST_F(FileProcessorMp3ParserT, AddID3){ //NOLINT
     TagLib::ByteVectorStream strm(bvect);
     TagLib::MPEG::File f(&strm, TagLib::ID3v2::FrameFactory::instance());
     ASSERT_TRUE(f.hasID3v2Tag());
-    EXPECT_EQ(f.ID3v2Tag(false)->title(), title.t);
-    EXPECT_EQ(f.ID3v2Tag(false)->artist(), artist.t);
+    EXPECT_EQ(f.ID3v2Tag(false)->title(), songData.title);
+    EXPECT_EQ(f.ID3v2Tag(false)->artist(), songData.artist);
+    EXPECT_EQ(f.ID3v2Tag(false)->album(), songData.albumName);
 }

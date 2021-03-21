@@ -49,8 +49,7 @@ typedef di::extension::iextfactory<
 > IReaderFact;
 
 typedef di::extension::iextfactory<FileProcessorM,
-        vk_music_fs::Artist,
-        vk_music_fs::Title,
+        vk_music_fs::SongData,
         vk_music_fs::Mp3Uri,
         vk_music_fs::TagSize,
         RemoteFile,
@@ -70,11 +69,10 @@ class ProcFact: public IProcFact{
 public:
     template <typename... T>
     ProcFact(T&&... args){}
-    MOCK_CONST_METHOD6(
+    MOCK_CONST_METHOD5(
             createShared,
             std::shared_ptr<FileProcessorM>(
-                    vk_music_fs::Artist,
-                    vk_music_fs::Title,
+                    vk_music_fs::SongData,
                     vk_music_fs::Mp3Uri,
                     vk_music_fs::TagSize,
                     RemoteFile,
@@ -114,7 +112,7 @@ protected:
         auto mock = inj.create<std::shared_ptr<IProcFact>>();
         EXPECT_CALL(
                 dynamic_cast<ProcFact&>(*mock),
-                createShared(testing::_, testing::_, testing::_, testing::_, testing::_, testing::_)
+                createShared(testing::_, testing::_, testing::_, testing::_, testing::_)
         ).WillRepeatedly(testing::Invoke([this] (...) {
             return inj.create<std::shared_ptr<FileProcessorM>>();
         }));

@@ -10,7 +10,7 @@ namespace vk_music_fs {
     public:
         RemoteFile(
                 const std::string &uri, int_fast32_t ownerId, uint_fast32_t fileId,
-                const std::string &artist, const std::string &title
+                const std::string &artist, const std::string &title, const std::optional<std::string> albumName = std::nullopt
         );
         const std::string& getUri() const;
         const std::string& getArtist() const;
@@ -21,12 +21,15 @@ namespace vk_music_fs {
             return _fileId == other._fileId && _ownerId == other._ownerId;
         }
         RemoteFileId getId() const;
+        const std::optional<std::string>& getAlbumName() const;
+
+        const SongData &getSongData() const;
+
     private:
         std::string _uri;
         int_fast32_t _ownerId;
         uint_fast32_t _fileId;
-        std::string _artist;
-        std::string _title;
+        SongData _songData;
     };
 
 

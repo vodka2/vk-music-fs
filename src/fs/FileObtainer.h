@@ -131,7 +131,9 @@ namespace vk_music_fs {
                 std::vector<PlaylistData> ret;
                 auto resp = returnedJson["response"];
                 for (const auto &item: resp["items"]) {
-                    ret.push_back(PlaylistData{item["owner_id"], item["id"], item["access_key"], item["title"]});
+                    auto isAlbum = (item.find("album_type") != item.end() &&
+                            item["album_type"].get<std::string>() == "main_only");
+                    ret.push_back(PlaylistData{item["owner_id"], item["id"], item["access_key"], item["title"], isAlbum});
                 }
                 return std::move(ret);
             }

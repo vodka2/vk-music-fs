@@ -137,6 +137,11 @@ std::vector<FilePtr> FsUtils::addFilesToDir(
 ) {
     auto curTime = dir->getNumFiles();
     std::vector<FilePtr> createdFiles;
+    auto albumName = (
+            dir->getDirExtra() &&
+            std::holds_alternative<OffsetCntPlaylist>(*dir->getDirExtra()) &&
+            std::get<OffsetCntPlaylist>(*dir->getDirExtra()).getPlaylist().isAlbum
+    ) ? std::optional<std::string>{std::get<OffsetCntPlaylist>(*dir->getDirExtra()).getPlaylist().title} : std::nullopt;
     for(const auto &file: files) {
         Mp3FileName fname(file.getArtist(), file.getTitle(), extension);
         while (dir->hasItem(fname.getFilename())) {
@@ -146,7 +151,7 @@ std::vector<FilePtr> FsUtils::addFilesToDir(
                 fname.getFilename(),
                 idGenerator->getNextId(),
                 curTime,
-                RemoteFile{file.getUri(), file.getOwnerId(), file.getFileId(), fname.getArtist(), fname.getTitle()},
+                RemoteFile{file.getUri(), file.getOwnerId(), file.getFileId(), fname.getArtist(), fname.getTitle(), albumName},
                 dir
         );
         dir->addItem(newFile);

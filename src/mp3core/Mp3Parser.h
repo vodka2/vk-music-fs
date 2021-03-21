@@ -77,23 +77,25 @@ namespace vk_music_fs {
 
     class Mp3Parser {
     public:
-        Mp3Parser(Artist artist, Title title, TagSize tagSize);
+        Mp3Parser(SongData data, TagSize tagSize);
         template <typename TBuffer>
         void parse(const std::shared_ptr<TBuffer> &buffer){
             auto strm = std::make_shared<IOStream<TBuffer>>(buffer);
             TagLib::MPEG::File f(strm.get(), TagLib::ID3v2::FrameFactory::instance());
             f.ID3v2Tag(true)->setExtraSize(_tagSize);
             if(f.ID3v2Tag()->artist().isEmpty()){
-                f.ID3v2Tag()->setArtist(_artist.t);
+                f.ID3v2Tag()->setArtist(_songData.artist);
             }
             if(f.ID3v2Tag()->title().isEmpty()) {
-                f.ID3v2Tag()->setTitle(_title.t);
+                f.ID3v2Tag()->setTitle(_songData.title);
+            }
+            if(f.ID3v2Tag()->album().isEmpty() && _songData.albumName) {
+                f.ID3v2Tag()->setAlbum(*_songData.albumName);
             }
             f.save();
         }
     private:
-        Artist _artist;
-        Title _title;
+        SongData _songData;
         TagSize _tagSize;
     };
 }

@@ -33,8 +33,12 @@ namespace vk_music_fs{
         std::string data;
         bool inCache;
     };
-    BOOST_STRONG_TYPEDEF(std::string, Artist); //NOLINT
-    BOOST_STRONG_TYPEDEF(std::string, Title); //NOLINT
+
+    struct SongData {
+        std::string artist;
+        std::string title;
+        std::optional<std::string> albumName;
+    };
     BOOST_STRONG_TYPEDEF(uint_fast32_t, TagSize); //NOLINT
     BOOST_STRONG_TYPEDEF(uint_fast32_t, FileSize); //NOLINT
     BOOST_STRONG_TYPEDEF(uint_fast32_t, HttpTimeout); //NOLINT

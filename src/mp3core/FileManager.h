@@ -23,8 +23,7 @@ namespace vk_music_fs {
                 const std::shared_ptr<TFileCache> &fileCache,
                 std::shared_ptr<boost::di::extension::iextfactory<
                         TFileProcessor,
-                        Artist,
-                        Title,
+                        SongData,
                         Mp3Uri,
                         TagSize,
                         RemoteFile,
@@ -60,8 +59,7 @@ namespace vk_music_fs {
                             _readers[remFileId].usages[*_readers[remFileId].processor]++;
                         } else {
                             auto proc = _procsFact->createShared(
-                                    Artist{remFile.getArtist()},
-                                    Title{remFile.getTitle()},
+                                    SongData{remFile.getSongData()},
                                     Mp3Uri{remFile.getUri()},
                                     TagSize{_fileCache->getTagSize(remFile)},
                                     RemoteFile(remFile),
@@ -133,8 +131,7 @@ namespace vk_music_fs {
         std::shared_ptr<TFileCache> _fileCache;
         std::shared_ptr<boost::di::extension::iextfactory<
                 TFileProcessor,
-                Artist,
-                Title,
+                SongData,
                 Mp3Uri,
                 TagSize,
                 RemoteFile,

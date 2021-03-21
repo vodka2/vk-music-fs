@@ -43,7 +43,7 @@ FNameCache FileCache::getFilename(const RemoteFile &file) {
 }
 
 uint_fast32_t FileCache::getTagSize(const RemoteFile &file) {
-    return _tagSizeCalc->getTagSize(file.getArtist(), file.getTitle());
+    return _tagSizeCalc->getTagSize(file);
 }
 
 uint_fast32_t FileCache::getFileSize(const RemoteFile &file) {

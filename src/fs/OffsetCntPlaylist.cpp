@@ -47,3 +47,7 @@ PlaylistData OffsetCntPlaylist::getPlaylist() const {
     return _playlist;
 }
 
+PlaylistData::PlaylistData(int_fast32_t ownerId, uint_fast32_t albumId, const std::string &accessKey,
+                           const std::string &title, bool isAlbum) : ownerId(ownerId), albumId(albumId),
+                                                                     accessKey(accessKey), title(title),
+                                                                     isAlbum(isAlbum) {}

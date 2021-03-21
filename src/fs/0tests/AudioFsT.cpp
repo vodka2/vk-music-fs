@@ -259,7 +259,7 @@ public:
                            "items": [
                                {"owner_id": 5, "id": 7, "access_key": "8", "title": "Playlist name"},
                                {"owner_id": -5, "id": 11, "access_key": "7", "title": "Playlist name 2"},
-                               {"owner_id": -9, "id": 1, "access_key": "17", "title": "Playlist name 3"}
+                               {"owner_id": -9, "id": 1, "access_key": "17", "title": "Playlist name 3", "album_type": "main_only"}
                            ]
                         }}
                         )"
@@ -268,6 +268,20 @@ public:
 
     void initMyPlaylistsAudiosQuery(){
         ON_CALL(*queryMakerM, getPlaylistAudios("7", -5, 11, 0, 2)).WillByDefault(testing::Return(
+                R"(
+                        {"response": {
+                           "count": 2,
+                           "items": [
+                               {"id": 1, "owner_id": 2, "artist":"Artist1", "title":"Song1", "url":"https:\/\/uri1"},
+                               {"id": 2, "owner_id": 3, "artist":"Artist2", "title":"Song2", "url":"https:\/\/uri2"}
+                           ]
+                        }}
+                        )"
+        ));
+    }
+
+    void initMyPlaylistsAlbumAudiosQuery(){
+        ON_CALL(*queryMakerM, getPlaylistAudios("17", -9, 1, 0, 2)).WillByDefault(testing::Return(
                 R"(
                         {"response": {
                            "count": 2,
@@ -583,6 +597,28 @@ TEST_F(AudioFsT, LoadPlaylistAudios){ //NOLINT
     };
     std::sort(dirs.begin(), dirs.end());
     EXPECT_EQ(dirs, expData);
+}
+
+TEST_F(AudioFsT, LoadAlbumAudios){ //NOLINT
+    auto api = inj.create<std::shared_ptr<AudioFs>>();
+    initGetUserIdQuery();
+    initMyPlaylistsQuery();
+    initMyPlaylistsAlbumAudiosQuery();
+    api->createDir("/My playlists/3");
+    api->createDir("/My playlists/Playlist name 3/2");
+    auto dirs = api->getEntries("/My playlists/Playlist name 3");
+    std::vector<std::string> expData = {
+            "2", "Artist1 - Song1.mp3", "Artist2 - Song2.mp3"
+    };
+    std::sort(dirs.begin(), dirs.end());
+    EXPECT_EQ(dirs, expData);
+    EXPECT_CALL(*fileManagerM,
+            open(testing::_, "/My playlists/Playlist name 3/Artist2 - Song2.mp3")).WillOnce(
+            testing::WithArgs<0>(testing::Invoke([](RemoteFile arg){
+                EXPECT_EQ(*arg.getAlbumName(), "Playlist name 3");
+                return 77;
+            })));
+    api->open("/My playlists/Playlist name 3/Artist2 - Song2.mp3");
 }
 
 TEST_F(AudioFsT, CreateMyAudiosSimilarRefresh){ //NOLINT
