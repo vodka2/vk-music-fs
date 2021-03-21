@@ -35,12 +35,12 @@ script:
   - cmake --build . --target AllTests
   - ./AllTests
   - cmake --build . --target vk_music_fs
-  - mkdir -p appdir/usr/optional/ ; wget -c https://github.com/darealshinji/AppImageKit-checkrt/releases/download/continuous/exec-${ARCH_SUFFIX}.so -O ./appdir/usr/optional/exec.so
-  - mkdir -p appdir/usr/optional/libstdc++/ ; cp /usr/lib/${ARCH_SUFFIX2}-linux-gnu/libstdc++.so.6 ./appdir/usr/optional/libstdc++/
-  - ( cd appdir ; rm AppRun ; wget -c https://github.com/darealshinji/AppImageKit-checkrt/releases/download/continuous/AppRun-patched-${ARCH_SUFFIX} -O AppRun ; chmod a+x AppRun)
+  - mkdir appdir
+  - wget https://github.com/linuxdeploy/linuxdeploy-plugin-checkrt/releases/download/continuous/linuxdeploy-plugin-checkrt-${ARCH_SUFFIX}.sh
+  - sed -i "s/x86_64/${ARCH_SUFFIX2}/g" linuxdeploy-plugin-checkrt-${ARCH_SUFFIX}.sh
   - wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
   - chmod a+x linuxdeploy-x86_64.AppImage
-  - OUTPUT="vk_music_fs-$ARCH_SUFFIX2.AppImage" ./linuxdeploy-x86_64.AppImage --appimage-extract-and-run -e vk_music_fs --appdir appdir -e vk_music_fs -i ../appimage/vk_music_fs-icon.svg -d ../appimage/vk_music_fs.desktop --output appimage
+  - OUTPUT="vk_music_fs-$ARCH_SUFFIX2.AppImage" ./linuxdeploy-x86_64.AppImage --appimage-extract-and-run -e vk_music_fs --plugin checkrt --appdir appdir -e vk_music_fs -i ../appimage/vk_music_fs-icon.svg -d ../appimage/vk_music_fs.desktop --output appimage
   - md5sum vk_music_fs*.AppImage*
 git:
   submodules: true
