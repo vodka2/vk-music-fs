@@ -52,31 +52,34 @@ namespace vk_music_fs {
                 auto dirName = path.getStringParts().back();
                 auto parent = path.getAll().back().dir();
                 QueryParams query = _fsUtils->parseQuery(dirName);
-                if(parent->getId() == _ctrlDir->getId()){
+                if (parent->getId() == _ctrlDir->getId()) {
+                    auto allPlaylistData = getAllPlaylistData();
                     if(query.type == QueryParams::Type::TWO_NUMBERS || query.type == QueryParams::Type::ONE_NUMBER){
                         getAct<RemoveRefreshDirAct>(_acts)->template doAction<OffsetCnt>(
                             _ctrlDir,
-                            [this, dirName, query] {
+                            [this, dirName, query, &allPlaylistData] {
                                 getAct<NumberAct>(_acts)->template doAction<OffsetCnt>(
                                         _ctrlDir, dirName, query,
                                         _fsUtils->getAllDeleter(),
-                                        [this] (uint_fast32_t offset, uint_fast32_t cnt) {
+                                        [this, &allPlaylistData] (uint_fast32_t offset, uint_fast32_t cnt) {
                                             addPlaylistsToDir(
                                                     _ctrlDir,
-                                                    _fileObtainer->getMyPlaylists(offset, cnt)
+                                                    _fileObtainer->getMyPlaylists(offset, cnt),
+                                                    allPlaylistData
                                             );
                                         }
                                 );
                             }
                         );
-                    } else if(_fsUtils->isRefreshDir(dirName)){
+                    } else if(_fsUtils->isRefreshDir(dirName)) {
                         getAct<RefreshAct>(_acts)->template doAction<OffsetCnt>(
                             _ctrlDir, dirName,
                             _fsUtils->template getCounterDirLeaver<OffsetCnt>(),
-                            [this] (uint_fast32_t offset, uint_fast32_t cnt) {
+                            [this, &allPlaylistData] (uint_fast32_t offset, uint_fast32_t cnt) {
                                 addPlaylistsToDir(
                                         _ctrlDir,
-                                        _fileObtainer->getMyPlaylists(offset, cnt)
+                                        _fileObtainer->getMyPlaylists(offset, cnt),
+                                        allPlaylistData
                                 );
                             }
                         );
@@ -105,7 +108,7 @@ namespace vk_music_fs {
                                 );
                             }
                         );
-                    } else if(_fsUtils->isRefreshDir(dirName)){
+                    } else if(_fsUtils->isRefreshDir(dirName)) {
                         getAct<RefreshAct>(_acts)->template doAction<OffsetCntPlaylist>(
                             parent, dirName,
                             _fsUtils->template getCounterDirLeaver<OffsetCntPlaylist>(),
@@ -152,22 +155,59 @@ namespace vk_music_fs {
             }
 
         private:
-            void addPlaylistsToDir(const DirPtr &dir, const std::vector<PlaylistData> &playlists){
+            std::unordered_map<PlaylistId, OffsetCntPlaylist, PlaylistIdHasher> getAllPlaylistData() {
+                std::unordered_map<PlaylistId, OffsetCntPlaylist, PlaylistIdHasher> result;
+                for(const auto &dirOrFile: _ctrlDir->getContents()) {
+                    if (dirOrFile.second.isDir()) {
+                        auto dir = dirOrFile.second.dir();
+                        if (dir->getDirExtra() && std::holds_alternative<OffsetCntPlaylist>(*dir->getDirExtra())) {
+                            auto offsetCntPlaylist = std::get<OffsetCntPlaylist>(*dir->getDirExtra());
+                            result.insert(std::make_pair<>(
+                                    PlaylistId{offsetCntPlaylist.getPlaylist().ownerId,
+                                               offsetCntPlaylist.getPlaylist().albumId},
+                                    offsetCntPlaylist
+                            ));
+                        }
+                    }
+                }
+                return result;
+            }
+
+            void addPlaylistsToDir(
+                    const DirPtr &dir, const std::vector<PlaylistData> &playlists,
+                    const std::unordered_map<PlaylistId, OffsetCntPlaylist, PlaylistIdHasher> &allPlaylistData
+                    ){
                 auto curTime = dir->getNumFiles();
-                for(const auto &playlist: playlists){
+                for (const auto &playlist: playlists) {
+                    uint_fast32_t offset = 0;
+                    uint_fast32_t cnt = 0;
+                    auto playlistData = allPlaylistData.find(PlaylistId{playlist.ownerId, playlist.albumId});
+                    if (playlistData != allPlaylistData.end()) {
+                        offset = playlistData->second.getOffset();
+                        cnt = playlistData->second.getCnt();
+                    }
                     auto fname = FileName(playlist.title);
                     while (dir->hasItem(fname.getFilename())) {
                         fname.increaseNumberSuffix();
                     }
-                    auto newFile = std::make_shared<Dir>(
+                    auto newDir = std::make_shared<Dir>(
                             fname.getFilename(),
                             _idGenerator->getNextId(),
-                            OffsetCntPlaylist{0, 0, DirPtr{}, DirPtr{}, playlist},
+                            OffsetCntPlaylist{offset, cnt, DirPtr{}, DirPtr{}, playlist},
                             dir,
                             curTime
                     );
-                    dir->addItem(newFile);
+                    dir->addItem(newDir);
                     curTime++;
+                    if (offset != cnt) {
+                        _asyncFsManager->createFiles(
+                                newDir,
+                                _fileObtainer->getPlaylistAudios(
+                                        playlist.accessKey, playlist.ownerId,
+                                        playlist.albumId, offset, cnt
+                                )
+                        );
+                    }
                 }
             }
 

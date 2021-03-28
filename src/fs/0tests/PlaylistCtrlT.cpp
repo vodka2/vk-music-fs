@@ -97,6 +97,23 @@ TEST_F(PlaylistCtrlT, RefreshPlaylistDir) {
     EXPECT_EQ(std::get<OffsetCntPlaylist>(*ctrlDir->getItem("pl9").dir()->getDirExtra()).getPlaylist().accessKey, "13");
 }
 
+TEST_F(PlaylistCtrlT, RefreshPlaylistDirKeepFiles) {
+    std::vector<vk_music_fs::fs::PlaylistData> plData{{3, 1, "11", "pl1"}, {12, 15, "12", "pl2"}};
+    std::vector<vk_music_fs::fs::PlaylistData> plRefreshData{{3, 1, "11", "pl1"}, {178, 17, "13", "pl9"}};
+    std::vector<vk_music_fs::RemoteFile> files{{"http://url1", 1, 2, "Art 1", "Title1"}, {"http://url2", 6, 7, "Art 2", "Title 2"}};
+    std::vector<vk_music_fs::RemoteFile> files2{{"http://url1", 1, 2, "Art 4", "Title4"}};
+    EXPECT_CALL(*obtainer, getMyPlaylists(0, 10)).WillOnce(testing::Return(plData)).WillOnce(testing::Return(plRefreshData));
+    EXPECT_CALL(*obtainer, getPlaylistAudios("11", 3, 1, 0, 7)).WillOnce(testing::Return(files)).WillOnce(testing::Return(files2));
+
+    createDir(ctrlDir, "10", vk_music_fs::fs::FsPath::WITH_PARENT_DIR);
+    createDir(ctrlDir, "pl1/0-7", vk_music_fs::fs::FsPath::WITH_PARENT_DIR);
+    createDir(ctrlDir, "refresh", vk_music_fs::fs::FsPath::WITH_PARENT_DIR);
+
+    std::set<std::string> exp = {"Art 4 - Title4.mp3"};
+    auto sz = ctrlDir->getItem("pl1").dir()->getContents().size();
+    EXPECT_EQ(listContents(ctrlDir->getItem("pl1").dir()), exp);
+}
+
 TEST_F(PlaylistCtrlT, CreatePlaylistAudiosDir) {
     std::vector<vk_music_fs::fs::PlaylistData> plData{{3, 1, "11", "pl1"}, {12, 15, "12", "pl2"}};
     std::vector<vk_music_fs::RemoteFile> files{{"http://url1", 1, 2, "Art 1", "Title1"}, {"http://url2", 6, 7, "Art 2", "Title 2"}};

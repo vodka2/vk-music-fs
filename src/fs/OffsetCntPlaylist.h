@@ -4,6 +4,20 @@
 
 namespace vk_music_fs {
     namespace fs {
+        struct PlaylistId {
+            int_fast32_t ownerId;
+            uint_fast32_t albumId;
+            bool operator ==(const PlaylistId &other) const{
+                return albumId == other.albumId && ownerId == other.ownerId;
+            }
+        };
+
+        struct PlaylistIdHasher{
+            std::size_t operator()(const PlaylistId &playlistId) const{
+                return (std::hash<int_fast32_t>()(playlistId.ownerId) << 1) ^ std::hash<uint_fast32_t>()(playlistId.albumId);
+            }
+        };
+
         struct PlaylistData{
             PlaylistData(int_fast32_t ownerId, uint_fast32_t albumId, const std::string &accessKey,
                          const std::string &title, bool isAlbum = false);
