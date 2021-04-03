@@ -7,6 +7,10 @@
 #include <mp3core/RemoteFile.h>
 
 namespace vk_music_fs{
+    struct Meta {
+        uint_fast32_t version;
+    };
+
     class CacheSaver {
     public:
         explicit CacheSaver(
@@ -74,9 +78,14 @@ namespace vk_music_fs{
             strm << out;
         }
     private:
+        Meta getMeta();
+        void saveMeta();
         std::string idToStr(const RemoteFileId &file);
         constexpr static std::string_view SIZES_CACHE_FNAME = "head_cache.json";
         constexpr static std::string_view FILES_CACHE_FNAME = "files_cache.json";
+        constexpr static std::string_view META_CACHE_FNAME = "meta.json";
+        const uint_fast32_t CACHE_VERSION = 1;
         std::string _cacheDir;
+        Meta _meta;
     };
 }
