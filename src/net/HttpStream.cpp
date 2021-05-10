@@ -92,7 +92,7 @@ ByteVect HttpStream::read(uint_fast32_t offset, uint_fast32_t length) {
 }
 
 HttpStream::HttpStream(
-        const Mp3Uri &uri, const std::shared_ptr<HttpStreamCommon> &common, const UserAgent &userAgent,
+        const RemoteFileUri &uri, const std::shared_ptr<HttpStreamCommon> &common, const UserAgent &userAgent,
         const HttpTimeout &timeout
 )
 : _timeout(timeout.t), _closed(false),

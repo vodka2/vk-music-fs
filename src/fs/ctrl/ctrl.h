@@ -14,7 +14,8 @@
 
 namespace vk_music_fs {
     namespace fs {
-        template<typename TFsUtils, typename TFileObtainer, typename TFileManager, typename TAsyncFsManager>
+        template<typename TFsUtils, typename TFileObtainer, typename TFileManager,
+                typename TPhotoManager, typename TAsyncFsManager>
         using CtrlTuple = std::tuple<
                 std::shared_ptr<
                         DummyDirWrapper<
@@ -26,7 +27,8 @@ namespace vk_music_fs {
                                                                 TFsUtils
                                                         >,
                                                         TFsUtils,
-                                                        TFileManager
+                                                        TFileManager,
+                                                        TPhotoManager
                                                 >,
                                                 TFsUtils,
                                                 TFileObtainer,
@@ -51,7 +53,8 @@ namespace vk_music_fs {
                                                                 TFsUtils
                                                         >,
                                                         TFsUtils,
-                                                        TFileManager
+                                                        TFileManager,
+                                                        TPhotoManager
                                                 >,
                                                 TFsUtils,
                                                 TFileObtainer,
@@ -77,7 +80,8 @@ namespace vk_music_fs {
                                                                 TFsUtils
                                                         >,
                                                         TFsUtils,
-                                                        TFileManager
+                                                        TFileManager,
+                                                        TPhotoManager
                                                 >,
                                                 TFsUtils,
                                                 TFileObtainer,
@@ -99,7 +103,8 @@ namespace vk_music_fs {
                                                                 TFsUtils
                                                                 >,
                                                         TFsUtils,
-                                                        TFileManager
+                                                        TFileManager,
+                                                        TPhotoManager
                                                 >,
                                                 TFsUtils,
                                                 TFileObtainer,

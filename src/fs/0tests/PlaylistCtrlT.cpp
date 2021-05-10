@@ -6,6 +6,7 @@
 #include <fs/AsyncFsManager.h>
 #include "data/FsHelper.h"
 #include "data/FileCacheM.h"
+#include "data/PhotoCacheM.h"
 #include "data/RealFsM.h"
 #include "data/ThreadPoolM.h"
 #include "data/FileObtainerM.h"
@@ -16,7 +17,7 @@ class PlaylistCtrlT: public ::testing::Test, public FsHelper {
 public:
     using PlaylistCtrl = vk_music_fs::fs::PlaylistCtrl<
             vk_music_fs::fs::FsUtils, FileObtainerM,
-            vk_music_fs::fs::AsyncFsManager<vk_music_fs::fs::FsUtils, FileCacheM, RealFsM, ThreadPoolM>
+            vk_music_fs::fs::AsyncFsManager<vk_music_fs::fs::FsUtils, FileCacheM, PhotoCacheM, RealFsM, ThreadPoolM>
             >;
     using OffsetCntPlaylist = vk_music_fs::fs::OffsetCntPlaylist;
 
@@ -25,6 +26,7 @@ public:
             di::bind<vk_music_fs::NumSearchFiles>.to(vk_music_fs::NumSearchFiles{5}),
             di::bind<vk_music_fs::CreateDummyDirs>.to(vk_music_fs::CreateDummyDirs{false}),
             di::bind<vk_music_fs::fs::UseAsyncNotifier>.to(vk_music_fs::fs::UseAsyncNotifier{false}),
+            di::bind<vk_music_fs::fs::PhotoName>.to(vk_music_fs::fs::PhotoName{"photo.jpg"}),
             di::bind<vk_music_fs::fs::PathToFs>.to(vk_music_fs::fs::PathToFs{"/"})
             )));
     std::shared_ptr<PlaylistCtrl> ctrl;
@@ -131,6 +133,23 @@ TEST_F(PlaylistCtrlT, CreatePlaylistAudiosDir) {
     );
 }
 
+TEST_F(PlaylistCtrlT, CreatePlaylistAudiosDirPhoto) {
+    std::vector<vk_music_fs::fs::PlaylistData> plData{{3, 1, "11", "pl1"}, {12, 15, "12", "pl2", true, std::optional<std::string>{"http://photo-url"}}};
+    std::vector<vk_music_fs::RemoteFile> files{{"http://url1", 1, 2, "Art 1", "Title1"}, {"http://url2", 6, 7, "Art 2", "Title 2"}};
+    EXPECT_CALL(*obtainer, getMyPlaylists(0, 10)).WillOnce(testing::Return(plData));
+    EXPECT_CALL(*obtainer, getPlaylistAudios("12", 12, 15, 0, 7)).WillOnce(testing::Return(files));
+    createDir(ctrlDir, "10", vk_music_fs::fs::FsPath::WITH_PARENT_DIR);
+    auto filesPath = createDir(ctrlDir, "pl2/7", vk_music_fs::fs::FsPath::WITH_PARENT_DIR);
+
+    std::set<std::string> exp = {"7", "photo.jpg", "Art 1 - Title1.mp3", "Art 2 - Title 2.mp3"};
+    EXPECT_EQ(listContents(filesPath.getLast().dir()), exp);
+
+    EXPECT_EQ(
+            std::get<vk_music_fs::RemoteFile>(*filesPath.getLast().dir()->getItem("Art 2 - Title 2.mp3").file()->getExtra()),
+            files.back()
+    );
+}
+
 TEST_F(PlaylistCtrlT, CreatePlaylistAudiosDirTwice) {
     std::vector<vk_music_fs::fs::PlaylistData> plData{{3, 1, "11", "pl1"}, {12, 15, "12", "pl2"}};
     std::vector<vk_music_fs::RemoteFile> files{{"http://url1", 1, 2, "Art 1", "Title1"}, {"http://url2", 6, 7, "Art 2", "Title 2"}};
@@ -160,6 +179,25 @@ TEST_F(PlaylistCtrlT, RefreshPlaylistAudiosDir) {
     EXPECT_EQ(listContents(refreshPath.getLast().dir()), exp);
     EXPECT_EQ(std::get<OffsetCntPlaylist>(*ctrlDir->getItem("pl1").dir()->getDirExtra()).getRefreshDir()->getName(), "r");
 }
+
+TEST_F(PlaylistCtrlT, RefreshPlaylistAudiosDirPhoto) {
+    std::vector<vk_music_fs::fs::PlaylistData> plData{
+        {3, 1, "11", "pl1", true, std::optional<std::string>{"http://photo-url"}},
+        {12, 15, "12", "pl2"},
+        {12, 15, "12", "pl3"}};
+    std::vector<vk_music_fs::RemoteFile> files{{"http://url1", 1, 2, "Art 1", "Title1"}, {"http://url2", 6, 7, "Art 2", "Title 2"}};
+    std::vector<vk_music_fs::RemoteFile> files2{{"http://url3", 13, 21, "Art 3", "Title 3"}};
+    EXPECT_CALL(*obtainer, getMyPlaylists(0, 10)).WillOnce(testing::Return(plData));
+    EXPECT_CALL(*obtainer, getPlaylistAudios("11", 3, 1, 1, 5)).WillOnce(testing::Return(files)).WillOnce(testing::Return(files2));
+    createDir(ctrlDir, "10", vk_music_fs::fs::FsPath::WITH_PARENT_DIR);
+    createDir(ctrlDir, "pl1/1-5", vk_music_fs::fs::FsPath::WITH_PARENT_DIR);
+    auto refreshPath = createDir(ctrlDir, "pl1/r", vk_music_fs::fs::FsPath::WITH_PARENT_DIR);
+
+    std::set<std::string> exp = {"1-5", "photo.jpg", "r", "Art 3 - Title 3.mp3"};
+    EXPECT_EQ(listContents(refreshPath.getLast().dir()), exp);
+    EXPECT_EQ(std::get<OffsetCntPlaylist>(*ctrlDir->getItem("pl1").dir()->getDirExtra()).getRefreshDir()->getName(), "r");
+}
+
 
 
 TEST_F(PlaylistCtrlT, RefreshPlaylistAudiosDirThenReload) {

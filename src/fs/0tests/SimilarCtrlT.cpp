@@ -6,6 +6,7 @@
 #include <fs/AsyncFsManager.h>
 #include "data/FsHelper.h"
 #include "data/FileCacheM.h"
+#include "data/PhotoCacheM.h"
 #include "data/RealFsM.h"
 #include "data/ThreadPoolM.h"
 #include "data/FileObtainerM.h"
@@ -21,7 +22,7 @@ public:
     using SimilarCtrl = vk_music_fs::fs::SimilarCtrl<
             CtrlM,
             vk_music_fs::fs::FsUtils, FileObtainerM,
-            vk_music_fs::fs::AsyncFsManager<vk_music_fs::fs::FsUtils, FileCacheM, RealFsM, ThreadPoolM>
+            vk_music_fs::fs::AsyncFsManager<vk_music_fs::fs::FsUtils, FileCacheM, PhotoCacheM, RealFsM, ThreadPoolM>
             >;
     using OffsetCntPlaylist = vk_music_fs::fs::OffsetCntPlaylist;
 
@@ -30,6 +31,7 @@ public:
             di::bind<vk_music_fs::NumSearchFiles>.to(vk_music_fs::NumSearchFiles{2}),
             di::bind<vk_music_fs::CreateDummyDirs>.to(vk_music_fs::CreateDummyDirs{false}),
             di::bind<vk_music_fs::fs::UseAsyncNotifier>.to(vk_music_fs::fs::UseAsyncNotifier{false}),
+            di::bind<vk_music_fs::fs::PhotoName>.to(vk_music_fs::fs::PhotoName{"photo.jpg"}),
             di::bind<vk_music_fs::fs::PathToFs>.to(vk_music_fs::fs::PathToFs{"/"})
             )));
     std::shared_ptr<SimilarCtrl> ctrl;

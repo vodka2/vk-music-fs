@@ -135,7 +135,7 @@ std::vector<FilePtr> FsUtils::addFilesToDir(
         const DirPtr &dir, const std::vector<RemoteFile> &files,
         const std::shared_ptr<IdGenerator> &idGenerator, const std::string &extension
 ) {
-    auto curTime = dir->getNumFiles();
+    auto curTime = dir->getNumFiles() + 1;
     std::vector<FilePtr> createdFiles;
     auto albumName = (
             dir->getDirExtra() &&
@@ -161,14 +161,14 @@ std::vector<FilePtr> FsUtils::addFilesToDir(
     return createdFiles;
 }
 
-RemoteFile FsUtils::getRemoteFile(FsPath &fsPath, const std::string &fullPath) {
+FileExtra FsUtils::getFileExtra(FsPath &fsPath, const std::string &fullPath) {
     if(!fsPath.isPathMatched()){
         throw FsException("File does not exist " + fullPath);
     }
     if(!fsPath.getLast().isFile()){
         throw FsException("Not a file " + fullPath);
     }
-    return std::get<RemoteFile>(*fsPath.getLast().file()->getExtra());
+    return fsPath.getLast().file()->getExtra();
 }
 
 bool FsUtils::isPathElementLocked(const DirOrFile &element, const std::vector<FsPath> &locked) {

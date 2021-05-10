@@ -2,7 +2,7 @@
 #include <fs/common_fs.h>
 #include <fs/Dir.h>
 #include <fs/OffsetCnt.h>
-#include <fs/IdGenerator.h>
+#include <common/IdGenerator.h>
 
 namespace vk_music_fs {
     namespace fs {

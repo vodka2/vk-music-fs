@@ -1,7 +1,7 @@
 #pragma once
 
 #include <fs/FsSettings.h>
-#include <fs/IdGenerator.h>
+#include <common/IdGenerator.h>
 #include <fs/OffsetCnt.h>
 #include <fs/OffsetCntName.h>
 #include <fs/Dir.h>

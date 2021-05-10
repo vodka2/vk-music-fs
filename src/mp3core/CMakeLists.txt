@@ -8,6 +8,12 @@ add_vmf_lib_test(mp3core
         FileManager.h
         FileProcessor.cpp
         FileProcessor.h
+        FileProcessorCreator.cpp
+        FileProcessorCreator.h
+        PhotoProcessor.cpp
+        PhotoProcessor.h
+        PhotoProcessorCreator.cpp
+        PhotoProcessorCreator.h
         Mp3Parser.cpp
         Mp3Parser.h
         Reader.cpp

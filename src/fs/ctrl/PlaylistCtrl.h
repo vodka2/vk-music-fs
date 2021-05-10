@@ -3,7 +3,7 @@
 #include <fs/FsSettings.h>
 #include <fs/Dir.h>
 #include <fs/File.h>
-#include <fs/IdGenerator.h>
+#include <common/IdGenerator.h>
 #include "ThrowExCtrl.h"
 #include <fs/actions/act.h>
 #include <fs/OffsetCntPlaylist.h>
@@ -97,6 +97,10 @@ namespace vk_music_fs {
                                         [this, parent] (uint_fast32_t offset, uint_fast32_t cnt) {
                                             OffsetCntPlaylist curOffsetCntPlaylist = std::get<OffsetCntPlaylist>(*parent->getDirExtra());
                                             auto playlist = curOffsetCntPlaylist.getPlaylist();
+                                            if (playlist.remotePhotoFile) {
+                                                _asyncFsManager->createPhoto(parent,
+                                                        RemotePhotoFile{*playlist.remotePhotoFile, playlist.ownerId, playlist.albumId});
+                                            }
                                             _asyncFsManager->createFiles(
                                                     parent,
                                                     _fileObtainer->getPlaylistAudios(
@@ -116,6 +120,10 @@ namespace vk_music_fs {
                                 OffsetCntPlaylist curOffsetCntPlaylist = std::get<OffsetCntPlaylist>(
                                         *parent->getDirExtra());
                                 auto playlist = curOffsetCntPlaylist.getPlaylist();
+                                if (playlist.remotePhotoFile) {
+                                    _asyncFsManager->createPhoto(parent,
+                                            RemotePhotoFile{*playlist.remotePhotoFile, playlist.ownerId, playlist.albumId});
+                                }
                                 _asyncFsManager->createFiles(
                                         parent,
                                         _fileObtainer->getPlaylistAudios(

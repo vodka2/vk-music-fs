@@ -4,7 +4,7 @@
 #include <mp3core/RemoteFile.h>
 #include <fs/FsPath.h>
 #include <fs/FsSettings.h>
-#include <fs/IdGenerator.h>
+#include <common/IdGenerator.h>
 #include <fs/FsException.h>
 #include <fs/DirOrFile.h>
 #include <fs/Dir.h>

@@ -8,7 +8,7 @@
 #include <fs/FsException.h>
 #include <boost/filesystem.hpp>
 #include <fs/FsSettings.h>
-#include <fs/IdGenerator.h>
+#include <common/IdGenerator.h>
 #include <fs/actions/NumberAct.h>
 #include <fs/actions/act.h>
 

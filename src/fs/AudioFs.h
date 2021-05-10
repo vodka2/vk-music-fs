@@ -13,7 +13,7 @@
 #include "File.h"
 #include "DirOrFile.h"
 #include "FsException.h"
-#include "IdGenerator.h"
+#include "common/IdGenerator.h"
 
 namespace vk_music_fs {
     namespace fs {

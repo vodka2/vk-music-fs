@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common_fs.h"
+#include <common/RemotePhotoFile.h>
 #include <mutex>
 #include <mp3core/RemoteFile.h>
 

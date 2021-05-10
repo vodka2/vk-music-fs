@@ -21,8 +21,6 @@ add_vmf_lib_test(fs
         FsSettings.h
         FsUtils.cpp
         FsUtils.h
-        IdGenerator.cpp
-        IdGenerator.h
         Mp3FileName.cpp
         Mp3FileName.h
         OffsetCnt.cpp

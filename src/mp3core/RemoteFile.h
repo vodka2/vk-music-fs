@@ -8,6 +8,7 @@ namespace vk_music_fs {
 
     class RemoteFile {
     public:
+        typedef RemoteFileId IdType;
         RemoteFile(
                 const std::string &uri, int_fast32_t ownerId, uint_fast32_t fileId,
                 const std::string &artist, const std::string &title, const std::optional<std::string> albumName = std::nullopt
@@ -32,10 +33,12 @@ namespace vk_music_fs {
         SongData _songData;
     };
 
+    struct RemoteFileIdHasher;
 
     class RemoteFileId{
     public:
         friend class RemoteFileIdHasher;
+        typedef RemoteFileIdHasher Hasher;
         explicit RemoteFileId(const RemoteFile &file);
         RemoteFileId(int_fast32_t ownerId, uint_fast32_t fileId) : _ownerId(ownerId), _fileId(fileId){}
 

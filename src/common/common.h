@@ -14,6 +14,10 @@ namespace vk_music_fs{
         uint_fast32_t prependSize;
     };
 
+    struct TotalSize {
+        uint_fast32_t totalSize;
+    };
+
     struct VkCredentials{
         std::string login;
         std::string password;
@@ -43,7 +47,7 @@ namespace vk_music_fs{
     BOOST_STRONG_TYPEDEF(uint_fast32_t, FileSize); //NOLINT
     BOOST_STRONG_TYPEDEF(uint_fast32_t, HttpTimeout); //NOLINT
     BOOST_STRONG_TYPEDEF(uint_fast32_t, NumSearchFiles); //NOLINT
-    BOOST_STRONG_TYPEDEF(std::string, Mp3Uri); //NOLINT
+    BOOST_STRONG_TYPEDEF(std::string, RemoteFileUri); //NOLINT
     BOOST_STRONG_TYPEDEF(std::string, UserAgent); //NOLINT
     BOOST_STRONG_TYPEDEF(std::string, Token); //NOLINT
     BOOST_STRONG_TYPEDEF(std::string, Mp3Extension); //NOLINT

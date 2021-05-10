@@ -3,9 +3,9 @@
 using namespace vk_music_fs;
 using namespace vk_music_fs::fs;
 
-IdGenerator::IdGenerator() : _lastId(0){
+IdGeneratorBase::IdGeneratorBase() : _lastId(0){
 }
 
-uint_fast32_t IdGenerator::getNextId() {
+uint_fast32_t IdGeneratorBase::getNextId() {
     return _lastId++;
 }

@@ -15,6 +15,10 @@ add_vmf_lib_test(
         RealFs.cpp
         RealFs.h
         OverridableSetting.h
+        RemotePhotoFile.cpp
+        RemotePhotoFile.h
+        IdGenerator.cpp
+        IdGenerator.h
         )
 
 target_link_libraries(common nowide)

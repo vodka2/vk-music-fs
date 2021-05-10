@@ -12,7 +12,8 @@ namespace vk_music_fs {
                     const Mp3Extension &mp3Ext,
                     const CreateDummyDirs &createDummyDirs,
                     const PathToFs &pathToFs,
-                    const UseAsyncNotifier &useAsyncNotifier
+                    const UseAsyncNotifier &useAsyncNotifier,
+                    const PhotoName &photoName
             );
 
             uint_fast32_t getNumSearchFiles() const;
@@ -25,12 +26,15 @@ namespace vk_music_fs {
 
             bool isUseAsyncNotifier();
 
+            const std::string &getPhotoName() const;
+
         private:
             uint_fast32_t _numSearchFiles;
             std::string _mp3Ext;
             std::string _pathToFs;
             CreateDummyDirs _createDummyDirs;
             UseAsyncNotifier _useAsyncNotifier;
+            std::string _photoName;
         };
     }
 }

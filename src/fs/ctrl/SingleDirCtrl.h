@@ -1,7 +1,7 @@
 #pragma once
 
 #include <boost/algorithm/string/predicate.hpp>
-#include <fs/IdGenerator.h>
+#include <common/IdGenerator.h>
 #include "RedirectCtrl.h"
 #include <fs/OffsetCnt.h>
 

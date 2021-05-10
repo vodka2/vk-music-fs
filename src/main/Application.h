@@ -5,11 +5,13 @@
 #include <common/MusicFsException.h>
 
 namespace vk_music_fs {
-    template <typename TFileManager, typename TAudioFs, typename TLogger, typename THttpCommon, typename TFakeFs>
+    template <typename TFileManager, typename TPhotoManager, typename TAudioFs, typename TLogger, typename THttpCommon, typename TFakeFs>
     class Application {
     public:
         Application(
-                const std::shared_ptr<TAudioFs> &api, const std::shared_ptr<TFileManager> &fileManager,
+                const std::shared_ptr<TAudioFs> &api,
+                const std::shared_ptr<TFileManager> &fileManager,
+                const std::shared_ptr<TPhotoManager> &photoManager,
                 const std::shared_ptr<THttpCommon> &httpCommon,
                 const std::shared_ptr<TLogger> &logger,
                 const std::shared_ptr<TFakeFs> &fakeFs,
@@ -17,7 +19,7 @@ namespace vk_music_fs {
         )
         :
         _httpCommon(httpCommon), _options(options), _fakeFs(fakeFs),
-        _audioFs(api), _fileManager(fileManager), _logger(logger){
+        _audioFs(api), _fileManager(fileManager), _photoManager(photoManager), _logger(logger){
         }
 
         ~Application(){
@@ -48,7 +50,11 @@ namespace vk_music_fs {
                 if (fakeRead) {
                     return *fakeRead;
                 } else {
-                    return _fileManager->read(id, offset, size);
+                    if (_fileManager->ownsFile(id)) {
+                        return _fileManager->read(id, offset, size);
+                    } else {
+                        return _photoManager->read(id, offset, size);
+                    }
                 }
             } catch (const MusicFsException &exc){
                 _logger->logException(exc);
@@ -60,7 +66,11 @@ namespace vk_music_fs {
             try {
                 auto fakeClose = _fakeFs->close(id);
                 if (!fakeClose) {
-                    _fileManager->close(id);
+                    if (_fileManager->ownsFile(id)) {
+                        return _fileManager->close(id);
+                    } else {
+                        return _photoManager->close(id);
+                    }
                 }
             } catch (const MusicFsException &exc){
                 _logger->logException(exc);
@@ -136,6 +146,7 @@ namespace vk_music_fs {
         std::shared_ptr<ProgramOptions> _options;
         std::shared_ptr<TAudioFs> _audioFs;
         std::shared_ptr<TFileManager> _fileManager;
+        std::shared_ptr<TPhotoManager> _photoManager;
         std::shared_ptr<TLogger> _logger;
     };
 }

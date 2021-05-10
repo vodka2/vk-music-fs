@@ -3,7 +3,7 @@
 #include <boost/algorithm/string.hpp>
 #include "common_fs.h"
 #include "FsPath.h"
-#include "IdGenerator.h"
+#include "common/IdGenerator.h"
 #include "DirOrFile.h"
 #include "Dir.h"
 #include <mp3core/RemoteFile.h>
@@ -29,7 +29,7 @@ namespace vk_music_fs {
                     const DirPtr &dir, const std::vector<RemoteFile> &files,
                     const std::shared_ptr<IdGenerator> &idGenerator, const std::string &extension
             );
-            RemoteFile getRemoteFile(FsPath &path, const std::string &fullPath);
+            FileExtra getFileExtra(FsPath &path, const std::string &fullPath);
             template <typename TFunc>
             void limitItems(const DirPtr &dir, uint_fast32_t num, TFunc func) {
                 std::vector<DirOrFile> items;

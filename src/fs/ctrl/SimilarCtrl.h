@@ -8,7 +8,7 @@
 #include <fs/FsException.h>
 #include <boost/filesystem.hpp>
 #include <fs/FsSettings.h>
-#include <fs/IdGenerator.h>
+#include <common/IdGenerator.h>
 #include <fs/actions/NumberAct.h>
 #include <fs/actions/act.h>
 
@@ -79,7 +79,8 @@ namespace vk_music_fs {
             }
 
             void rename(FsPath& oldPath, FsPath &newPath) {
-                if(!oldPath.getAll().back().isFile()){
+                if(!oldPath.getAll().back().isFile() ||
+                    !std::holds_alternative<RemoteFile>(*oldPath.getAll().back().file()->getExtra())) {
                     _ctrl->rename(oldPath, newPath);
                     return;
                 }

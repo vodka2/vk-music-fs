@@ -12,14 +12,16 @@
 
 namespace vk_music_fs {
     namespace fs {
-        template <typename TCtrl, typename TFsUtils, typename TFileManager>
+        template <typename TCtrl, typename TFsUtils, typename TFileManager, typename TPhotoManager>
         class RemoteFileWrapper: public RedirectCtrl<TCtrl> {
         public:
             RemoteFileWrapper(
                     std::shared_ptr<TCtrl> ctrl,
                     std::shared_ptr<TFsUtils> fsUtils,
-                    std::shared_ptr<TFileManager> fileManager
-            ) : RedirectCtrl<TCtrl>(ctrl), _ctrl(ctrl), _fsUtils(fsUtils), _fileManager(fileManager){
+                    std::shared_ptr<TFileManager> fileManager,
+                    std::shared_ptr<TPhotoManager> photoManager
+            ) : RedirectCtrl<TCtrl>(ctrl), _ctrl(ctrl), _fsUtils(fsUtils),
+            _fileManager(fileManager), _photoManager(photoManager){
             }
 
             std::string transformPath(const std::string &path){
@@ -35,7 +37,7 @@ namespace vk_music_fs {
                 DirPtr dir = fsPath.getLast().dir();
                 std::vector<FileInfo> retVector;
                 for(auto &item: dir->getContents()) {
-                    if (item.second.isFile()) {
+                    if (item.second.isFile() && std::holds_alternative<RemoteFile>(*item.second.file()->getExtra())) {
                         auto extra = std::get<RemoteFile>(*item.second.file()->getExtra());
                         retVector.emplace_back(extra.getArtist(), extra.getTitle(),
                                 dirname + "/" + item.second.getName(), item.second.getTime());
@@ -53,8 +55,16 @@ namespace vk_music_fs {
                 if (!fsPath.isPathMatched() || fsPath.getLast().isDir() || fsPath.getLast().file()->isHidden()) {
                     throw FsException("File " + filename + " does not exist");
                 }
-                auto remoteFile = _fsUtils->getRemoteFile(fsPath, filename);
-                return _fileManager->open(remoteFile, filename);
+                auto extra = _fsUtils->getFileExtra(fsPath, filename);
+                if (extra && std::holds_alternative<RemoteFile>(*extra)) {
+                    auto remoteFile = std::get<RemoteFile>(*extra);
+                    return _fileManager->open(remoteFile, filename);
+                } else if (extra && std::holds_alternative<RemotePhotoFile>(*extra)) {
+                    auto remotePhotoFile = std::get<RemotePhotoFile>(*extra);
+                    return _photoManager->open(remotePhotoFile, filename);
+                } else {
+                    throw FsException("Bad file " + filename);
+                }
             }
 
             void createFile(const std::string &filename) {
@@ -76,8 +86,16 @@ namespace vk_music_fs {
                 if (!fsPath.isPathMatched() || fsPath.getLast().isDir()) {
                     throw FsException("File " + filename + " does not exist");
                 }
-                auto remoteFile = _fsUtils->getRemoteFile(fsPath, filename);
-                return _fileManager->getFileSize(remoteFile, filename);
+                auto extra = _fsUtils->getFileExtra(fsPath, filename);
+                if (extra && std::holds_alternative<RemoteFile>(*extra)) {
+                    auto remoteFile = std::get<RemoteFile>(*extra);
+                    return _fileManager->getFileSize(remoteFile, filename);
+                } else if (extra && std::holds_alternative<RemotePhotoFile>(*extra)) {
+                    auto remotePhotoFile = std::get<RemotePhotoFile>(*extra);
+                    return _photoManager->getFileSize(remotePhotoFile, filename);
+                } else {
+                    throw FsException("Bad file " + filename);
+                }
             }
 
             std::vector<std::string> getEntries(const std::string &path) {
@@ -92,6 +110,7 @@ namespace vk_music_fs {
             std::shared_ptr<TCtrl> _ctrl;
             std::shared_ptr<TFsUtils> _fsUtils;
             std::shared_ptr<TFileManager> _fileManager;
+            std::shared_ptr<TPhotoManager> _photoManager;
         };
     }
 }

@@ -11,7 +11,7 @@ namespace vk_music_fs{
     namespace net {
         class HttpStream {
         public:
-            HttpStream(const Mp3Uri &uri, const std::shared_ptr<HttpStreamCommon> &common,
+            HttpStream(const RemoteFileUri &uri, const std::shared_ptr<HttpStreamCommon> &common,
                        const UserAgent &userAgent, const HttpTimeout &timeout);
 
             template <typename T>

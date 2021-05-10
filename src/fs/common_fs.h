@@ -5,12 +5,14 @@
 #include <variant>
 #include <memory>
 #include <common/OverridableSetting.h>
+#include <common/RemotePhotoFile.h>
 
 namespace vk_music_fs{
     class RemoteFile;
     namespace fs{
         //NOLINT
         BOOST_STRONG_TYPEDEF(std::string, PathToFs)
+        BOOST_STRONG_TYPEDEF(std::string, PhotoName)
         OVERRIDABLE_SETTING(bool, UseAsyncNotifier)
         class Dir;
         class File;
@@ -24,7 +26,7 @@ namespace vk_music_fs{
         typedef std::optional<std::variant<
                 OffsetCnt, OffsetCntName, OffsetCntPlaylist, DummyDirMarker, OffsetCntRemoteFile
                 >> DirExtra;
-        typedef std::optional<std::variant<RemoteFile>> FileExtra;
+        typedef std::optional<std::variant<RemoteFile, RemotePhotoFile>> FileExtra;
 
         typedef std::shared_ptr<Dir> DirPtr;
         typedef std::weak_ptr<Dir> DirWPtr;

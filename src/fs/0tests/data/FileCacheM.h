@@ -8,8 +8,7 @@ namespace vk_music_fs {
         public:
             template<typename... T>
             FileCacheM0(T &&... args) {} //NOLINT
-            MOCK_CONST_METHOD1(getFileSize, uint_fast32_t(
-                    const RemoteFile &file));
+            MOCK_CONST_METHOD1(getFileSize, uint_fast32_t(const RemoteFile &file));
         };
     }
 }

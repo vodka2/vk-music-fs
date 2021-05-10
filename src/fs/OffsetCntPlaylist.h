@@ -20,12 +20,13 @@ namespace vk_music_fs {
 
         struct PlaylistData{
             PlaylistData(int_fast32_t ownerId, uint_fast32_t albumId, const std::string &accessKey,
-                         const std::string &title, bool isAlbum = false);
+                         const std::string &title, bool isAlbum = false, std::optional<std::string> RemotePhotoFile = std::nullopt);
             int_fast32_t ownerId;
             uint_fast32_t albumId;
             std::string accessKey;
             std::string title;
             bool isAlbum;
+            std::optional<std::string> remotePhotoFile;
         };
 
         class OffsetCntPlaylist {

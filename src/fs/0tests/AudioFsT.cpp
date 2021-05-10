@@ -19,7 +19,9 @@
 #include <fs/actions/act.h>
 #include <fs/AsyncFsManager.h>
 #include "data/FileManagerM.h"
+#include "fs/0tests/data/PhotoManagerM.h"
 #include "data/FileCacheM.h"
+#include "data/PhotoCacheM.h"
 #include "data/RealFsM.h"
 #include "data/ThreadPoolM.h"
 
@@ -52,8 +54,8 @@ public:
 
     typedef vk_music_fs::AudioFs<
             vk_music_fs::fs::CtrlTuple<
-                    vk_music_fs::fs::FsUtils, vk_music_fs::fs::FileObtainer<QueryMakerM>, FileManagerM,
-                    vk_music_fs::fs::AsyncFsManager<vk_music_fs::fs::FsUtils, FileCacheM, RealFsM, ThreadPoolM>
+                    vk_music_fs::fs::FsUtils, vk_music_fs::fs::FileObtainer<QueryMakerM>, FileManagerM, PhotoManagerM,
+                    vk_music_fs::fs::AsyncFsManager<vk_music_fs::fs::FsUtils, FileCacheM, PhotoCacheM, RealFsM, ThreadPoolM>
                     >
     > AudioFs;
 
@@ -63,6 +65,7 @@ public:
                 di::bind<vk_music_fs::NumSearchFiles>.to(vk_music_fs::NumSearchFiles{numSearchFiles}),
                 di::bind<vk_music_fs::CreateDummyDirs>.to(vk_music_fs::CreateDummyDirs{createDummyDirs}),
                 di::bind<vk_music_fs::fs::UseAsyncNotifier>.to(vk_music_fs::fs::UseAsyncNotifier{false}),
+                di::bind<vk_music_fs::fs::PhotoName>.to(vk_music_fs::fs::PhotoName{"photo.jpg"}),
                 di::bind<vk_music_fs::fs::PathToFs>.to(vk_music_fs::fs::PathToFs{"/"})
         );
     }

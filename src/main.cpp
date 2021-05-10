@@ -1,10 +1,14 @@
 #include <net/HttpStream.h>
 #include <mp3core/FileProcessor.h>
+#include <mp3core/PhotoProcessor.h>
 #include <boost/di/extension/scopes/scoped.hpp>
 #include <mp3core/Mp3Parser.h>
 #include <cache/MusicFile.h>
+#include <cache/PhotoFile.h>
 #include <mp3core/FileManager.h>
 #include <mp3core/Reader.h>
+#include <mp3core/FileProcessorCreator.h>
+#include <mp3core/PhotoProcessorCreator.h>
 #include <main/Application.h>
 #include <fs/AudioFs.h>
 #include <fs/FsUtils.h>
@@ -32,6 +36,7 @@
 #include <fs/AsyncFsManager.h>
 #include <common/RealFs.h>
 #include <main/FakeFs.h>
+#include <cache/PhotoCache.h>
 
 using namespace vk_music_fs;
 
@@ -43,11 +48,16 @@ typedef FileProcessor<
         net::HttpStream, MusicFile, Mp3Parser, ThreadPool, BlockingBufferD,
         vk_music_fs::IOBlockCreator<IOBlock<1024 * 64>>
 > FileProcessorD;
-typedef FileManager<FileCache, FileProcessorD, Reader> FileManagerD;
+typedef PhotoProcessor<
+        net::HttpStream, PhotoFile,
+        vk_music_fs::IOBlockCreator<IOBlock<1024 * 64>>
+> PhotoProcessorD;
+typedef FileManager<FileCache, Reader, FileProcessorCreator<FileProcessorD>, RemoteFile> FileManagerD;
+typedef FileManager<PhotoCache, Reader, PhotoProcessorCreator<PhotoProcessorD>, RemotePhotoFile> PhotoManagerD;
 typedef AudioFs<
-        fs::CtrlTuple<fs::FsUtils, fs::FileObtainer<net::VkApiQueryMaker>, FileManagerD,
-                fs::AsyncFsManager<fs::FsUtils, FileCache, RealFs, ThreadPool>>> AFs;
-typedef Application<FileManagerD, AFs, ErrLogger, net::HttpStreamCommon, FakeFs<AFs>> ApplicationD;
+        fs::CtrlTuple<fs::FsUtils, fs::FileObtainer<net::VkApiQueryMaker>, FileManagerD, PhotoManagerD,
+                fs::AsyncFsManager<fs::FsUtils, FileCache, PhotoCache, RealFs, ThreadPool>>> AFs;
+typedef Application<FileManagerD, PhotoManagerD, AFs, ErrLogger, net::HttpStreamCommon, FakeFs<AFs>> ApplicationD;
 
 auto curTime = static_cast<uint_fast32_t>(time(nullptr)); //NOLINT
 
@@ -56,8 +66,10 @@ auto commonInj = [] (const std::shared_ptr<ProgramOptions> &conf){ // NOLINT
     return makeStorageInj(
             di::bind<net::HttpStream>.in(di::unique),
             di::bind<MusicFile>.in(di::unique),
+            di::bind<PhotoFile>.in(di::unique),
             di::bind<Mp3Parser>.in(di::unique),
             di::bind<FileProcessorD>.in(di::unique),
+            di::bind<PhotoProcessorD>.in(di::unique),
             di::bind<Reader>.in(di::unique),
             di::bind<TagSizeCalculator>.in(di::unique),
             di::bind<vk_music_fs::FileBuffer>.in(di::unique),
@@ -76,10 +88,11 @@ auto commonInj = [] (const std::shared_ptr<ProgramOptions> &conf){ // NOLINT
             di::bind<HttpTimeout>.to(HttpTimeout{conf->getHttpTimeout()}),
             di::bind<fs::UseAsyncNotifier>.to(fs::UseAsyncNotifier{conf->enableAsyncCreation()}),
             di::bind<net::VkSettings>.to(net::VkSettings{"https://api.vk.com/method", "5.95"}),
+            di::bind<vk_music_fs::fs::PhotoName>.to(vk_music_fs::fs::PhotoName{"photo.jpg"}),
             di::bind<fs::PathToFs>.to(fs::PathToFs{conf->getMountPoint()}),
             di::bind<di::extension::iextfactory<FileProcessorD,
                     SongData,
-                    Mp3Uri,
+                    RemoteFileUri,
                     TagSize,
                     RemoteFile,
                     CachedFilename
@@ -87,7 +100,12 @@ auto commonInj = [] (const std::shared_ptr<ProgramOptions> &conf){ // NOLINT
             di::bind<di::extension::iextfactory<Reader,
                     CachedFilename,
                     FileSize
-            >>.to(di::extension::extfactory<Reader>{})
+            >>.to(di::extension::extfactory<Reader>{}),
+            di::bind<di::extension::iextfactory<PhotoProcessorD,
+                    RemotePhotoFile,
+                    RemoteFileUri,
+                    CachedFilename
+            >>.to(di::extension::extfactory<PhotoProcessorD>{})
     );
 };
 

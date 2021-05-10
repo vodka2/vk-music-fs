@@ -5,6 +5,8 @@
 #include <boost/di/extension/scopes/scoped.hpp>
 #include <FileManager.h>
 #include <diext/ext_factory.hpp>
+#include <mp3core/RemoteFile.h>
+#include <mp3core/FileProcessorCreator.h>
 
 using vk_music_fs::ByteVect;
 using vk_music_fs::InjPtr;
@@ -50,7 +52,7 @@ typedef di::extension::iextfactory<
 
 typedef di::extension::iextfactory<FileProcessorM,
         vk_music_fs::SongData,
-        vk_music_fs::Mp3Uri,
+        vk_music_fs::RemoteFileUri,
         vk_music_fs::TagSize,
         RemoteFile,
         vk_music_fs::CachedFilename
@@ -73,7 +75,7 @@ public:
             createShared,
             std::shared_ptr<FileProcessorM>(
                     vk_music_fs::SongData,
-                    vk_music_fs::Mp3Uri,
+                    vk_music_fs::RemoteFileUri,
                     vk_music_fs::TagSize,
                     RemoteFile,
                  vk_music_fs::CachedFilename
@@ -83,7 +85,8 @@ public:
 
 class FileManagerT: public ::testing::Test {
 public:
-    typedef vk_music_fs::FileManager<FileCacheM, FileProcessorM, ReaderM> FileManager;
+    typedef vk_music_fs::FileManager<FileCacheM, ReaderM,
+    vk_music_fs::FileProcessorCreator<FileProcessorM>, RemoteFile> FileManager;
 
     auto_init(inj, (vk_music_fs::makeStorageInj(
             di::bind<IReaderFact>.to<ReaderFact>(),

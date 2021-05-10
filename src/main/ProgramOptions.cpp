@@ -220,9 +220,9 @@ void ProgramOptions::addCommonOpts(boost::program_options::options_description &
             ("token", po::value<std::string>(), "set token")
             ("user_agent", po::value<std::string>(), "set user agent")
             ("sizes_cache_size", po::value<uint_fast32_t>()->default_value(10000),
-             "set max number of remote file sizes in cache")
+             "set max number of remote file sizes in cache (the same for mp3s and photos)")
             ("files_cache_size", po::value<uint_fast32_t>()->default_value(300),
-             "set max number of remote files in cache")
+             "set max number of remote files in cache (the same for mp3s and photos)")
             ("mp3_ext", po::value<std::string>()->default_value(".mp3"), "set mp3 files extension")
             ("num_search_files", po::value<uint_fast32_t>()->default_value(10),
              "set initial number of files in the search directory")

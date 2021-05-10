@@ -20,10 +20,11 @@ FsSettings::FsSettings(
         const Mp3Extension &mp3Ext,
         const CreateDummyDirs &createDummyDirs,
         const PathToFs &pathToFs,
-        const UseAsyncNotifier &useAsyncNotifier
+        const UseAsyncNotifier &useAsyncNotifier,
+        const PhotoName &photoName
 ) :
 _numSearchFiles(numSearchFiles), _mp3Ext(mp3Ext), _pathToFs(pathToFs),
-_createDummyDirs(createDummyDirs), _useAsyncNotifier(useAsyncNotifier){
+_createDummyDirs(createDummyDirs), _useAsyncNotifier(useAsyncNotifier), _photoName(photoName){
 }
 
 const std::string FsSettings::getPathToFs() const {
@@ -32,4 +33,8 @@ const std::string FsSettings::getPathToFs() const {
 
 bool FsSettings::isUseAsyncNotifier() {
     return _useAsyncNotifier;
+}
+
+const std::string &FsSettings::getPhotoName() const {
+    return _photoName;
 }

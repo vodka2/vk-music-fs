@@ -9,6 +9,8 @@
 #include <mp3core/RemoteFile.h>
 #include "OffsetCntPlaylist.h"
 #include <unordered_set>
+#include <boost/algorithm/string.hpp>
+#include <boost/lexical_cast.hpp>
 #include <atomic>
 
 using json = nlohmann::json;
@@ -136,8 +138,25 @@ namespace vk_music_fs {
                 auto resp = returnedJson["response"];
                 for (const auto &item: resp["items"]) {
                     auto isAlbum = (item.find("album_type") != item.end() &&
-                            item["album_type"].get<std::string>() == "main_only");
-                    ret.push_back(PlaylistData{item["owner_id"], item["id"], item["access_key"], item["title"], isAlbum});
+                            (item["album_type"].get<std::string>() == "main_only" ||
+                             item["album_type"].get<std::string>() == "main_feat"));
+                    std::optional<std::string> RemotePhotoFile;
+                    if (isAlbum && item.find("photo") != item.end()) {
+                        auto photo = item["photo"];
+                        uint_fast32_t maxPhotoKey = 0;
+                        for (auto it = photo.begin(); it != photo.end(); ++it) {
+                            if (boost::starts_with(it.key(), "photo_")) {
+                                auto curKey = boost::lexical_cast<uint_fast32_t>(boost::replace_first_copy(it.key(), "photo_", ""));
+                                if (curKey > maxPhotoKey) {
+                                    maxPhotoKey = curKey;
+                                }
+                            }
+                        }
+                        if (maxPhotoKey != 0) {
+                            RemotePhotoFile = photo["photo_" + std::to_string(maxPhotoKey)].get<std::string>();
+                        }
+                    }
+                    ret.push_back(PlaylistData{item["owner_id"], item["id"], item["access_key"], item["title"], isAlbum, RemotePhotoFile});
                 }
                 return std::move(ret);
             }
