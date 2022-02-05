@@ -4,6 +4,8 @@
 #include <vector>
 #include <string>
 #include <boost/serialization/strong_typedef.hpp>
+#include <optional>
+#include <memory>
 #include "OverridableSetting.h"
 
 namespace vk_music_fs{
