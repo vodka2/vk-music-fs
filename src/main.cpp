@@ -87,7 +87,7 @@ auto commonInj = [] (const std::shared_ptr<ProgramOptions> &conf){ // NOLINT
             di::bind<ErrLogFile>.to(ErrLogFile{conf->getErrLogFile()}),
             di::bind<HttpTimeout>.to(HttpTimeout{conf->getHttpTimeout()}),
             di::bind<fs::UseAsyncNotifier>.to(fs::UseAsyncNotifier{conf->enableAsyncCreation()}),
-            di::bind<net::VkSettings>.to(net::VkSettings{"https://api.vk.com/method", "5.95"}),
+            di::bind<net::VkSettings>.to(net::VkSettings{"https://api.vk.ru/method", "5.95"}),
             di::bind<vk_music_fs::fs::PhotoName>.to(vk_music_fs::fs::PhotoName{"photo.jpg"}),
             di::bind<fs::PathToFs>.to(fs::PathToFs{conf->getMountPoint()}),
             di::bind<di::extension::iextfactory<FileProcessorD,
