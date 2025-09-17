@@ -4,6 +4,7 @@
 #include "File.h"
 #include "FsException.h"
 #include "Mp3FileName.h"
+#include <boost/filesystem.hpp>
 
 using namespace vk_music_fs;
 using namespace vk_music_fs::fs;
@@ -184,6 +185,12 @@ bool FsUtils::isPathElementLocked(const DirOrFile &element, const std::vector<Fs
 
 bool FsUtils::isRefreshDir(const std::string &dir) {
     return std::regex_match(dir, std::regex{"^(r|refresh)[0-9]*$"});
+}
+
+std::string FsUtils::removeExtension(std::string fileName) {
+    boost::filesystem::path p(fileName);
+    p.replace_extension("");
+    return p.string();
 }
 
 

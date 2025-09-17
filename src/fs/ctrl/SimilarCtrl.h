@@ -84,8 +84,8 @@ namespace vk_music_fs {
                     _ctrl->rename(oldPath, newPath);
                     return;
                 }
-                auto origFname = boost::filesystem::change_extension(oldPath.getStringParts().back(), "").string();
-                auto newFname = boost::filesystem::change_extension(newPath.getStringParts().back(), "").string();
+                auto origFname = _fsUtils->removeExtension(oldPath.getStringParts().back());
+                auto newFname = _fsUtils->removeExtension(newPath.getStringParts().back());
                 if (newFname + "_s" == origFname) {
                     auto dir = oldPath.getAll().front().dir();
                     auto newFile = dir->renameFile(oldPath.getStringParts().back(), newPath.getStringParts().back(),

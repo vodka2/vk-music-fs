@@ -63,6 +63,7 @@ add_subdirectory(di)
 add_subdirectory(nowide)
 if(${ENABLE_TESTS})
     add_subdirectory(googletest)
+    target_compile_options(gtest PRIVATE "-w")
 endif()
 
 set(CMAKE_CXX_FLAGS "${OLD_CXX_FLAGS} --std=gnu++17")

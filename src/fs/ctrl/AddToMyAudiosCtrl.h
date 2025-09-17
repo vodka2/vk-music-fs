@@ -18,11 +18,12 @@ namespace vk_music_fs {
         class AddToMyAudiosCtrl: public RedirectCtrl<TCtrl> {
         public:
             AddToMyAudiosCtrl(
+                const std::shared_ptr<TFsUtils> &utils,
                 const std::shared_ptr<TCtrl> &ctrl, const std::shared_ptr<TFileObtainer> &fileObtainer,
                 const std::shared_ptr<FsSettings> &fsSettings, const std::shared_ptr<IdGenerator> &idGenerator,
                 const ActTuple<TFsUtils> &acts
             )
-            : RedirectCtrl<TCtrl>(ctrl), _ctrl(ctrl), _settings(fsSettings), _idGenerator(idGenerator),
+            : RedirectCtrl<TCtrl>(ctrl), _fsUtils(utils), _ctrl(ctrl), _settings(fsSettings), _idGenerator(idGenerator),
               _fileObtainer(fileObtainer), _acts(acts) {}
 
             void rename(FsPath& oldPath, FsPath &newPath) {
@@ -30,8 +31,8 @@ namespace vk_music_fs {
                     _ctrl->rename(oldPath, newPath);
                     return;
                 }
-                auto origFname = boost::filesystem::change_extension(oldPath.getStringParts().back(), "").string();
-                auto newFname = boost::filesystem::change_extension(newPath.getStringParts().back(), "").string();
+                auto origFname = _fsUtils->removeExtension(oldPath.getStringParts().back());
+                auto newFname = _fsUtils->removeExtension(newPath.getStringParts().back());
                 if (newFname + "_a" == origFname) {
                     auto dir = oldPath.getAll().front().dir();
                     auto newFile = dir->renameFile(oldPath.getStringParts().back(), newPath.getStringParts().back(),
@@ -49,6 +50,7 @@ namespace vk_music_fs {
             }
 
         private:
+            std::shared_ptr<TFsUtils> _fsUtils;
             std::shared_ptr<TCtrl> _ctrl;
             std::shared_ptr<FsSettings> _settings;
             std::shared_ptr<IdGenerator> _idGenerator;

@@ -6,7 +6,7 @@
 #include <fs/OffsetCntName.h>
 #include <fs/Dir.h>
 #include <fs/File.h>
-#include <boost/filesystem/convenience.hpp>
+#include <boost/filesystem.hpp>
 #include "ThrowExCtrl.h"
 #include <regex>
 #include <fs/actions/act.h>

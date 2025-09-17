@@ -30,6 +30,7 @@ namespace vk_music_fs {
                     const std::shared_ptr<IdGenerator> &idGenerator, const std::string &extension
             );
             FileExtra getFileExtra(FsPath &path, const std::string &fullPath);
+            std::string removeExtension(std::string fileName);
             template <typename TFunc>
             void limitItems(const DirPtr &dir, uint_fast32_t num, TFunc func) {
                 std::vector<DirOrFile> items;
